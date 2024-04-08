@@ -1,0 +1,10 @@
+[Unit]
+Description=SynaAVeda keypad deamon launcher
+
+[Service]
+ExecStart=/usr/bin/keypad-daemon
+StandardOutput=syslog+console
+
+[Install]
+WantedBy=multi-user.target
+
