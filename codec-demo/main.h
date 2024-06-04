@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2024 Synaptics Incorporated
+
 #ifndef _MAIN_H_
 #define _MAIN_H_
 #include "syna_std_headers.h"
@@ -12,12 +15,6 @@
 #ifdef V4L2_SUPPORT
 #include "encoder_interface_hwv4l2.h"
 #include "decoder_interface_hwv4l2.h"
-#endif
-
-#ifdef AMP_SUPPORT
-#include "encoder_interface_v4l2.h"
-#include "decoder_interface_v4l2.h"
-#include "video_tuner_server.h"
 #endif
 
 int	main_loop = 0;

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2024 Synaptics Incorporated
+
 #ifndef _GBM_MEM_UTILS_H_
 #define _GBM_MEM_UTILS_H_
 #include "syna_std_headers.h"

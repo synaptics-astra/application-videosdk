@@ -1,3 +1,6 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Copyright 2024 Synaptics Incorporated */
+
 #ifndef EGL_EGLEXT_PROTOTYPES
 #define EGL_EGLEXT_PROTOTYPES 1
 #endif

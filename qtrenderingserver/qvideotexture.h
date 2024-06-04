@@ -1,3 +1,6 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Copyright 2024 Synaptics Incorporated */
+
 #ifndef __QVIDEO_TEXTURE_H__
 #define __QVIDEO_TEXTURE_H__
 

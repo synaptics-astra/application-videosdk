@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2024 Synaptics Incorporated
+
 #include "decoder_interface_sw.h"
 
 static void *rx_feedLoop(void *data)

@@ -1,12 +1,11 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2024 Synaptics Incorporated
+
 #ifndef _INSTANCE_H_
 #define _INSTANCE_H_
 
 #include "config.h"
 
-#ifdef AMP_SUPPORT
-#include "decoder_interface_v4l2.h"
-#include "encoder_interface_v4l2.h"
-#endif
 #include "decoder_interface_sw.h"
 #include "encoder_interface_sw.h"
 #ifdef V4L2_SUPPORT

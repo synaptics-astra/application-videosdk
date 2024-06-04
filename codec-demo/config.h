@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2024 Synaptics Incorporated
+
 #ifndef _CONFIG_H_
 #define _CONFIG_H_
 
@@ -19,8 +22,6 @@
 
 typedef enum
 {
-	SESS_AMPENC,
-	SESS_AMPDEC,
 	SESS_SWDEC,
 	SESS_SWENC,
 	SESS_HWENC,

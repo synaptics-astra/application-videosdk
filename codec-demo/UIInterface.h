@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2024 Synaptics Incorporated
+
 #ifndef __UI_INTERFACE_H__
 #define __UI_INTERFACE_H__
 
@@ -24,8 +27,6 @@ typedef enum{
 }MessageType;
 
 typedef enum{
-	AMPENC,
-	AMPDEC,
 	SWDEC,
 	SWENC,
 	HWDEC,

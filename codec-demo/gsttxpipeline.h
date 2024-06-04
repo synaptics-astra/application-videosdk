@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2024 Synaptics Incorporated
+
 #ifndef _GSTTXPIPELINE_H_
 #define _GSTTXPIPELINE_H_
 

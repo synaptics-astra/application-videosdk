@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2024 Synaptics Incorporated
+
 #ifndef __VIDEO_TUNER_APP_H__
 #define __VIDEO_TUNER_APP_H__
 

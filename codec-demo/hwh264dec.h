@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2024 Synaptics Incorporated
+
 #ifndef _HW_V4L2H264DEC_H_
 #define _HW_V4L2H264DEC_H_
 

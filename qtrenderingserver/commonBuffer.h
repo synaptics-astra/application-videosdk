@@ -1,3 +1,6 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Copyright 2024 Synaptics Incorporated */
+
 #ifndef __COMMON_BUFFER_H__
 #define __COMMON_BUFFER_H__
 
@@ -20,8 +23,6 @@ typedef enum{
 }MessageType;
 
 typedef enum{
-	ENC,
-	DEC,
 	SWDEC,
 	SWENC,
 	HWDEC,
@@ -59,9 +60,9 @@ typedef enum{
 }InputPixelFormatUI;
 
 typedef enum{
-    PLATFORM_VS680 = 0,
-    PLATFORM_VS640,
-    PLATFORM_DVF120,
+    PLATFORM_DOLPHIN = 0,
+    PLATFORM_PLATYPUS,
+    PLATFORM_MYNA2,
     MODE_MAX
 }PlatformType;
 

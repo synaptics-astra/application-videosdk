@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2024 Synaptics Incorporated
+
 #include "instance.h"
 
 void startInstance(sess_config_t *sess_cfg)
@@ -6,15 +9,6 @@ void startInstance(sess_config_t *sess_cfg)
 
 	switch(sess_cfg->type)
 	{
-#ifdef AMP_SUPPORT
-		case SESS_AMPENC:
-			startV4L2Encoder(sess_cfg);
-			break;
-
-		case SESS_AMPDEC:
-			startV4L2Decoder(sess_cfg);
-			break;
-#endif
 		case SESS_SWDEC:
 			startSWDecoder(sess_cfg);
 			break;
@@ -43,15 +37,6 @@ void stopInstance(sess_config_t *sess_cfg)
 
 	switch(sess_cfg->type)
 	{
-#ifdef AMP_SUPPORT
-		case SESS_AMPENC:
-			stopV4L2Encoder(sess_cfg);
-			break;
-
-		case SESS_AMPDEC:
-			stopV4L2Decoder(sess_cfg);
-			break;
-#endif
 		case SESS_SWDEC:
 			stopSWDecoder(sess_cfg);
 			break;
@@ -80,15 +65,6 @@ void waitForInstanceShutdown(sess_config_t *sess_cfg)
 
 	switch(sess_cfg->type)
 	{
-#ifdef AMP_SUPPORT
-		case SESS_AMPENC:
-			waitForV4L2EncoderShutdown(sess_cfg);
-			break;
-
-		case SESS_AMPDEC:
-			waitForV4L2DecoderShutdown(sess_cfg);
-			break;
-#endif
 
 		case SESS_SWENC:
 			waitForSWEncoderShutdown(sess_cfg);

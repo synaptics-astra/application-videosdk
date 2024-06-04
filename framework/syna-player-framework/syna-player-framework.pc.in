@@ -1,0 +1,5 @@
+Name: Syna Player Framework
+Description:  Synaptics video playback framework.
+Version: @@PV@@
+Requires:
+Libs: -lsyna-player-framework -lrt

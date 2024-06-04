@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2024 Synaptics Incorporated
+
 #include "encoder_interface_sw.h"
 
 static int SetupNV12cam(enc_config_t *pCfg)

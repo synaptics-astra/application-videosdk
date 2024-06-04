@@ -1,0 +1,12 @@
+<RCC>
+    <qresource prefix="/">
+        <file>qmls/res.qml</file>
+        <file>res/images/astraicon.png</file>
+        <file>res/images/headerbanner.png</file>
+        <file>res/images/verticalline.png</file>
+        <file>res/images/cameraicon.png</file>
+        <file>res/images/fileicon.png</file>
+        <file>res/images/synaicon.png</file>
+        <file>res/images/multiicon.png</file>
+    </qresource>
+</RCC>

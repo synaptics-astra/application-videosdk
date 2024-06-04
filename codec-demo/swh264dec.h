@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: MIT
+// Original work Copyright 2001 Fabrice Bellard
+// Modified work Copyright 2024 Synaptics Incorporated
+
 #ifndef _SWH264DEC_H_
 #define _SWH264DEC_H_
 

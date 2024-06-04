@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2024 Synaptics Incorporated
+
 /************************************************************/
 /* This is a stream socket client program for codec demo	*/
 /* using unix domain sockets.								*/

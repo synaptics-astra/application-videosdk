@@ -1,3 +1,6 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Copyright 2024 Synaptics Incorporated */
+
 #ifndef DEMO_VIDEOITEM_H
 #define DEMO_VIDEOITEM_H
 

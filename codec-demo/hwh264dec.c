@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2024 Synaptics Incorporated
+
 #include "hwh264dec.h"
 
 //#define DUMP_DECODED_DATA_HW 1

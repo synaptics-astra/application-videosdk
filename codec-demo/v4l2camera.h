@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2024 Synaptics Incorporated
+
 #ifndef _V4L2CAMERA_H_
 #define _V4L2CAMERA_H_
 

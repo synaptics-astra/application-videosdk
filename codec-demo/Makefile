@@ -4,24 +4,20 @@ ROOT_FS=$(DESTDIR)
 rm=/bin/rm -f
 cp=/bin/cp -f
 
-MACH_680=vs680
-MACH_640=vs640
-MACH_120=dvf120
+MACH_DOLPHIN=dolphin
+MACH_PLATYPUS=platypus
+MACH_MYNA2=myna2
 
-ifeq ($(CURR_MACH), $(MACH_680))
-LOCAL_CFLAGS += -DCURR_MACH_VS680
+ifeq ($(CURR_MACH), $(MACH_DOLPHIN))
+LOCAL_CFLAGS += -DCURR_MACH_DOLPHIN
 else
-ifeq ($(CURR_MACH), $(MACH_640))
-LOCAL_CFLAGS += -DCURR_MACH_VS640
+ifeq ($(CURR_MACH), $(MACH_PLATYPUS))
+LOCAL_CFLAGS += -DCURR_MACH_PLATYPUS
 else
-ifeq ($(CURR_MACH), $(MACH_120))
-LOCAL_CFLAGS += -DCURR_MACH_DVF120
+ifeq ($(CURR_MACH), $(MACH_MYNA2))
+LOCAL_CFLAGS += -DCURR_MACH_MYNA2
 endif
 endif
-endif
-
-ifeq ($(AMP_ENABLE), 1)
-LOCAL_CFLAGS += -DAMP_SUPPORT
 endif
 
 ifeq ($(V4L2_ENABLE), 1)
@@ -66,24 +62,6 @@ LIBS = \
 	-lgbm -ldrm \
 	-lgstreamer-1.0 -lglib-2.0 -lgobject-2.0 -lgstapp-1.0
 
-
-ifeq ($(AMP_ENABLE), 1)
-LOCAL_C_INCLUDES += \
-					${SDKTARGETSYSROOT}/usr/include/syna/amp/osal \
-					${SDKTARGETSYSROOT}/usr/include/syna/amp
-
-
-LOCAL_SRC_FILES +=	amp-mem-utils.c \
-					v4l2h264enc.c \
-					v4l2h264dec.c \
-					encoder_interface_v4l2.c \
-					decoder_interface_v4l2.c \
-					v4l2hdmi.c \
-					v4l2hdmiext.c \
-					video_tuner_server.c
-
-LIBS += -lampclient -lOSAL -lsynav4l2
-endif
 ifeq ($(V4L2_ENABLE), 1)
 LOCAL_SRC_FILES +=	hwh264enc.c \
 					encoder_interface_hwv4l2.c \
@@ -102,8 +80,6 @@ LOCAL_CFLAGS += -fPIC -g -DSYS_UNIX=1 -D_GNU_SOURCE
 
 INCLUDES = $(addprefix -I, $(LOCAL_C_INCLUDES) )
 
-
-
 LOCAL_WHOLE_LIBRARIES = \
 -Wl,--no-whole-archive \
 
@@ -120,28 +96,15 @@ $(VIDEOTUNERPROGNAME) : $(VT_OBJ_FILES)
 	echo "video-tuner-app: Compiled successfully..!!"
 
 
-ifeq ($(AMP_ENABLE), 1)
-all: $(PROGNAME) $(VIDEOTUNERPROGNAME)
-else
 all: $(PROGNAME)
-endif
 
 install:
 	mkdir -p $(ROOT_FS)/usr/bin
 	$(SHOW_COMMAND)$(cp) $(PROGNAME) $(ROOT_FS)/usr/bin
-ifeq ($(AMP_ENABLE), 1)
-	$(SHOW_COMMAND)$(cp) $(VIDEOTUNERPROGNAME) $(ROOT_FS)/usr/bin
-	echo "Build successfully..!!"
-endif
 
 clean:
 	$(SHOW_COMMAND)$(rm) $(OBJ_FILES) $(PROGNAME) *~ $(PROGNAME).debug
 	$(SHOW_COMMAND)$(rm) $(ROOT_FS)/usr/bin/$(PROGNAME)
-ifeq ($(AMP_ENABLE), 1)
-	$(SHOW_COMMAND)$(rm) $(VT_OBJ_FILES) $(VIDEOTUNERPROGNAME) *~ $(PROGNAME).debug
-	$(SHOW_COMMAND)$(rm) $(ROOT_FS)/usr/bin/$(VIDEOTUNERPROGNAME)
-endif
-
 
 miniclean: clean
 

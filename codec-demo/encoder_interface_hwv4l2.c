@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2024 Synaptics Incorporated
+
 #include "encoder_interface_hwv4l2.h"
 #include "v4l2camera.h"
 #include "v4l2hrx.h"

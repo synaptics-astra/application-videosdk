@@ -1,3 +1,6 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Copyright 2024 Synaptics Incorporated */
+
 #ifndef __QMSINTERFACE_H__
 #define __QMSINTERFACE_H__
 

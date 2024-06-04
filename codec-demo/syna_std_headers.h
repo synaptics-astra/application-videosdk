@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2024 Synaptics Incorporated
+
 #ifndef _SYNA_STD_HEADERS_H_
 #define _SYNA_STD_HEADERS_H_
 
@@ -41,11 +44,6 @@
 #include "logs.h"
 #include "tsemaphore.h"
 #include "queue.h"
-
-#ifdef AMP_SUPPORT
-#include "v4l2_api.h"
-#include "v4l2_types.h"
-#endif
 
 #define true 1
 #define false 0

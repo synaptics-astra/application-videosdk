@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2024 Synaptics Incorporated
+
 #include "main.h"
 
 #define STATS_PERIOD 3
@@ -67,63 +70,6 @@ void dumpStats (int signum) {
 
 		switch(sess_cfg->type)
 		{
-#ifdef AMP_SUPPORT
-			case SESS_AMPENC:
-				{
-					enc_config_t *pCfg = &sess_cfg->sess.enc_cfg;
-					priv_encoder_t *pEnc = (priv_encoder_t *)pCfg->priv;
-
-					if (pEnc != NULL) {
-						pEnc->current_fps = pEnc->total_frames - pEnc->prev_frames;
-						pEnc->prev_frames = pEnc->total_frames;
-						pEnc->current_bitrate = (pEnc->total_bitrate - pEnc->prev_bitrate) * 8 / 1000;
-						pEnc->prev_bitrate = pEnc->total_bitrate;
-
-						if (stats_enable_flag) {
-							LOG_DEF("\n====AMP Encoder Session [%d] ========\n", i);
-							LOG_DEF("Resolution  : %d x %d\n", pCfg->width, pCfg->height);
-							LOG_DEF("FPS         : %f FPS\n", pEnc->current_fps/(float)STATS_PERIOD);
-							LOG_DEF("Bitrate     : %llu kbps\n", pEnc->current_bitrate/STATS_PERIOD);
-							LOG_DEF("Total frames: %lu\n", pEnc->total_frames);
-							LOG_DEF("=======================================\n");
-						}
-					}
-					stMessage.m_sessionID = (pCfg->instance_id+1);
-					stMessage.m_optionType = AMPENC;
-					stMessage.m_width = pCfg->width;
-					stMessage.m_height = pCfg->height;
-					stMessage.m_fps = pEnc->current_fps/(float)STATS_PERIOD;
-					SendStatusMessageToUI(&stMessage);
-				}
-				break;
-
-			case SESS_AMPDEC:
-				{
-					dec_config_t *pCfg = &sess_cfg->sess.dec_cfg;
-					priv_v4l2_decoder_t *pDec = (priv_v4l2_decoder_t *)pCfg->priv;
-
-					if (pDec != NULL) {
-						pDec->current_fps = pDec->total_frames - pDec->prev_frames;
-						pDec->prev_frames = pDec->total_frames;
-
-						if (stats_enable_flag) {
-							LOG_DEF("\n====AMP Decoder Session [%d] ========\n", i);
-							LOG_DEF("Resolution  : %d x %d\n", pCfg->width, pCfg->height);
-							LOG_DEF("FPS         : %f FPS\n", pDec->current_fps/(float)STATS_PERIOD);
-							LOG_DEF("Total frames: %lu\n", pDec->total_frames);
-							LOG_DEF("=======================================\n");
-						}
-					}
-					stMessage.m_sessionID = (pCfg->instance_id+1);
-					stMessage.m_optionType = AMPDEC;
-					stMessage.m_width = pCfg->width;
-					stMessage.m_height = pCfg->height;
-					stMessage.m_fps = pDec->current_fps/(float)STATS_PERIOD;
-					SendStatusMessageToUI(&stMessage);
-				}
-				break;
-#endif
-
 			case SESS_SWDEC:
 				{
 					dec_config_t *pCfg = &sess_cfg->sess.dec_cfg;
@@ -281,14 +227,6 @@ int main(int argc, char** argv)
 		goto err;
 	}
 
-#ifdef AMP_SUPPORT
-	ret = InitServerIPC(&codec_config);
-	if (ret < 0){
-		LOG_ERR("InitServerIPC: Terminating...\n");
-		goto err;
-	}
-#endif
-
 	ret = parseOptions(argc, argv);
 
 #ifdef LOCAL_LOOPBACK_MODE
@@ -307,13 +245,6 @@ int main(int argc, char** argv)
 
 	if (ret == 0 && codec_config.config_parsed)
 	{
-#ifdef AMP_SUPPORT
-		ret = SynaV4L2_Init();
-		if (ret != V4L2_SUCCESS) {
-			LOG_ERR("Error in v4l2 init\n");
-			goto err;
-		}
-#endif
 		for(int i=0; i<codec_config.num_of_sessions; i++)
 		{
 			startInstance(&codec_config.sess_cfg[i]);
@@ -348,16 +279,6 @@ err:
 	Send deinit message to QRS*/
 	DeInitClientIPC();
 	DeInitGBM();
-#ifdef AMP_SUPPORT
-	/*DeInit Video tuner Server IPC*/
-	DeInitServerIPC();
-
-	ret = SynaV4L2_Deinit();
-	if (ret != V4L2_SUCCESS)
-	{
-		LOG_ERR("SynaV4L2_Deinit Failed\n");
-	}
-#endif
 	free(mainLoopSem);
 
 	LOG_DEF("main exit done\n");

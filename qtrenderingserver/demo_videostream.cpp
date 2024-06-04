@@ -1,3 +1,6 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Copyright 2024 Synaptics Incorporated */
+
 #include "demo_videostream.h"
 #include "demo_videoitem.h"
 #include "logs.h"

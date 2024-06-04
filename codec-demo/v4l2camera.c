@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2024 Synaptics Incorporated
+
 #include "v4l2camera.h"
 
 #define v4l2_ioctl ioctl

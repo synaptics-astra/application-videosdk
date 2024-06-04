@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2024 Synaptics Incorporated
+
 #ifndef _ENCODER_INTERFACE_HWV4L2_H_
 #define _ENCODER_INTERFACE_HWV4L2_H_
 

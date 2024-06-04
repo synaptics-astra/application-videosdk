@@ -1,3 +1,6 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Copyright 2024 Synaptics Incorporated */
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -54,7 +57,7 @@ int buffers_received = 0;
 int fClientReady = 0;
 int iNumDisplayAvail = 0;
 int fVisible[ARGB_WINDOW_MAX] = {0};
-PlatformType platform_type = PLATFORM_VS680;
+PlatformType platform_type = PLATFORM_DOLPHIN;
 
 QQuickView * mpView = NULL;
 QQuickView * mpView_1 = NULL;
@@ -80,12 +83,6 @@ QString optionTypeEnumtoString(OptionType type)
 	QString OptionType;
 	switch(type)
 		{
-			case ENC:
-					OptionType ="ENC";
-					return OptionType;
-			case DEC:
-					OptionType ="DEC";
-					return OptionType;
 			case SWENC:
 					OptionType ="SWENC";
 					return OptionType;
@@ -121,35 +118,35 @@ int qtrendering_server_addView(QScreen *screen, int screenIdx)
 		mpView->setScreen(screen);
 		mpView->setColor(QColor(Qt::transparent));
 		switch(platform_type) {
-			case PLATFORM_VS680:
+			case PLATFORM_DOLPHIN:
 				{
 #if (GRID_VAL == 55)
-					mpView->setSource(QUrl(QStringLiteral("/usr/bin/680_primary.qml")));
+					mpView->setSource(QUrl(QStringLiteral("/usr/bin/dolphin_primary.qml")));
 #else
-					mpView->setSource(QUrl(QStringLiteral("/usr/bin/680_primary_44.qml")));
+					mpView->setSource(QUrl(QStringLiteral("/usr/bin/dolphin_primary_44.qml")));
 #endif
 				}
 				break;
 
-			case PLATFORM_VS640:
+			case PLATFORM_PLATYPUS:
 				{
 #if (GRID_VAL == 55)
-					mpView->setSource(QUrl(QStringLiteral("/usr/bin/640_primary.qml")));
+					mpView->setSource(QUrl(QStringLiteral("/usr/bin/platypus_primary.qml")));
 #else
-					mpView->setSource(QUrl(QStringLiteral("/usr/bin/640_primary_44.qml")));
+					mpView->setSource(QUrl(QStringLiteral("/usr/bin/platypus_primary_44.qml")));
 #endif
 				}
 				break;
 
-			case PLATFORM_DVF120:
+			case PLATFORM_MYNA2:
 				{
-					mpView->setSource(QUrl(QStringLiteral("/usr/bin/120_primary.qml")));
+					mpView->setSource(QUrl(QStringLiteral("/usr/bin/myna2_primary.qml")));
 				}
 				break;
 
 			default:
 				{
-					LOG_ERR("Invalid mode selected falling back to vs680 platform\n");
+					LOG_ERR("Invalid mode selected falling back to dolphin platform\n");
 #if (GRID_VAL == 55)
 					mpView->setSource(QUrl(QStringLiteral("/usr/bin/DemoVideo.qml")));
 #else
@@ -163,14 +160,14 @@ int qtrendering_server_addView(QScreen *screen, int screenIdx)
 	else {
 		mpView_1 = new QQuickView();
 		mpView_1->setScreen(screen);
-		if (platform_type == PLATFORM_VS680) {
-			mpView_1->setSource(QUrl(QStringLiteral("/usr/bin/680_secondary.qml")));
+		if (platform_type == PLATFORM_DOLPHIN) {
+			mpView_1->setSource(QUrl(QStringLiteral("/usr/bin/dolphin_secondary.qml")));
 			stat_view = mpView_1; //stats display on secondary
 		}
 		else
 		{
-			// For DVF120
-			mpView_1->setSource(QUrl(QStringLiteral("/usr/bin/120_secondary.qml")));
+			// For MYNA2
+			mpView_1->setSource(QUrl(QStringLiteral("/usr/bin/myna2_secondary.qml")));
 			stat_view = mpView; //stats displayed on primary
 		}
 	}
@@ -189,9 +186,9 @@ int main(int argc, char** argv)
 		printf("x is atleast '1' in case of single display\n");
 		printf("x is '2' in case of dual display\n");
 		printf("where 'y' denotes the platform in use\n");
-		printf("0 - for VS680\n");
-		printf("1 - for VS640\n");
-		printf("2 - for DVF120\n");
+		printf("0 - for Dolphin\n");
+		printf("1 - for Platypus\n");
+		printf("2 - for Myna2\n");
 		printf("otherwise, defaults to 0\n");
 	}
 

@@ -1,9 +1,8 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2024 Synaptics Incorporated
+
 #include "UIInterface.h"
 #include "config.h"
-#ifdef AMP_SUPPORT
-#include "decoder_interface_v4l2.h"
-#include "encoder_interface_v4l2.h"
-#endif
 #include "decoder_interface_sw.h"
 #include "encoder_interface_sw.h"
 #ifdef V4L2_SUPPORT
@@ -297,29 +296,6 @@ void SendInitMessageToUI(	int instType,
 		initMessage->m_numberbuffer = numBuffer;
 
 		switch(instType){
-#if AMP_SUPPORT
-			case SESS_AMPDEC:
-				{
-					dec_config_t *pCfgLocal = (dec_config_t *)pCfg;
-					priv_v4l2_decoder_t *pDec = (priv_v4l2_decoder_t *)pCfgLocal->priv;
-					initMessage->optionType = AMPDEC;
-					for(i=0;i<numBuffer;++i){
-						initMessage->m_sbufferInfo[i].m_boName = pDec->mmap_virtual_output_sharedFDs[i]; 
-					}
-				}
-				break;
-
-			case SESS_AMPENC:
-				{
-					enc_config_t *pCfgLocal = (enc_config_t *)pCfg;
-					priv_encoder_t *pEnc = (priv_encoder_t *)pCfgLocal->priv;
-					initMessage->optionType = AMPENC;
-					for(int i=0; i<numBuffer;++i){
-						initMessage->m_sbufferInfo[i].m_boName = pEnc->mmap_virtual_input_sharedFDs[i];
-					}
-				}
-				break;
-#endif
 			case SESS_SWDEC:
 				{
 					LOG_DEF("DSPG: SESS_SWDEC");
@@ -378,27 +354,6 @@ void SendInitMessageToUI(	int instType,
 		sem_wait(&sem_UIAcknowledgement);
 		for(i = 0; i < numBuffer; i++){
 			switch(instType){
-#ifdef AMP_SUPPORT
-				case SESS_AMPDEC:
-				{
-					dec_config_t *pCfgLocal = (dec_config_t *)pCfg;
-					priv_v4l2_decoder_t *pDec = (priv_v4l2_decoder_t *)pCfgLocal->priv;
-					sendtosocket(m_client_fd, pDec->mmap_virtual_output_sharedFDs[i], sizeof(int));
-					// TODO: call the below generically for multi planes
-					sendtosocket(m_client_fd, 0, sizeof(int));
-				}
-				break;
-
-				case SESS_AMPENC:
-				{
-					enc_config_t *pCfgLocal = pCfg;
-					priv_encoder_t *pEnc = (priv_encoder_t *)pCfgLocal->priv;
-					sendtosocket(m_client_fd, pEnc->mmap_virtual_input_sharedFDs[i], sizeof(int));
-					// TODO: call the below generically for multi planes
-					sendtosocket(m_client_fd, 0, sizeof(int));
-				}
-				break;
-#endif
 				case SESS_SWDEC:
 				{
 					dec_config_t *pCfgLocal = (dec_config_t *)pCfg;
@@ -446,11 +401,11 @@ void SendInitMessageToUI(	int instType,
 		}
 
 		omxHandle[windowID].instType = instType;
-		if(instType == SESS_AMPDEC || instType == SESS_SWDEC){
+		if(instType == SESS_SWDEC){
 			omxHandle[windowID].pCfg = (dec_config_t*)pCfg;
 			LOG_FUNC("windowID(%d) belongs to DEC\n", windowID);
 		}
-		else if((instType == SESS_AMPENC) || (instType == SESS_SWENC)){
+		else if(instType == SESS_SWENC){
 			omxHandle[windowID].pCfg = (enc_config_t*)pCfg;
 			LOG_FUNC("windowID(%d) belongs to ENC\n", windowID);
 		}
@@ -490,19 +445,6 @@ int enQueueV4L2Buffer(uint32_t windowID, uint32_t bo_name) {
 			LOG_ERR("Fn(%s): Invalid instType(%d)\n", __func__, omxHandle[windowID].instType);
 		}
 		break;
-#ifdef AMP_SUPPORT
-		case SESS_AMPDEC:
-		{
-			enqueBufFromUIDec(omxHandle[windowID].pCfg, bo_name);
-		}
-		break;
-
-		case SESS_AMPENC:
-		{
-			enqueBufFromUIEnc(omxHandle[windowID].pCfg, bo_name);
-		}
-		break;
-#endif
 #ifdef V4L2_SUPPORT
 		case SESS_HWENC:
 		{
