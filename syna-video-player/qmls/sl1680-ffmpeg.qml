@@ -209,7 +209,7 @@ ApplicationWindow {
                     ListElement { text: "Starbucks"; value: "filesrc location=/home/root/demos/videos/Starbucks.mp4 ! qtdemux name=demux demux.video_0 ! queue ! h264parse ! avdec_h264 ! waylandsink"}
                     ListElement { text: "I am Legend - Trailer"; value: "filesrc location=/home/root/demos/videos/IAmLegend.mp4 ! qtdemux name=demux demux.video_0 ! queue ! h264parse ! avdec_h264 ! waylandsink"}
                     ListElement { text: "IKEA"; value: "filesrc location=/home/root/demos/videos/IKEA.mp4 ! qtdemux name=demux demux.video_0 ! queue ! h264parse ! avdec_h264 ! waylandsink"}
-                    ListElement { text: "Camera Source"; value: "v4l2src device=CAM ! video/x-raw,framerate=30/1,format=YUY2,width=1920,height=1080 ! waylandsink"}
+                    ListElement { text: "Camera Source"; value: "v4l2src device=CAM ! video/x-raw,framerate=30/1,format=YUY2,width=640,height=480 ! waylandsink"}
                 }
                 Text {
                     font.pointSize: 80

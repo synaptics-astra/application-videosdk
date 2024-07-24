@@ -19,7 +19,6 @@ void WindowManager::getDevicePath()
     struct udev_list_entry *devices, *dev_list_entry;
     FILE *fp;
     char sysName[255];
-    dev_t devNum;
     unsigned int index;
 
     udev = udev_new();
@@ -29,6 +28,7 @@ void WindowManager::getDevicePath()
 
     enumerate = udev_enumerate_new(udev);
     udev_enumerate_add_match_subsystem(enumerate, "video4linux");
+    udev_enumerate_add_match_property(enumerate, "ID_BUS", "usb");
     udev_enumerate_scan_devices(enumerate);
     devices = udev_enumerate_get_list_entry(enumerate);
 
@@ -39,11 +39,10 @@ void WindowManager::getDevicePath()
         path = udev_list_entry_get_name(dev_list_entry);
         dev = udev_device_new_from_syspath(udev, path);
 
-        /* Check if the device is a USB camera */
-        if (strstr(path, "usb")) {
-            devNum = udev_device_get_devnum(dev);
-            sprintf (sysName, "%s%d%s", "cat /sys/class/video4linux/video",
-                    minor(devNum), "/index");
+        const char *sysPath = udev_device_get_syspath(dev);
+        if (sysPath != nullptr) {
+            std::string video4linuxPath = std::string(sysPath);
+            sprintf (sysName, "%s%s%s", "cat ", video4linuxPath.c_str(), "/index");
 
             fp = popen(sysName, "r");
             if (fp != nullptr) {
@@ -54,7 +53,9 @@ void WindowManager::getDevicePath()
                 }
             }
         }
+        udev_device_unref(dev);
     }
+
     udev_enumerate_unref(enumerate);
     udev_unref(udev);
 }

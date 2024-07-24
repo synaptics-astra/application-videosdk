@@ -9,9 +9,6 @@ QtObject {
     readonly property color grayColor: "#494949"
     readonly property color whiteColor: "#FFFFFF"
 
-    property int x : Window.width
-    property int y : Screen.width
-
     property int leftPanelWidth : Screen.width/4
     property int leftPanelHeight : Screen.height - (Screen.height * 0.2)
     property int headerWidth : Screen.width
