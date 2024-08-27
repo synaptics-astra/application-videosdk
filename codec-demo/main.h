@@ -25,5 +25,6 @@ codec_config_t codec_config;
 
 int srtp_enabled = 0;
 int stats_enable_flag = 1;
+char dri_card[256];
 
 #endif // _MAIN_H_

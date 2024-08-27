@@ -790,7 +790,7 @@ static int v4l2enc_open_device(enc_config_t *pCfg)
         try_fmt.fmt.pix.pixelformat = pfmt;
 
         ret = ioctl (fd, VIDIOC_TRY_FMT, &try_fmt);
-        if (ret < 0) {
+        if ((ret < 0) || (try_fmt.fmt.pix.pixelformat != pfmt)) {
             LOG_ERR("Couldn't VIDIOC_TRY_FMT for V4L2_BUF_TYPE_VIDEO_OUTPUT continue ret: %d\n",ret);
             close (fd);
             continue;
@@ -804,7 +804,7 @@ static int v4l2enc_open_device(enc_config_t *pCfg)
         try_fmt.fmt.pix.pixelformat = sfmt;
 
         ret = ioctl (fd, VIDIOC_TRY_FMT, &try_fmt);
-        if (ret < 0) {
+        if ((ret < 0) || (try_fmt.fmt.pix.pixelformat != sfmt)){
             LOG_ERR("Couldn't VIDIOC_TRY_FMT for V4L2_BUF_TYPE_VIDEO_CAPTURE continue\n");
             close (fd);
             continue;
