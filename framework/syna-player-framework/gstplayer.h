@@ -41,5 +41,9 @@ class GstPlayer: public QThread {
         GstElement* pipeline;
         GstVideoOverlay* sink;
         WindowManager* windowManager;
+        int is_valid_fd[FD_SETSIZE];
+
+        int list_fds();
+        int check_and_close_fds();
 };
 #endif // GST_PLAYER_H

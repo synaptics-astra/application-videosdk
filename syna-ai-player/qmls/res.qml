@@ -9,15 +9,18 @@ QtObject {
     readonly property color grayColor: "#494949"
     readonly property color whiteColor: "#FFFFFF"
 
-    property int leftPanelWidth : Screen.width/4
-    property int leftPanelHeight : Screen.height - (Screen.height * 0.2)
-    property int headerWidth : Screen.width
-    property int headerHeight : (Screen.height/4) * 0.4
-    property int rightPanelWidth : 3 * (Screen.width/4)
-    property int rightPanelHeight : Screen.height - (Screen.height * 0.2)
+    property int width : 640
+    property int height : 480
 
-    readonly property int h1: Math.round(Screen.width/30)
-    readonly property int h2: Math.round(Screen.width/40)
-    readonly property int h3: Math.round(Screen.width/60)
-    readonly property int h4: Math.round(Screen.width/70)
+    property int leftPanelWidth : width/4
+    property int leftPanelHeight : height - (height * 0.2)
+    property int headerWidth : width
+    property int headerHeight : (height/4) * 0.4
+    property int rightPanelWidth : 3 * (width/4)
+    property int rightPanelHeight : height - (height * 0.2)
+
+    readonly property int h1: Math.round(width/30)
+    readonly property int h2: Math.round(width/40)
+    readonly property int h3: Math.round(width/60)
+    readonly property int h4: Math.round(width/70)
 }

@@ -3,243 +3,295 @@ import QtQuick.Window 2.1
 import QtQuick.Controls 2.2
 import QtQuick.Controls.Material 2.12
 import QtQuick.Layouts 1.1
-import QtQuick.Dialogs 1.2
+import QtQuick.Dialogs 1.3
 
 ApplicationWindow {
+    id: player
     width: 1920
     height: 1080
     visible: true
     visibility: "FullScreen"
     title: qsTr("Syna Video Player - SL1620")
-    color: "#e6e6fa"
+    color: "#ffffff"
 
-    ToolBar {
-        id: overlayHeader
-        z: 1
-        width: parent.width
-        height: 80
-        Rectangle {
-            width: parent.width
-            height: parent.height
-            color: "black"
-            Image {
-                source: "qrc:/images/synaptics_logo.jpg"
-                width: 70
-                height: 60
-                x: 10
-                y: 10
+    property var cmdsModel: null
+    property var rtspUrlsModel: null
+    property string url1: ""
+
+    Component.onCompleted: {
+        var cmdComponent
+        var mode = playbackControl.getMode()
+        if (mode === "ffmpeg") {
+            cmdComponent = Qt.createComponent("file:///home/root/demos/qmls/ffmpegcommands.qml")
+        } else if (mode === "v4l2") {
+            cmdComponent = Qt.createComponent("file:///home/root/demos/qmls/v4l2commands.qml")
+        }
+        cmdsModel = cmdComponent.createObject()
+        var rtspUrls = settingsManager.getRtspUrls()
+        if (rtspUrls === null || rtspUrls.length === 0) {
+            rtspUrlsModel = [""]
+        } else {
+            rtspUrlsModel = rtspUrls
+        }
+    }
+
+    onVisibleChanged: {
+        var wid = -1
+        var targetScreen
+        for (var i = 0; i < Qt.application.screens.length; i++) {
+            if (wid < Qt.application.screens[i].width) {
+                wid = Qt.application.screens[i].width
+                targetScreen = Qt.application.screens[i]
+            }
+        }
+        player.screen = targetScreen
+    }
+
+    Popup {
+        id: dialog
+        modal: true
+        focus: true
+        anchors.centerIn: player.contentItem
+
+        contentItem: Item {
+            ColumnLayout {
+                spacing: 10
+                Layout.alignment: Qt.AlignCenter
+
                 Rectangle {
-                    width: parent.width
-                    height: parent.height
-                    color: "transparent"
+                    Layout.fillWidth: true
+                    Layout.bottomMargin: 20
+                    color: "#f0f0f0"
+                    border.color: "#ccc"
+                    Text {
+                        Layout.fillWidth: true
+                        Layout.alignment: Qt.AlignCenter
+                        text: "Edit URLs"
+                        font.bold: true
+                    }
                 }
+
+                RowLayout {
+                    id: rowLayout
+                    spacing: 10
+                    Layout.fillWidth: true
+
+                    Text {
+                        text: "RTSP URL 1"
+                        Layout.fillWidth: true
+                    }
+
+                    TextField {
+                        text: rtspUrlsModel[0]
+                        placeholderText: "Enter URL"
+                        background: Rectangle {
+                            color: "white"
+                            border.color: "#3498db"
+                            border.width: 1
+                            radius: 4
+                        }
+                        Layout.fillWidth: true
+                    }
+                }
+
+                RowLayout {
+                    spacing: 10
+                    width: parent.width
+                    Button {
+                        text: "OK"
+                        highlighted: true
+                        Layout.fillWidth: true
+                        background: Rectangle {
+                            color: update.down ? "#000000" : "#a9a9a9"
+                            radius: 20
+                        }
+                        onClicked: dialog.close()
+                    }
+                }
+            }
+        }
+
+        onClosed: {
+            var urls = []
+            var row = rowLayout
+            if (row) {
+                for (var j = 0; j < row.children.length; j++) {
+                    var child = row.children[j]
+                    if (child.hasOwnProperty("placeholderText")) {
+                        urls.push(child.text)
+                    }
+                }
+            } else {
+                console.error("Row not found")
+            }
+            settingsManager.setRtspUrls(urls)
+            settingsManager.saveConfig("/home/root/demos/configs/synaexplorer_config.txt")
+        }
+    }
+
+    ColumnLayout {
+        id: mainLayout
+        spacing: 10
+        width: player.width
+
+        Rectangle {
+            color: "black"
+            Layout.alignment: Qt.AlignTop
+            Layout.fillWidth: true
+            height: 70
+
+            Image {
+                source: "qrc:/images/astra_white.png"
+                sourceSize: Qt.size(100, 100)
             }
 
             Label {
                 id: label
-                anchors.centerIn: parent
                 text: "Astra Video Playback Demo"
                 font.pixelSize: 40
                 font.bold: true
                 color: "white"
-            }
-        }
-    }
-
-    Rectangle {
-        id : box
-        x: 50
-        width: parent.width - 100
-        height: parent.height - overlayHeader.height
-        anchors.top: overlayHeader.bottom
-        color: "#e6e6fa"
-
-        property string url1 : codecs_1.get(0).value
-        property bool singleView : true
-        property bool multiView : false
-
-        Label {
-            id: selection
-            text: "Please select the videos ..."
-            font.pixelSize: 30
-            font.bold: true
-            topPadding: 20
-        }
-
-        Rectangle {
-            id: leftArea
-            width: parent.width/2
-            height: parent.height/2
-            anchors.top: selection.bottom
-            color: "#e6e6fa"
-
-            Item {
-                id: spacer_1
-                height: parent.width*0.01
-                width: 1
-            }
-
-            Button {
-                id : video_1
-                text: qsTr("VIDEO 1")
-                font.pixelSize: 30
-                width: parent.width - parent.width*0.05
-                height: 80
-                highlighted : true
-                background: Rectangle {
-                    implicitWidth: 100
-                    implicitHeight: 40
-                    opacity: enabled ? 1 : 0.3
-                    color: "#6495ed"
-                }
-                anchors.top: spacer_1.bottom
-                anchors.horizontalCenter: parent.horizontalCenter
-            }
-
-        }
-
-        Rectangle {
-            id: rightArea
-            width: parent.width/2
-            height: parent.height/2
-            anchors.left: leftArea.right
-            anchors.top: selection.bottom
-            color: "#e6e6fa"
-
-            Item {
-                id: spacer_5
-                height: spacer_1.height
-                width: 1
-            }
-
-            ComboBox {
-                id: comboBox_1
-                currentIndex: 0
-                textRole: "text"
-                valueRole: "value"
-                font.pixelSize: 30
-
-                delegate: ItemDelegate {
-                    width: comboBox_1.width
-                    text: comboBox_1.textRole ? (Array.isArray(comboBox_1.model) ? modelData[comboBox_1.textRole] : model[comboBox_1.textRole]) : modelData
-                    font.weight: comboBox_1.currentIndex === index ? Font.DemiBold : Font.Normal
-                    font.family: comboBox_1.font.family
-                    font.pointSize: comboBox_1.font.pointSize
-                    highlighted: comboBox_1.highlightedIndex === index
-                    hoverEnabled: comboBox_1.hoverEnabled
-                }
-
-                model: ListModel {
-                    id: codecs_1
-                    ListElement { text: "CocaCola"; value: "filesrc location=/home/root/demos/videos/CocaCola.mp4 ! qtdemux name=demux demux.video_0 ! queue ! h264parse ! avdec_h264 ! waylandsink"}
-                    ListElement { text: "Starbucks"; value: "filesrc location=/home/root/demos/videos/Starbucks.mp4 ! qtdemux name=demux demux.video_0 ! queue ! h264parse ! avdec_h264 ! waylandsink"}
-                    ListElement { text: "I am Legend - Trailer"; value: "filesrc location=/home/root/demos/videos/IAmLegend.mp4 ! qtdemux name=demux demux.video_0 ! queue ! h264parse ! avdec_h264 ! waylandsink"}
-                    ListElement { text: "IKEA"; value: "filesrc location=/home/root/demos/videos/IKEA.mp4 ! qtdemux name=demux demux.video_0 ! queue ! h264parse ! avdec_h264 ! waylandsink"}
-                    ListElement { text: "Camera Source"; value: "v4l2src device=CAM ! video/x-raw,framerate=30/1,format=YUY2,width=640,height=480 ! waylandsink"}
-                }
-                Text {
-                    font.pointSize: 80
-                    font.bold: true
-                }
-                width: video_1.width
-                height: video_1.height
-                anchors.top: spacer_5.bottom
-                anchors.horizontalCenter: parent.horizontalCenter
-                onCurrentIndexChanged: {
-                    box.url1 = codecs_1.get(currentIndex).value
-                }
+                anchors.centerIn: parent
             }
         }
 
-        Label {
-            id: option
-            text: "Please select playback type"
-            font.pixelSize: 30
-            anchors.bottom: bottomArea.bottom
-            anchors.left: bottomArea.left
-        }
+        RowLayout {
+            id: secondLayer
+            spacing: 10
+            Layout.leftMargin: 40
+            Layout.rightMargin: 40
+            Layout.topMargin: 30
+            Layout.bottomMargin: 0
+            Layout.fillWidth: true
+            Layout.alignment: Qt.AlignLeft
 
-        Rectangle {
-            id: bottomArea
-            width: parent.width/2
-            height: parent.height/2
-            anchors.bottom: parent.bottom
-            anchors.horizontalCenter: parent.horizontalCenter
-            color: "#e6e6fa"
-
-            Item {
-                id: spacer_9
-                height: spacer_1.height
-                width: 1
-            }
-
-            RadioButton {
-                id: singleView
-                checked: true
-                anchors.top: spacer_9.bottom
-                text: "SINGLE VIEW"
-                font.pixelSize: 30
-                onClicked: {
-                    box.singleView = true
-                    box.multiView = false
-                }
-            }
-
-            Item {
-                id: spacer_0
-                height: 50
-                width: 1
-                anchors.top: singleView.bottom
-            }
-
-            Button {
-                id : play
-                text: "PLAY"
-                font.pixelSize: 30
-                width: parent.width
-                height: video_1.height
-                highlighted : true
-                anchors.top: spacer_0.bottom
-                background: Rectangle {
-                    implicitWidth: 100
-                    implicitHeight: 40
-                    opacity: enabled ? 1 : 0.3
-                    color: play.down ? "#000000" : "#a9a9a9"
-                }
-                onClicked: {
-                    if (box.singleView && !box.multiView) {
-                        playbackControl.createManager()
-                        playbackControl.doPlayback(1, box.url1, "", "", "")
+            ColumnLayout {
+                spacing: 10
+                Layout.fillWidth: true
+                Repeater {
+                    model: 1
+                    delegate: Label {
+                        text: "VIDEO " + (index + 1)
+                        font.pixelSize: 30
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 70
+                        color: "#ffffff"
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        background: Rectangle {
+                            opacity: enabled ? 1 : 0.3
+                            color: "#6495ed"
+                        }
                     }
                 }
             }
 
-            Item {
-                id: spacer_00
-                height: 50
-                width: 1
-                anchors.top: play.bottom
-            }
+            ColumnLayout {
+                spacing: 10
+                Layout.fillWidth: true
 
-            Button {
-                id : exit
-                text: "Exit"
-                font.pixelSize: 30
-                width: parent.width
-                height: video_1.height
-                highlighted : true
-                anchors.top: spacer_00.bottom
-                background: Rectangle {
-                    implicitWidth: 100
-                    implicitHeight: 40
-                    opacity: enabled ? 1 : 0.3
-                    color: exit.down ? "#000000" : "#a9a9a9"
-                }
-                onClicked: {
-                    Qt.quit()
+                Repeater {
+                    model: 1
+                    delegate: ComboBox {
+                        id: comboBox
+                        textRole: "text"
+                        valueRole: "value"
+                        model: player.cmdsModel
+                        font.pixelSize: 30
+                        width: parent.width * 0.8
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 70
+                        delegate: ItemDelegate {
+                            font.pixelSize: 30
+                            width: comboBox.width
+                            contentItem: Text {
+                                text: model.text
+                                font: comboBox.font
+                            }
+                        }
+
+                        onCurrentIndexChanged: {
+                            player["url" + (index + 1)] = valueAt(currentIndex)
+                        }
+                    }
                 }
             }
         }
 
+        RowLayout {
+            Layout.topMargin: 40
+            Layout.fillWidth: true
+            Button {
+                id: update
+                text: "Update RTSP Urls"
+                font.pixelSize: 30
+                highlighted: true
+                Layout.leftMargin: 40
+                background: Rectangle {
+                    color: update.down ? "#000000" : "#a9a9a9"
+                    radius: 20
+                }
+
+                onClicked: {
+                    dialog.open()
+                }
+            }
+        }
+
+        RowLayout {
+            Layout.topMargin: 40
+            Layout.preferredWidth: parent.width / 4
+            Layout.alignment: Qt.AlignHCenter
+            Layout.fillHeight: true
+            RadioButton {
+                id: singleView
+                text: "SINGLE VIEW"
+                font.pixelSize: 30
+                Layout.alignment: Qt.AlignCenter
+                checked: true
+            }
+        }
+
+        ColumnLayout {
+            Layout.topMargin: 40
+            Layout.leftMargin: 40
+            Layout.rightMargin: 40
+            Layout.preferredWidth: parent.width / 2
+            Layout.alignment: Qt.AlignHCenter
+
+            Button {
+                id: play
+                text: "PLAY"
+                font.pixelSize: 30
+                highlighted: true
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignLeft
+                Layout.preferredHeight: 60
+                background: Rectangle {
+                    opacity: enabled ? 1 : 0.3
+                    color: play.down ? "#000000" : "#a9a9a9"
+                }
+                onClicked: {
+                    if (singleView.checked) {
+                        playbackControl.doPlayback(1, player.url1, "", "", "")
+                    }
+                }
+            }
+
+            Button {
+                id: exit
+                text: "Exit"
+                font.pixelSize: 30
+                highlighted: true
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignRight
+                Layout.preferredHeight: 60
+                background: Rectangle {
+                    opacity: enabled ? 1 : 0.3
+                    color: exit.down ? "#000000" : "#a9a9a9"
+                }
+                onClicked: Qt.quit()
+            }
+        }
     }
 }

@@ -3,6 +3,83 @@
 
 #include "gstplayer.h"
 
+#include <string.h>
+#include <stdio.h>
+#include <dirent.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <errno.h>
+#include <sys/resource.h>
+
+#ifndef FALSE
+#define FALSE (0)
+#endif
+#ifndef TRUE
+#define TRUE (!FALSE)
+#endif
+
+int pth_util_fd_valid(int fd)
+{
+    if (fd < 3 || fd >= FD_SETSIZE)
+        return FALSE;
+    if (fcntl(fd, F_GETFL) == -1 && errno == EBADF)
+        return FALSE;
+    return TRUE;
+}
+
+int GstPlayer::list_fds()
+{
+     int i;
+     int fd_dup;
+     for (i = 0; i < FD_SETSIZE; i++) {
+        is_valid_fd[i] = 0;
+
+        if(!pth_util_fd_valid(i))
+            continue;
+
+        fd_dup = dup(i);
+        if (fd_dup != -1) {
+            close(fd_dup);
+            is_valid_fd[i] = 1;
+        }
+     }
+     return 0;
+}
+
+int GstPlayer::check_and_close_fds()
+{
+     int i;
+     int fd_dup;
+     int pid = getpid();
+     for (i = 0; i < FD_SETSIZE; i++) {
+
+        if(!pth_util_fd_valid(i))
+            continue;
+        fd_dup = dup(i);
+        if (fd_dup == -1) {
+            close(i);
+        } else {
+            close(fd_dup);
+
+            if (is_valid_fd[i] == 0) {
+                char fd_path[256];
+                char target[256];
+
+                snprintf(fd_path, sizeof(fd_path), "/proc/%d/fd/%d", pid, i);
+                ssize_t len = readlink(fd_path, target, sizeof(target) - 1);
+                /* "/dev/video" fds are leaking cma
+                    "sockets" are leaking fds without much leak of memory */
+                if (len != -1 && ((strstr(target, "dev/video")))) {
+                    target[len] = '\0';
+                    close(i);
+                }
+                is_valid_fd[i] = 0;
+            }
+        }
+     }
+     return 0;
+}
+
 GstBusSyncReply GstPlayer::gstBusCallback(GstBus* bus, GstMessage* message,
         gpointer user_data)
 {
@@ -39,15 +116,26 @@ GstPlayer::GstPlayer (int index, int x, int y, int width, int height,
 {
     connect(windowManager, &WindowManager::exitThread, this,
             &GstPlayer::stopThread);
+    connect(this, &QThread::finished, windowManager, &WindowManager::threadFinished);
 }
 
 void GstPlayer::run()
 {
     GstBus* bus;
     GError* err = nullptr;
+    string gstURL = url.toStdString();
+    size_t index = 0;
+    string keyword("waylandsink"), updatedKeyword("waylandsink name=sink");
 
+    list_fds();
+
+    while((index = gstURL.find(keyword, index)) != string::npos)
+    {
+        gstURL.replace(index, keyword.length(), updatedKeyword);
+        index += updatedKeyword.length();
+    }
+    url = QString::fromStdString(gstURL);
     pipelineStr = url.toUtf8().constData();
-    pipelineStr += " name=sink";
     pipeline = gst_parse_launch(pipelineStr.c_str(), &err);
     if (pipeline == nullptr) {
         qWarning() << "Error: Pipeline could not be created.";
@@ -84,11 +172,11 @@ void GstPlayer::run()
         gst_object_unref (pipeline);
         pipeline = nullptr;
     }
-    windowManager->threadFinished();
 }
+
 
 void GstPlayer::stopThread()
 {
-    exit();
-    wait();
+    quit();
+    check_and_close_fds();
 }

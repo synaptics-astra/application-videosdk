@@ -5,8 +5,6 @@
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QDebug>
-#include <getopt.h>
-#include <string>
 
 #include "playbackcontrol.h"
 
@@ -16,77 +14,76 @@ static void displayUsage()
 {
     qDebug() << "\nUsage: syna-ai-player [options]\n"
         "\n"
-        "Example: syna-ai-player --mach=sl1680\n"
+        "Example: syna-ai-player --mach sl1680\n"
         "\n"
         "Options:\n"
-        "         --mach (-M)    Your machine name [sl1640/sl1680]\n"
+        "         --mach (-M)    Your machine name [sl1620/sl1640/sl1680]\n"
         "\n"
         "Note: Push the video files to /home/root/demos/videos/ directory";
 }
 
-static QString handleCommandLineOptions(int argc, char* argv[])
+static void handleCommandLineOptions(QStringList args, string &mach)
 {
-    int option;
-    int option_index = 0;
-    string mach_argument;
-    QString qmlStr;
-
-    struct option long_options[] = {
-        {"mach", required_argument, nullptr, 'M'},
-        {nullptr, 0, nullptr, 0}
-    };
-
-    while ((option = getopt_long(argc, argv, "M:",
-                    long_options, &option_index)) != -1) {
-        switch (option) {
-            case 'M':
-                mach_argument = optarg;
-                break;
-            default:
-                break;
+    if (args.count() > 1) {
+        for (int i = 1; i < args.count(); i++) {
+            QString arg = args.at(i);
+            if (arg == "-M" || arg == "--mach") {
+                if (i + 1 < args.count() && args.at(i + 1) == SL1620_ASTRA_MACHINE) {
+                    mach = SL1620_ASTRA_MACHINE;
+                } else if (i + 1 < args.count() && args.at(i + 1) == SL1640_ASTRA_MACHINE) {
+                    mach = SL1640_ASTRA_MACHINE;
+                } else if (i + 1 < args.count() && args.at(i + 1) == SL1680_ASTRA_MACHINE) {
+                    mach = SL1680_ASTRA_MACHINE;
+                }
+                i++;
+            } else if (arg == "-h" || arg == "--help") {
+                displayUsage();
+            }
         }
     }
-
-    if (mach_argument == "sl1640") {
-        qmlStr = "/home/root/demos/qmls/sl1640-ai.qml";
-    } else if (mach_argument == "sl1680") {
-        qmlStr = "/home/root/demos/qmls/sl1680-ai.qml";
-    }
-    return qmlStr;
 }
 
 int main(int argc, char *argv[])
 {
-    QString qmlStr = handleCommandLineOptions(argc, argv);
-    if (qmlStr.isEmpty()) {
-        displayUsage();
-        return 1;
-    }
-    const QUrl url = QUrl(qmlStr);
-
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 #endif
+
     QApplication app(argc, argv);
     app.setOrganizationName("synaptics");
     app.setOrganizationDomain("synaptics.com");
 
     PlaybackControl playbackControl;
+    SettingsManager settingsManager;
 
+    QStringList args = app.arguments();
+    handleCommandLineOptions(args, playbackControl.machine);
+
+    QString qmlStr;
+    if (playbackControl.machine == SL1620_ASTRA_MACHINE) {
+        qmlStr = "/home/root/demos/qmls/sl1620-ai.qml";
+    } else if (playbackControl.machine == SL1640_ASTRA_MACHINE) {
+        qmlStr = "/home/root/demos/qmls/sl1640-ai.qml";
+    } else if (playbackControl.machine == SL1680_ASTRA_MACHINE) {
+        qmlStr = "/home/root/demos/qmls/sl1680-ai.qml";
+    }
+
+    if (qmlStr.isEmpty()) {
+        displayUsage();
+        return 1;
+    }
+    const QUrl url = QUrl(qmlStr);
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty("playbackControl", &playbackControl);
+    engine.rootContext()->setContextProperty("settingsManager", &settingsManager);
 
     qmlRegisterSingletonType(QStringLiteral("qrc:/qmls/res.qml"), "Resource", 1, 0, "Resource");
 
-    QObject::connect(
-            &engine,
-            &QQmlApplicationEngine::objectCreated,
-            &app,
-            [url](QObject *obj, const QUrl &objUrl) {
+    QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
+        &app, [url](QObject *obj, const QUrl &objUrl) {
             if (!obj && url == objUrl)
-            QCoreApplication::exit(-1);
-            },
-            Qt::QueuedConnection);
+                QCoreApplication::exit(-1);
+        }, Qt::QueuedConnection);
 
     engine.load(url);
 

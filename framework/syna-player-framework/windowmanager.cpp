@@ -3,6 +3,39 @@
 
 #include "windowmanager.h"
 #include "gstplayer.h"
+#include <sys/ioctl.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <QFile>
+#include <QTextStream>
+#include <QStringList>
+#include <QMap>
+#include <QString>
+#include <QSet>
+#include <QDebug>
+QString WindowManager::CONFIG_FILE_PATH = "/home/root/demos/configs/synaexplorer_config.txt";
+
+QStringList getDefaultFormatPriority()
+{
+    return {"YUY2", "NV12", "H264", "MJPEG"};
+}
+
+void WindowManager::createConfig() {
+       QFile configFile(CONFIG_FILE_PATH);
+        if (configFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+                QTextStream out(&configFile);
+                out << "[FORMAT]\n";
+                QStringList defaultFormats = getDefaultFormatPriority();
+                for (const QString &format : defaultFormats) {
+                           out<< format << "\n";
+               }
+                configFile.close();
+                qDebug() <<"Config file created at" <<CONFIG_FILE_PATH;
+        }
+        else {
+                qWarning() << "Failed to create config file at" <<CONFIG_FILE_PATH;
+        }
+}
 
 int WindowManager::findScaleFactor(int width, int height)
 {
@@ -10,6 +43,287 @@ int WindowManager::findScaleFactor(int width, int height)
         return width;
     }
     return findScaleFactor(height, width % height);
+}
+
+static QStringList loadFormatPriority(const QString &filePath)
+{
+    QFile file(filePath);
+    QStringList formatPriority;
+    QSet<QString> validFormats = {"YUY2", "NV12", "H264", "MJPEG"};
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        WindowManager::createConfig();
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            qWarning() << "Failed to open config file after creation.";
+            return getDefaultFormatPriority();
+        }
+    }
+    QTextStream in(&file);
+    bool inFormatSection = false;
+    while (!in.atEnd())
+    {
+        QString line = in.readLine().trimmed();
+        if (line == "[FORMAT]") {
+           inFormatSection = true;
+           continue;
+        }
+        if (line == "[RTSP]") {
+           break;
+        }
+
+        if (inFormatSection && validFormats.contains(line)) {
+           formatPriority.append(line);
+        }
+    }
+    file.close();
+    if (formatPriority.isEmpty()) {
+        return getDefaultFormatPriority();
+    }
+
+    return formatPriority;
+}
+
+static int detectCameraFormat(v4l2dev_t *pV4l2Cam)
+{
+    struct v4l2_fmtdesc fmt;
+    fmt.index = 0;
+    fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    QStringList formatPriority = loadFormatPriority(WindowManager::CONFIG_FILE_PATH);
+    QMap<QString, uint32_t> supportedFormats;
+
+    while (ioctl(pV4l2Cam->dev_fd, VIDIOC_ENUM_FMT, &fmt) == 0)
+    {
+        if (fmt.pixelformat == V4L2_PIX_FMT_YUYV) {
+            supportedFormats["YUY2"] = V4L2_PIX_FMT_YUYV;
+        }
+        else if (fmt.pixelformat == V4L2_PIX_FMT_NV12) {
+            supportedFormats["NV12"] = V4L2_PIX_FMT_NV12;
+        }
+        else if (fmt.pixelformat == V4L2_PIX_FMT_H264) {
+            supportedFormats["H264"] = V4L2_PIX_FMT_H264;
+        }
+        else if (fmt.pixelformat == V4L2_PIX_FMT_MJPEG) {
+            supportedFormats["MJPEG"] = V4L2_PIX_FMT_MJPEG;
+        }
+        fmt.index++;
+    }
+
+    for (const QString &priorityFormat : formatPriority)
+    {
+        if (supportedFormats.contains(priorityFormat)) {
+            pV4l2Cam->dev_v4l2_fmt = supportedFormats[priorityFormat];
+            return 0;
+        }
+    }
+    return -1;
+}
+
+static QStringList loadRTSPUrls(const QString &filePath)
+{
+    QFile file(filePath);
+    QStringList rtspUrls;
+
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qWarning() << "Failed to open config file for RTSP URLS.";
+        return rtspUrls;
+    }
+
+    QTextStream in(&file);
+    bool inRtspSection = false;
+
+    while(!in.atEnd()) {
+        QString line = in.readLine().trimmed();
+
+        if (line == "[RTSP]") {
+            inRtspSection = true;
+            continue;
+        }
+
+        if (inRtspSection && line.startsWith("rtsp://")) {
+            rtspUrls.append(line);
+        }
+    }
+
+    file.close();
+    return rtspUrls;
+}
+
+void WindowManager::updateCAMSRC(QVector<QString>::iterator iter)
+{
+    QString replaceWord = "CAM";
+    QString camSrcReplaceWord = "CAMSRC";
+    QString camSrcPipeline;
+    QString videoTestSrcPipeline = "videotestsrc ! video/x-raw, framerate=30/1,format=NV12,width=640,height=480 !"
+    " textoverlay text='No camera source detected..!'";
+    // Predefine pipelines for each camera format
+    QString camSrcPipelineH264 = "v4l2src device=CAM ! video/x-h264,framerate=30/1,format=H264,width=640,height=480 ! h264parse ! v4l2h264dec";
+    QString camSrcPipelineMJPEG = "v4l2src device=CAM ! image/jpeg,framerate=30/1,format=MJPEG,width=640,height=480 ! jpegdec";
+    QString camSrcPipelineYUY2 = "v4l2src device=CAM ! video/x-raw,framerate=30/1,format=YUY2,width=640,height=480";
+    QString camSrcPipelineNV12 = "v4l2src device=CAM ! video/x-raw,framerate=30/1,format=NV12,width=640,height=480";
+
+    if (camIter == cams.end()) {
+        camIter = cams.begin();
+    }
+    if (camsfmtIter == camsfmt.end()) {
+        camsfmtIter = camsfmt.begin();
+    }
+
+    int camSrcIndex = (*iter).indexOf(camSrcReplaceWord, 0, Qt::CaseInsensitive);
+    int count = camCount;
+    while (camSrcIndex != -1) {
+
+        if (count) {
+            QString currentFormat = QString::fromStdString(*camsfmtIter);
+
+            if (currentFormat == "YUY2") {
+                camSrcPipeline = camSrcPipelineYUY2;
+            } else if (currentFormat == "NV12") {
+                camSrcPipeline = camSrcPipelineNV12;
+            } else if (currentFormat == "H264") {
+                camSrcPipeline = camSrcPipelineH264;
+            } else if (currentFormat == "MJPEG") {
+                camSrcPipeline = camSrcPipelineMJPEG;
+            } else {
+                qWarning() << "Unsupported camera format: " << currentFormat;
+                camSrcPipeline = videoTestSrcPipeline;
+            }
+
+            (*iter).replace(camSrcIndex, camSrcReplaceWord.length(), camSrcPipeline);
+
+            camSrcIndex = (*iter).indexOf(camSrcReplaceWord, camSrcIndex + 1, Qt::CaseInsensitive);
+
+            if (camsfmtIter != camsfmt.end()) {
+                camsfmtIter++;
+            }
+            count--;
+
+        } else {
+            /* In a case where we don't find sufficient number of camera source use videotestsrc */
+            (*iter).replace(camSrcIndex, camSrcReplaceWord.length(), videoTestSrcPipeline);
+            camSrcIndex = (*iter).indexOf(camSrcReplaceWord, camSrcIndex + 1, Qt::CaseInsensitive);
+        }
+    }
+    int camIndex = (*iter).indexOf(replaceWord, 0, Qt::CaseInsensitive);
+
+    while (camIndex != -1) {
+        if (camCount) {
+            (*iter).replace(camIndex, replaceWord.length(), QString::fromUtf8((*camIter).c_str()));
+            camIter++;
+            camCount--;
+        }
+        camIndex = (*iter).indexOf(replaceWord, camIndex + 1, Qt::CaseInsensitive);
+    }
+}
+
+void WindowManager::updateRTSPSRC(QVector<QString>::iterator iter)
+{
+    QString rtspSrcReplaceWord = "RTSPURL";
+    QStringList rtspUrls = loadRTSPUrls(WindowManager::CONFIG_FILE_PATH);
+    static int rtspIndex = 0;
+    if (rtspUrls.isEmpty()) {
+        return;
+    }
+
+    int rtspSrcIndex = (*iter).indexOf(rtspSrcReplaceWord, 0, Qt::CaseInsensitive);
+    while (rtspSrcIndex != -1) {
+        (*iter).replace(rtspSrcIndex, rtspSrcReplaceWord.length(), rtspUrls[rtspIndex]);
+        rtspIndex = (rtspIndex + 1) % rtspUrls.size();
+        rtspSrcIndex = (*iter).indexOf(rtspSrcReplaceWord, rtspSrcIndex + 1, Qt::CaseInsensitive);
+    }
+}
+
+void WindowManager::updateHRXSRC(QVector<QString>::iterator iter)
+{
+    QString replaceWord = "HRX";
+    QString formatReplaceWord = "FMT";
+    QString hrxSrcReplaceWord = "HRXSRC";
+    QString hrxSrcPipeline;
+
+    if (hrxFormatList == "YUY2" || hrxFormatList == "NV12") {
+        hrxSrcPipeline = "v4l2src device=HRX ! video/x-raw,framerate=30/1,format=" + hrxFormatList + ",width=3840,height=2160";
+    }
+
+    int hrxSrcIndex = (*iter).indexOf(hrxSrcReplaceWord, 0, Qt::CaseInsensitive);
+    if (hrxSrcIndex != -1) {
+        (*iter).replace(hrxSrcIndex, hrxSrcReplaceWord.length(), hrxSrcPipeline);
+    }
+
+    int hrxIndex = (*iter).indexOf(replaceWord, 0, Qt::CaseInsensitive);
+    if (hrxIndex != -1) {
+        if (hrxCount)
+        {
+            (*iter).replace(hrxIndex, replaceWord.length(), QString::fromUtf8((*hrxIter).c_str()));
+            hrxIter++;
+            hrxCount--;
+        }
+    }
+
+    int formatIndex = (*iter).indexOf(formatReplaceWord, 0, Qt::CaseInsensitive);
+    if (formatIndex != -1) {
+        (*iter).replace(formatIndex, formatReplaceWord.length(), hrxFormatList);
+    }
+
+    return;
+}
+
+void WindowManager::getHRXDevicePath()
+{
+    struct udev *udev;
+    struct udev_enumerate *enumerate;
+    struct udev_list_entry *devices, *dev_list_entry;
+    FILE *fp;
+    char sysName[255];
+    unsigned int index;
+
+    udev = udev_new();
+    if (!udev) {
+        return;
+    }
+
+    enumerate = udev_enumerate_new(udev);
+    udev_enumerate_add_match_subsystem(enumerate, "video4linux");
+    udev_enumerate_add_match_property(enumerate, "ID_V4L_PRODUCT", "synaptics-hrx");
+    udev_enumerate_scan_devices(enumerate);
+    devices = udev_enumerate_get_list_entry(enumerate);
+
+    udev_list_entry_foreach(dev_list_entry, devices) {
+        const char *path;
+        struct udev_device *dev;
+
+        path = udev_list_entry_get_name(dev_list_entry);
+        dev = udev_device_new_from_syspath(udev, path);
+
+        const char *sysPath = udev_device_get_syspath(dev);
+        if (sysPath != nullptr) {
+            std::string video4linuxPath = std::string(sysPath);
+            sprintf(sysName, "%s%s%s", "cat ", video4linuxPath.c_str(), "/index");
+
+            fp = popen(sysName, "r");
+            if (fp != nullptr) {
+                fscanf(fp, "%u", &index);
+                pclose(fp);
+                if (index == 0) {
+                    std::string deviceNode = udev_device_get_devnode(dev);
+                    hrxs.push_back(deviceNode);
+
+                    v4l2dev_t hrxDetails;
+                    hrxDetails.dev_fd = open(deviceNode.c_str(), O_RDWR);
+
+                    if (hrxDetails.dev_fd < 0) {
+                        qWarning() << "Failed to open the HRX Device: "
+                                   << QString::fromStdString(deviceNode);
+                        continue;
+                    }
+                    hrxFormatList = "NV12";
+
+                    ::close(hrxDetails.dev_fd);
+                }
+            }
+        }
+        udev_device_unref(dev);
+    }
+
+    udev_enumerate_unref(enumerate);
+    udev_unref(udev);
 }
 
 void WindowManager::getDevicePath()
@@ -42,14 +356,44 @@ void WindowManager::getDevicePath()
         const char *sysPath = udev_device_get_syspath(dev);
         if (sysPath != nullptr) {
             std::string video4linuxPath = std::string(sysPath);
-            sprintf (sysName, "%s%s%s", "cat ", video4linuxPath.c_str(), "/index");
+            sprintf(sysName, "%s%s%s", "cat ", video4linuxPath.c_str(), "/index");
 
             fp = popen(sysName, "r");
             if (fp != nullptr) {
                 fscanf(fp, "%u", &index);
-                pclose (fp);
+                pclose(fp);
                 if (index == 0) {
-                    cams.push_back(udev_device_get_devnode(dev));
+                    std::string deviceNode = udev_device_get_devnode(dev);
+                    cams.push_back(deviceNode);
+
+                    v4l2dev_t camDetails;
+                    camDetails.dev_fd = open(deviceNode.c_str(), O_RDWR);
+
+                    if (camDetails.dev_fd < 0) {
+                        qWarning() << "Failed to open the Camera Device: "
+                                   << QString::fromStdString(deviceNode);
+                        continue;
+                    }
+                    if (detectCameraFormat(&camDetails) == 0) {
+                        if (camDetails.dev_v4l2_fmt == V4L2_PIX_FMT_YUYV) {
+                            camsfmt.push_back("YUY2");
+                        }
+                        else if (camDetails.dev_v4l2_fmt == V4L2_PIX_FMT_NV12) {
+                            camsfmt.push_back("NV12");
+                        }
+                        else if (camDetails.dev_v4l2_fmt == V4L2_PIX_FMT_H264) {
+                            camsfmt.push_back("H264");
+                        }
+                        else if (camDetails.dev_v4l2_fmt == V4L2_PIX_FMT_MJPEG) {
+                            camsfmt.push_back("MJPEG");
+                        }
+                        emit cameraFormatChanged();
+                    }
+                    else {
+                    qWarning() << "Failed to detect suitable format for device: "
+                               << QString::fromStdString(deviceNode);
+                    }
+                    ::close(camDetails.dev_fd);
                 }
             }
         }
@@ -60,23 +404,24 @@ void WindowManager::getDevicePath()
     udev_unref(udev);
 }
 
-WindowManager::WindowManager() : mutex(QMutex::Recursive)
+WindowManager::WindowManager(QWidget *parent) : QWidget(parent), mutex(QMutex::Recursive)
 {
     gst_init (nullptr, nullptr);
 
-    QScreen *screen = QGuiApplication::primaryScreen();
-    QRect screenGeometry = screen->geometry();
-    width = screenGeometry.width();
-    height = screenGeometry.height();
+    QList<QScreen*> screens = QGuiApplication::screens();
+    int selectedScreen = -1;
+    for (QScreen* screen : screens) {
+        QRect screenGeometry = screen->geometry();
+        if (width < screenGeometry.width()) {
+            width = screenGeometry.width();
+            height = screenGeometry.height();
+            selectedScreen++;
+        }
+    }
 
-    scaleFactor = findScaleFactor(width, height);
+    QScreen *targetScreen = screens.at(selectedScreen);
+    setGeometry(targetScreen->geometry());
 
-    width -= (4*width/scaleFactor);
-    height -= (4*height/scaleFactor);
-
-    setGeometry(QRect(0, 0, width, height));
-
-    setAttribute(Qt::WA_NativeWindow);
     setWindowFlags(Qt::FramelessWindowHint);
     setWindowState(windowState() | Qt::WindowFullScreen);
     setMinimumSize(640, 480);
@@ -91,17 +436,72 @@ WindowManager::WindowManager() : mutex(QMutex::Recursive)
         (struct wl_display*)native->nativeResourceForWindow("display", nullptr);
     context = gst_wl_display_handle_context_new(display_handle);
 
+    players.clear();
+    cams.clear();
+    camsfmt.clear();
+    getDevicePath();
+    camIter = cams.begin();
+    camsfmtIter = camsfmt.begin();
+    camCount = cams.count();
+    hrxs.clear();
+    getHRXDevicePath();
+    hrxIter = hrxs.begin();
+    hrxCount = hrxs.count();
+}
+
+void WindowManager::play(QString url1, QString url2)
+{
+    GstPlayer* player = NULL;
+    int x1, y1, w1, h1;
+
+    width = geometry().width();
+    height = geometry().height();
+    height -= (height * 0.02);
+
+    urls.clear();
+
+    urls.push_back(url1);
+    urls.push_back(url2);
+
+    iter = urls.begin();
+    camIter = cams.begin();
+    camsfmtIter = camsfmt.begin();
+    camCount = cams.count();
+    hrxIter = hrxs.begin();
+    hrxCount = hrxs.count();
+
+    updateCAMSRC(iter);
+    updateHRXSRC(iter);
+    w1 = width;
+    h1 = height;
+    x1 = 0;
+    y1 = 0;
+    player = new GstPlayer (threadCount++, x1, y1, w1, h1, *iter, this);
+    player->start();
+    iter++;
+    players.append(player);
+
+    QThread::sleep (1);           // wait 1 sec for first pipeline to start running
+
+    if(url2 != "")
+    {
+        updateCAMSRC(iter);
+        updateHRXSRC(iter);
+        x1 = 382;
+        y1 = 212;
+        w1 = width - x1;
+        h1 = height - y1;
+        player = new GstPlayer (threadCount++, x1, y1, w1, h1, *iter, this);
+        player->start();
+        iter++;
+        players.append(player);
+    }
+
     closeButton = new QPushButton("Close", this);
-    closeButton->setGeometry(width - scaleFactor/2, height, scaleFactor, scaleFactor/4);
+    closeButton->setGeometry(width - (height * 0.02 * 4), height, (height * 0.02 * 4), (height * 0.02));
     closeButton->setWindowFlags(Qt::WindowStaysOnTopHint);
     closeButton->show();
     connect(closeButton, &QPushButton::clicked, this, &WindowManager::cleanUp);
-
-    players.clear();
-    cams.clear();
-    getDevicePath();
-    camIter = cams.begin();
-    camCount = cams.count();
 }
 
 void WindowManager::play(int index, QString url1, QString url2,
@@ -113,34 +513,46 @@ void WindowManager::play(int index, QString url1, QString url2,
     urls.push_back(url3);
     urls.push_back(url4);
 
-    int x1, y1, w1, h1;
-    w1 = width/index - 2*width/scaleFactor;
-    h1 = height/index - 2*height/scaleFactor;
-    iter = urls.begin();
+    int x1, y1, w1, h1, posX, posY;
+    width = geometry().width();
+    height = geometry().height();
+    posX = frameGeometry().width() - geometry().width();
+    posY = frameGeometry().height() - geometry().height();
+    scaleFactor = findScaleFactor(width, height);
 
-    QString replaceWord = "CAM";
-    for (int i = 0; i < index; i++) {
-        for (int j = 0; j < index; j++) {
+    width -= (2*width/scaleFactor);
+    height -= (4*height/scaleFactor);
+
+    w1 = width/index - 2*width/scaleFactor-20;
+    h1 = height/index - 2*height/scaleFactor-20;
+
+    iter = urls.begin();
+    camIter = cams.begin();
+    camsfmtIter = camsfmt.begin();
+    camCount = cams.count();
+
+    for (int i = 0; i < index; i++)
+    {
+        for (int j = 0; j < index; j++)
+        {
             x1 = j*width/index + width/scaleFactor + 2*width/scaleFactor;
             y1 = i*height/index + width/scaleFactor;
 
-            int index = (*iter).indexOf(replaceWord, 0, Qt::CaseInsensitive);
-            if (index != -1) {
-                if (camCount) {
-                    (*iter).replace(index, replaceWord.length(),
-                            QString::fromUtf8((*camIter).c_str()));
-                    camIter++;
-                    camCount--;
-                }
-            }
-
-            GstPlayer* player = new GstPlayer (threadCount++, x1, y1, w1, h1,
-                    *iter, this);
+            updateCAMSRC(iter);
+            updateRTSPSRC(iter);
+            GstPlayer* player = new GstPlayer(threadCount++, x1, y1, w1, h1,
+                *iter, this);
             player->start();
             iter++;
             players.append(player);
         }
     }
+
+    closeButton = new QPushButton("Close", this);
+    closeButton->setGeometry(width - scaleFactor, height - scaleFactor/8, scaleFactor, scaleFactor/4);
+    closeButton->setWindowFlags(Qt::WindowStaysOnTopHint);
+    closeButton->show();
+    connect(closeButton, &QPushButton::clicked, this, &WindowManager::cleanUp);
 }
 
 void WindowManager::cleanUp()
@@ -159,7 +571,14 @@ void WindowManager::threadFinished()
             closeButton = nullptr;
         }
         urls.clear();
+
+        // delete player object in reverse order of allocation
+        for (auto player = players.rbegin(); player != players.rend();  ++player)
+        {
+            delete *player;
+        }
         players.clear();
-        this->close();
+        this->hide();
     }
 }
+

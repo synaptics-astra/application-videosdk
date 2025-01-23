@@ -5,7 +5,7 @@ import QtQuick.Window 2.1
 
 import Resource 1.0
 
-import "./customviews"
+import "./custom_views"
 import "./panels"
 
 ApplicationWindow {
@@ -17,13 +17,27 @@ ApplicationWindow {
     title: qsTr("Syna AI Player - SL1640")
     color: Resource.background
 
+    onVisibleChanged: {
+        var wid = -1
+        var targetScreen
+        for (var i = 0; i < Qt.application.screens.length; i++) {
+            if (wid < Qt.application.screens[i].width) {
+                wid = Qt.application.screens[i].width
+                targetScreen = Qt.application.screens[i]
+            }
+        }
+        this.screen = targetScreen
+        Resource.width = targetScreen.width
+        Resource.height = targetScreen.height
+    }
+
     header: Header {
         id : headerView
     }
 
     Item {
         id: spacer_0
-        height: Screen.width/15
+        height: Resource.width/15
         width: 1
         anchors.top: headerView.bottom
     }
@@ -46,6 +60,12 @@ ApplicationWindow {
         }
     }
 
+    Component{
+        id:aIEncoding
+        AIEncoding {
+        }
+    }
+
     function switchPage(index) {
         switch(index) {
         case 0:
@@ -56,6 +76,9 @@ ApplicationWindow {
             break;
         case 2:
             sidemenu.sourceComponent = faceDetection
+            break;
+        case 3:
+            sidemenu.sourceComponent = aIEncoding
             break;
         }
     }
@@ -73,7 +96,7 @@ ApplicationWindow {
                 anchors.fill: parent
                 color: Resource.background
                 Image {
-                    source: "qrc:/res/images/verticalline.png"
+                    source: "qrc:/res/images/vertical_line.png"
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
                 }
@@ -83,10 +106,10 @@ ApplicationWindow {
                 id:listItemView
                 anchors.fill: parent
                 highlightFollowsCurrentItem :true
-                spacing: Screen.width/36
-                model:["Object Detection","Pose Estimation","Face Detection"]
+                spacing: Resource.width/36
+                model:["Object Detection","Pose Estimation","Face Detection", "AI + Encoding"]
                 delegate:ListItem {
-                    spacing: Screen.width/36
+                    spacing: Resource.width/36
                     title: modelData
                     width: listItemView.width
                     onClicked: {
@@ -126,7 +149,7 @@ ApplicationWindow {
            horizontalAlignment: Text.AlignHCenter
            verticalAlignment: Text.AlignVCenter
        }
-       bottomPadding: Screen.width/45
+       bottomPadding: Resource.width/45
        onClicked: {
            Qt.quit()
        }
@@ -139,7 +162,7 @@ ApplicationWindow {
 
    Image {
        id: syna_logo
-       source: "qrc:/res/images/synaicon.png"
+       source: "qrc:/res/images/syna_icon.png"
        sourceSize: Qt.size(Resource.rightPanelWidth/4, Resource.rightPanelWidth/4)
        anchors.right: parent.right
        anchors.bottom: parent.bottom

@@ -7,16 +7,18 @@
 #include <QWidget>
 
 #include "windowmanager.h"
+#include "settingsmanager.h"
 
 class PlaybackControl : public QWidget {
     Q_OBJECT
 
     public:
-        PlaybackControl() {}
-        ~PlaybackControl() {}
-        Q_INVOKABLE void createManager();
+        PlaybackControl();
+        ~PlaybackControl();
         Q_INVOKABLE void doPlayback(int index, QString url1, QString url2,
                 QString url3, QString url4);
+
+        string machine;
 
     private:
         WindowManager* windowManager;

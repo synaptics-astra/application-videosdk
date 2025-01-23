@@ -4,7 +4,7 @@ import QtQuick.Layouts 1.3
 import Resource 1.0
 import QtQuick.Window 2.1
 
-import "../customviews"
+import "../custom_views"
 
 Rectangle {
     id: pe
@@ -40,16 +40,16 @@ Rectangle {
 
         GridItem {
             type: 1
-            image: "qrc:/res/images/fileicon.png"
+            image: "qrc:/res/images/file_icon.png"
             title:  qsTr("File")
-            command1: "filesrc location=/home/root/demos/videos/fitness.mp4 ! qtdemux name=demux demux.video_0 ! queue ! h264parse ! avdec_h264 ! videoconvert !  tee name=t_data t_data. ! queue ! videoconvert ! videoscale ! video/x-raw,width=640,height=352,format=RGB ! synapinfer model=/usr/share/synap/models/object_detection/body_pose/model/yolov8s-pose/model.synap mode=detector frameinterval=3 ! overlay.inference_sink t_data. ! queue ! synapoverlay name=overlay ! videoconvert ! waylandsink"
+            command1: "filesrc location=/home/root/demos/videos/mp4/body_pose.mp4 ! qtdemux name=demux demux.video_0 ! queue ! h264parse ! v4l2h264dec ! tee name=t_data t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=640,height=352,format=RGB ! synapinfer model=/usr/share/synap/models/object_detection/body_pose/model/yolov8s-pose/model.synap mode=detector frameinterval=3 ! overlay.inference_sink t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=1920,height=1080,format=BGRA ! synapoverlay name=overlay ! waylandsink"
         }
 
         GridItem {
             type: 1
-            image: "qrc:/res/images/cameraicon.png"
+            image: "qrc:/res/images/camera_icon.png"
             title:  qsTr("Camera")
-            command1: "v4l2src device=CAM ! video/x-raw,framerate=30/1,format=YUY2,width=640,height=480 ! videoconvert !  tee name=t_data t_data. ! queue ! videoconvert ! videoscale ! video/x-raw,width=640,height=352,format=RGB  ! synapinfer model=/usr/share/synap/models/object_detection/body_pose/model/yolov8s-pose/model.synap mode=detector frameinterval=3 ! overlay.inference_sink t_data. ! queue ! synapoverlay name=overlay ! videoconvert ! waylandsink"
+            command1: "CAMSRC ! tee name=t_data t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=640,height=352,format=RGB  ! synapinfer model=/usr/share/synap/models/object_detection/body_pose/model/yolov8s-pose/model.synap mode=detector frameinterval=3 ! overlay.inference_sink t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=640,height=480,format=BGRA  ! synapoverlay name=overlay ! waylandsink"
         }
     }
 }
