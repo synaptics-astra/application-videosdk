@@ -1,20 +1,54 @@
 #include <glib.h>
 #include <gst/rtsp/gstrtsp.h>
 #include <gst/sdp/gstsdpmessage.h>
-
+#include <QDir>
 #include <QDebug>
-#include "windowmanager.h"
 #include "settingsmanager.h"
+
+const QString SettingsManager::CONFIG_FILE_PATH = "/home/root/demos/configs/synaexplorer_config.txt";
+
+QStringList SettingsManager::getDefaultFormatPriority() {
+    return {"YUY2", "NV12", "H264", "MJPEG"};
+}
+
+void SettingsManager::createConfig(const QString &filePath) {
+    QDir dir = QFileInfo(filePath).absoluteDir();
+    if (!dir.exists()) {
+        dir.mkpath(".");
+    }
+
+    QFile configFile(filePath);
+    if (configFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QTextStream out(&configFile);
+
+        // Save Format Priorities
+        out << "[FORMAT]\n";
+        QStringList defaultFormats = getDefaultFormatPriority();
+        for (const QString &format : defaultFormats) {
+            out << format << "\n";
+        }
+
+        // Save RTSP URLs (Initially Empty Placeholder)
+        out << "\n[RTSP]\n";
+
+        // Save HOST IP (Initially Empty Placeholder)
+        out << "\n[HOST_IP]\n";
+
+        configFile.close();
+    } else {
+        qWarning() << "Failed to create config file at" << CONFIG_FILE_PATH
+                   << "Error:" << configFile.errorString();
+    }
+}
 
 SettingsManager::SettingsManager(QObject *parent)
     : QObject(parent),
-      allFormats(QStringList() << "NV12" << "YUY2" << "H264" << "MJPEG"),
-      selectedFormatsList(QStringList() << "NV12" << "YUY2" << "H264" << "MJPEG")
+      allFormats(QStringList() << "YUY2" << "NV12" << "H264" << "MJPEG"),
+      selectedFormatsList(QStringList() << "YUY2" << "NV12" << "H264" << "MJPEG")
 {
-    loadConfig(WindowManager::CONFIG_FILE_PATH);
+    loadConfig(SettingsManager::CONFIG_FILE_PATH);
 }
 
-// Get available formats
 QStringList SettingsManager::getAvailableFormats() {
     return allFormats;
 }
@@ -104,9 +138,74 @@ void SettingsManager::loadConfig(const QString &filePath) {
         emit prioritiesChanged();
         emit rtspUrlsChanged();
         emit hostIPChanged();
-    }else {
-        qWarning() << "Failed to open config file:" << filePath.toLocal8Bit().constData();
+    } else {
+        createConfig(SettingsManager::CONFIG_FILE_PATH);
     }
+}
+
+QStringList SettingsManager::loadFormatPriority(const QString &filePath) {
+    QFile file(filePath);
+    QStringList formatPriority;
+    QSet<QString> validFormats = {"YUY2", "NV12", "H264", "MJPEG"};
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        createConfig(SettingsManager::CONFIG_FILE_PATH);
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            qWarning() << "Failed to open config file after creation.";
+            return getDefaultFormatPriority();
+        }
+    }
+    QTextStream in(&file);
+    bool inFormatSection = false;
+    while (!in.atEnd())
+    {
+        QString line = in.readLine().trimmed();
+        if (line == "[FORMAT]") {
+           inFormatSection = true;
+           continue;
+        }
+        if (line == "[RTSP]") {
+           break;
+        }
+
+        if (inFormatSection && validFormats.contains(line)) {
+           formatPriority.append(line);
+        }
+    }
+    file.close();
+    if (formatPriority.isEmpty()) {
+        return getDefaultFormatPriority();
+    }
+
+    return formatPriority;
+}
+
+QStringList SettingsManager::loadRTSPUrls(const QString &filePath) {
+    QFile file(filePath);
+    QStringList rtspUrls;
+
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qWarning() << "Failed to open config file for RTSP URLs.";
+        return rtspUrls;
+    }
+
+    QTextStream in(&file);
+    bool inRtspSection = false;
+
+    while (!in.atEnd()) {
+        QString line = in.readLine().trimmed();
+
+        if (line == "[RTSP]") {
+            inRtspSection = true;
+            continue;
+        }
+
+        if (inRtspSection && line.startsWith("rtsp://")) {
+            rtspUrls.append(line);
+        }
+    }
+
+    file.close();
+    return rtspUrls;
 }
 
 // Getter and setter for RTSP URLs
@@ -273,4 +372,3 @@ QVariantList SettingsManager::validateAllRtspUrls() {
     }
     return results;
 }
-

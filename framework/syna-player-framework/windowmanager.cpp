@@ -13,29 +13,7 @@
 #include <QString>
 #include <QSet>
 #include <QDebug>
-QString WindowManager::CONFIG_FILE_PATH = "/home/root/demos/configs/synaexplorer_config.txt";
-
-QStringList getDefaultFormatPriority()
-{
-    return {"YUY2", "NV12", "H264", "MJPEG"};
-}
-
-void WindowManager::createConfig() {
-       QFile configFile(CONFIG_FILE_PATH);
-        if (configFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
-                QTextStream out(&configFile);
-                out << "[FORMAT]\n";
-                QStringList defaultFormats = getDefaultFormatPriority();
-                for (const QString &format : defaultFormats) {
-                           out<< format << "\n";
-               }
-                configFile.close();
-                qDebug() <<"Config file created at" <<CONFIG_FILE_PATH;
-        }
-        else {
-                qWarning() << "Failed to create config file at" <<CONFIG_FILE_PATH;
-        }
-}
+#include "settingsmanager.h"
 
 int WindowManager::findScaleFactor(int width, int height)
 {
@@ -45,49 +23,12 @@ int WindowManager::findScaleFactor(int width, int height)
     return findScaleFactor(height, width % height);
 }
 
-static QStringList loadFormatPriority(const QString &filePath)
-{
-    QFile file(filePath);
-    QStringList formatPriority;
-    QSet<QString> validFormats = {"YUY2", "NV12", "H264", "MJPEG"};
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        WindowManager::createConfig();
-        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            qWarning() << "Failed to open config file after creation.";
-            return getDefaultFormatPriority();
-        }
-    }
-    QTextStream in(&file);
-    bool inFormatSection = false;
-    while (!in.atEnd())
-    {
-        QString line = in.readLine().trimmed();
-        if (line == "[FORMAT]") {
-           inFormatSection = true;
-           continue;
-        }
-        if (line == "[RTSP]") {
-           break;
-        }
-
-        if (inFormatSection && validFormats.contains(line)) {
-           formatPriority.append(line);
-        }
-    }
-    file.close();
-    if (formatPriority.isEmpty()) {
-        return getDefaultFormatPriority();
-    }
-
-    return formatPriority;
-}
-
 static int detectCameraFormat(v4l2dev_t *pV4l2Cam)
 {
     struct v4l2_fmtdesc fmt;
     fmt.index = 0;
     fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    QStringList formatPriority = loadFormatPriority(WindowManager::CONFIG_FILE_PATH);
+    QStringList formatPriority = SettingsManager::loadFormatPriority(SettingsManager::CONFIG_FILE_PATH);
     QMap<QString, uint32_t> supportedFormats;
 
     while (ioctl(pV4l2Cam->dev_fd, VIDIOC_ENUM_FMT, &fmt) == 0)
@@ -117,48 +58,27 @@ static int detectCameraFormat(v4l2dev_t *pV4l2Cam)
     return -1;
 }
 
-static QStringList loadRTSPUrls(const QString &filePath)
-{
-    QFile file(filePath);
-    QStringList rtspUrls;
-
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        qWarning() << "Failed to open config file for RTSP URLS.";
-        return rtspUrls;
-    }
-
-    QTextStream in(&file);
-    bool inRtspSection = false;
-
-    while(!in.atEnd()) {
-        QString line = in.readLine().trimmed();
-
-        if (line == "[RTSP]") {
-            inRtspSection = true;
-            continue;
-        }
-
-        if (inRtspSection && line.startsWith("rtsp://")) {
-            rtspUrls.append(line);
-        }
-    }
-
-    file.close();
-    return rtspUrls;
-}
-
 void WindowManager::updateCAMSRC(QVector<QString>::iterator iter)
 {
     QString replaceWord = "CAM";
     QString camSrcReplaceWord = "CAMSRC";
     QString camSrcPipeline;
+    QString camSrcPipelineH264, camSrcPipelineMJPEG, camSrcPipelineYUY2, camSrcPipelineNV12;
     QString videoTestSrcPipeline = "videotestsrc ! video/x-raw, framerate=30/1,format=NV12,width=640,height=480 !"
     " textoverlay text='No camera source detected..!'";
     // Predefine pipelines for each camera format
-    QString camSrcPipelineH264 = "v4l2src device=CAM ! video/x-h264,framerate=30/1,format=H264,width=640,height=480 ! h264parse ! v4l2h264dec";
-    QString camSrcPipelineMJPEG = "v4l2src device=CAM ! image/jpeg,framerate=30/1,format=MJPEG,width=640,height=480 ! jpegdec";
-    QString camSrcPipelineYUY2 = "v4l2src device=CAM ! video/x-raw,framerate=30/1,format=YUY2,width=640,height=480";
-    QString camSrcPipelineNV12 = "v4l2src device=CAM ! video/x-raw,framerate=30/1,format=NV12,width=640,height=480";
+    if(machine == SL1620_ASTRA_MACHINE) {
+        camSrcPipelineH264 = "v4l2src device=CAM ! video/x-h264,framerate=15/1,format=H264,width=640,height=480 ! h264parse ! avdec_h264";
+        camSrcPipelineMJPEG = "v4l2src device=CAM ! image/jpeg,framerate=15/1,format=MJPEG,width=640,height=480 ! jpegdec";
+        camSrcPipelineYUY2 = "v4l2src device=CAM ! video/x-raw,framerate=15/1,format=YUY2,width=640,height=480";
+        camSrcPipelineNV12 = "v4l2src device=CAM ! video/x-raw,framerate=15/1,format=NV12,width=640,height=480";
+    }
+    else {
+        camSrcPipelineH264 = "v4l2src device=CAM ! video/x-h264,framerate=30/1,format=H264,width=640,height=480 ! h264parse ! v4l2h264dec";
+        camSrcPipelineMJPEG = "v4l2src device=CAM ! image/jpeg,framerate=30/1,format=MJPEG,width=640,height=480 ! jpegdec";
+        camSrcPipelineYUY2 = "v4l2src device=CAM ! video/x-raw,framerate=30/1,format=YUY2,width=640,height=480";
+        camSrcPipelineNV12 = "v4l2src device=CAM ! video/x-raw,framerate=30/1,format=NV12,width=640,height=480";
+    }
 
     if (camIter == cams.end()) {
         camIter = cams.begin();
@@ -217,7 +137,7 @@ void WindowManager::updateCAMSRC(QVector<QString>::iterator iter)
 void WindowManager::updateRTSPSRC(QVector<QString>::iterator iter)
 {
     QString rtspSrcReplaceWord = "RTSPURL";
-    QStringList rtspUrls = loadRTSPUrls(WindowManager::CONFIG_FILE_PATH);
+    QStringList rtspUrls = SettingsManager::loadRTSPUrls(SettingsManager::CONFIG_FILE_PATH);
     static int rtspIndex = 0;
     if (rtspUrls.isEmpty()) {
         return;
@@ -404,7 +324,24 @@ void WindowManager::getDevicePath()
     udev_unref(udev);
 }
 
-WindowManager::WindowManager(QWidget *parent) : QWidget(parent), mutex(QMutex::Recursive)
+void WindowManager::playPipelines()
+{
+    while (true) {
+        playPipelineSem.acquire();
+        if(isPipelinePlaying) {
+            for (auto player = players.begin(); player != players.end();  ++player)
+            {
+                (*player)->start();
+                QThread::sleep (1);
+            }
+            closeButton->show();
+        } else {
+            break;
+        }
+    }
+}
+
+WindowManager::WindowManager(QWidget *parent, string mach) : QWidget(parent), mutex(QMutex::Recursive), machine(mach)
 {
     gst_init (nullptr, nullptr);
 
@@ -454,6 +391,13 @@ void WindowManager::play(QString url1, QString url2)
     GstPlayer* player = NULL;
     int x1, y1, w1, h1;
 
+    isPipelinePlaying = true;
+    playPipelineThread = QThread::create([this]() {
+        this->playPipelines();
+    });
+
+    playPipelineThread->start();
+
     width = geometry().width();
     height = geometry().height();
     height -= (height * 0.02);
@@ -477,11 +421,8 @@ void WindowManager::play(QString url1, QString url2)
     x1 = 0;
     y1 = 0;
     player = new GstPlayer (threadCount++, x1, y1, w1, h1, *iter, this);
-    player->start();
     iter++;
     players.append(player);
-
-    QThread::sleep (1);           // wait 1 sec for first pipeline to start running
 
     if(url2 != "")
     {
@@ -492,16 +433,14 @@ void WindowManager::play(QString url1, QString url2)
         w1 = width - x1;
         h1 = height - y1;
         player = new GstPlayer (threadCount++, x1, y1, w1, h1, *iter, this);
-        player->start();
         iter++;
         players.append(player);
     }
-
     closeButton = new QPushButton("Close", this);
     closeButton->setGeometry(width - (height * 0.02 * 4), height, (height * 0.02 * 4), (height * 0.02));
     closeButton->setWindowFlags(Qt::WindowStaysOnTopHint);
-    closeButton->show();
     connect(closeButton, &QPushButton::clicked, this, &WindowManager::cleanUp);
+    playPipelineSem.release();
 }
 
 void WindowManager::play(int index, QString url1, QString url2,
@@ -566,6 +505,15 @@ void WindowManager::threadFinished()
     --threadCount;
     if (threadCount == 0)
     {
+        if(isPipelinePlaying)
+        {
+            isPipelinePlaying = false;
+            playPipelineSem.release();
+            playPipelineThread->quit();
+            playPipelineThread->wait();
+            delete playPipelineThread;
+        }
+
         if (closeButton) {
             delete closeButton;
             closeButton = nullptr;

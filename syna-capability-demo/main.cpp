@@ -7,6 +7,7 @@
 #include <QDebug>
 
 #include "playbackcontrol.h"
+#include "filedialoghelper.h"
 
 using namespace std;
 
@@ -55,6 +56,7 @@ int main(int argc, char *argv[])
 
     PlaybackControl playbackControl;
     FileControl fileControl;
+    FileDialogHelper fileDialogHelper;
 
     QStringList args = app.arguments();
     handleCommandLineOptions(args, playbackControl.machine);
@@ -76,6 +78,7 @@ int main(int argc, char *argv[])
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty("playbackControl", &playbackControl);
     engine.rootContext()->setContextProperty("fileControl", &fileControl);
+    engine.rootContext()->setContextProperty("fileDialogHelper", &fileDialogHelper);
 
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
         &app, [url](QObject *obj, const QUrl &objUrl) {

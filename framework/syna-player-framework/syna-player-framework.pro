@@ -6,10 +6,12 @@ PKGCONFIG = "gstreamer-1.0 gstreamer-wayland-1.0 libudev gstreamer-plugins-base-
 SOURCES += gstplayer.cpp \
            windowmanager.cpp \
            settingsmanager.cpp \
+           filedialoghelper.cpp \
 
 HEADERS += gstplayer.h \
            windowmanager.h \
            settingsmanager.h \
+           filedialoghelper.h \
 
 TEMPLATE = lib
 CONFIG += shared

@@ -4,14 +4,33 @@ import QtQuick.Controls 2.2
 import QtQuick.Controls.Material 2.12
 import QtQuick.Layouts 1.1
 import QtQuick.Dialogs 1.2
+import "."
 
 ApplicationWindow {
+    id: player
     visible: true
     visibility: "FullScreen"
     title: qsTr("SL1640 :: Syna Capability Demo")
     color: "#ffffff"
     width: screen.width
     height: screen.height
+
+    property int selectedFileIndex: 0
+    property string selectedFilePath: ""
+    property bool filePathUpdated: false
+    property var buttonArray: []
+
+    onVisibleChanged: {
+        var wid = -1
+        var targetScreen
+        for (var i = 0; i < Qt.application.screens.length; i++) {
+            if (wid < Qt.application.screens[i].width) {
+                wid = Qt.application.screens[i].width
+                targetScreen = Qt.application.screens[i]
+            }
+        }
+        player.screen = targetScreen
+    }
 
     function enableButton(buttonID) {
         if(buttonID) {
@@ -27,6 +46,35 @@ ApplicationWindow {
                 buttonID.background.color = "#444444"
                 buttonID.enabled = false
             }
+        }
+    }
+
+    onFilePathUpdatedChanged: {
+        if (player.filePathUpdated) {
+            var index = player.selectedFileIndex;
+            if (index >= 0 && index < player.buttonArray.length) {
+                var fileURLKey = "fileURL" + (index + 1);
+                var buttonId = "button_fileSelector" + (index + 1);
+
+                applicationArea[fileURLKey] = player.selectedFilePath;
+
+                var button = player.buttonArray[(player.buttonArray.length - 1) - player.selectedFileIndex]
+                button.text = player.selectedFilePath;
+                button.background.color = "#7393b3";
+            }
+
+            applicationArea.isSaveConfigEnable = true;
+            enableButton(play);
+        }
+        player.filePathUpdated = false;
+    }
+
+
+    CustomFileDialog {
+        id: customFileDialog
+        onUpdateProperty: {
+            player.selectedFilePath = value;
+            player.filePathUpdated = true
         }
     }
 
@@ -162,30 +210,7 @@ ApplicationWindow {
                 implicitHeight: parent.height * 0.10
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: fileSelectorArea.top
-                // anchors.margins: parent.width *0.9
                 color: "#ffffff"
-
-                //File Dialog
-                FileDialog {
-                    id: fileDialog1
-                    title: "Select a File"
-                    folder: shortcuts.home
-                    selectMultiple: false
-                    nameFilters: ["H264 Files (*.h264)"]
-                    onAccepted: {
-                        applicationArea.fileURL1 = fileDialog1.fileUrl.toString().replace("file://", "")
-                        button_fileSelector1.text = applicationArea.fileURL1
-                        button_fileSelector1.background.color = "#7393b3"
-                        applicationArea.isSaveConfigEnable = true;
-                        enableButton(play)
-                    }
-                    onRejected: {
-                        applicationArea.fileURL1 = ""
-                        button_fileSelector1.text = "Select Window Item 1"
-                        button_fileSelector1.background.color = "#444444"
-                        enableButton(play)
-                    }
-                }
 
                 Item {
                     id: spacer_01
@@ -208,8 +233,13 @@ ApplicationWindow {
                         opacity: enabled ? 1 : 0.3
                         color: "#444444"
                     }
+                    Component.onCompleted: {
+                        player.buttonArray.push(button_fileSelector1)
+                    }
                     onClicked: {
-                        fileDialog1.open()
+                        player.selectedFileIndex = 0
+                        customFileDialog.fileDialogVisible = true
+                        customFileDialog.updateFileList()
                     }
                 }
             }
@@ -220,30 +250,7 @@ ApplicationWindow {
                 implicitHeight: parent.height * 0.10
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: fileSelector1.bottom
-                // anchors.margins: parent.width *0.9
                 color: "#ffffff"
-
-                //File Dialog
-                FileDialog {
-                    id: fileDialog2
-                    title: "Select a File"
-                    folder: shortcuts.home
-                    selectMultiple: false
-                    nameFilters: ["H264 Files (*.h264)"]
-                    onAccepted: {
-                        applicationArea.fileURL2 = fileDialog2.fileUrl.toString().replace("file://", "")
-                        button_fileSelector2.text = applicationArea.fileURL2
-                        button_fileSelector2.background.color = "#7393b3"
-                        applicationArea.isSaveConfigEnable = true;
-                        enableButton(play)
-                    }
-                    onRejected: {
-                        applicationArea.fileURL2 = ""
-                        button_fileSelector2.text = "Select Window Item 2"
-                        button_fileSelector2.background.color = "#444444"
-                        enableButton(play)
-                    }
-                }
 
                 Item {
                     id: spacer_02
@@ -266,8 +273,13 @@ ApplicationWindow {
                         opacity: enabled ? 1 : 0.3
                         color: "#444444"
                     }
+                    Component.onCompleted: {
+                        player.buttonArray.push(button_fileSelector2)
+                    }
                     onClicked: {
-                        fileDialog2.open()
+                        player.selectedFileIndex = 1
+                        customFileDialog.fileDialogVisible = true
+                        customFileDialog.updateFileList()
                     }
                 }
             }
@@ -278,30 +290,7 @@ ApplicationWindow {
                 implicitHeight: parent.height * 0.10
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: fileSelector2.bottom
-                // anchors.margins: parent.width *0.9
                 color: "#ffffff"
-
-                //File Dialog
-                FileDialog {
-                    id: fileDialog3
-                    title: "Select a File"
-                    folder: shortcuts.home
-                    selectMultiple: false
-                    nameFilters: ["H264 Files (*.h264)"]
-                    onAccepted: {
-                        applicationArea.fileURL3 = fileDialog3.fileUrl.toString().replace("file://", "")
-                        button_fileSelector3.text = applicationArea.fileURL3
-                        button_fileSelector3.background.color = "#7393b3"
-                        applicationArea.isSaveConfigEnable = true;
-                        enableButton(play)
-                    }
-                    onRejected: {
-                        applicationArea.fileURL3 = ""
-                        button_fileSelector3.text = "Select Window Item 3"
-                        button_fileSelector3.background.color = "#444444"
-                        enableButton(play)
-                    }
-                }
 
                 Item {
                     id: spacer_03
@@ -324,8 +313,13 @@ ApplicationWindow {
                         opacity: enabled ? 1 : 0.3
                         color: "#444444"
                     }
+                    Component.onCompleted: {
+                        player.buttonArray.push(button_fileSelector3)
+                    }
                     onClicked: {
-                        fileDialog3.open()
+                        player.selectedFileIndex = 2
+                        customFileDialog.fileDialogVisible = true
+                        customFileDialog.updateFileList()
                     }
                 }
             }
@@ -336,30 +330,7 @@ ApplicationWindow {
                 implicitHeight: parent.height * 0.10
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: fileSelector3.bottom
-                // anchors.margins: parent.width *0.9
                 color: "#ffffff"
-
-                //File Dialog
-                FileDialog {
-                    id: fileDialog4
-                    title: "Select a File"
-                    folder: shortcuts.home
-                    selectMultiple: false
-                    nameFilters: ["H264 Files (*.h264)"]
-                    onAccepted: {
-                        applicationArea.fileURL4 = fileDialog4.fileUrl.toString().replace("file://", "")
-                        button_fileSelector4.text = applicationArea.fileURL4
-                        button_fileSelector4.background.color = "#7393b3"
-                        applicationArea.isSaveConfigEnable = true;
-                        enableButton(play)
-                    }
-                    onRejected: {
-                        applicationArea.fileURL4 = ""
-                        button_fileSelector4.text = "Select Window Item 4"
-                        button_fileSelector4.background.color = "#444444"
-                        enableButton(play)
-                    }
-                }
 
                 Item {
                     id: spacer_04
@@ -382,8 +353,13 @@ ApplicationWindow {
                         opacity: enabled ? 1 : 0.3
                         color: "#444444"
                     }
+                    Component.onCompleted: {
+                        player.buttonArray.push(button_fileSelector4)
+                    }
                     onClicked: {
-                        fileDialog4.open()
+                        player.selectedFileIndex = 3
+                        customFileDialog.fileDialogVisible = true
+                        customFileDialog.updateFileList()
                     }
                 }
             }
@@ -394,30 +370,7 @@ ApplicationWindow {
                 implicitHeight: parent.height * 0.10
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: fileSelector4.bottom
-                // anchors.margins: parent.width *0.9
                 color: "#ffffff"
-
-                //File Dialog
-                FileDialog {
-                    id: fileDialog5
-                    title: "Select a File"
-                    folder: shortcuts.home
-                    selectMultiple: false
-                    nameFilters: ["H264 Files (*.h264)"]
-                    onAccepted: {
-                        applicationArea.fileURL5 = fileDialog5.fileUrl.toString().replace("file://", "")
-                        button_fileSelector5.text = applicationArea.fileURL5
-                        button_fileSelector5.background.color = "#7393b3"
-                        applicationArea.isSaveConfigEnable = true;
-                        enableButton(play)
-                    }
-                    onRejected: {
-                        applicationArea.fileURL5 = ""
-                        button_fileSelector5.text = "Select Window Item 5"
-                        button_fileSelector5.background.color = "#444444"
-                        enableButton(play)
-                    }
-                }
 
                 Item {
                     id: spacer_05
@@ -440,8 +393,13 @@ ApplicationWindow {
                         opacity: enabled ? 1 : 0.3
                         color: "#444444"
                     }
+                    Component.onCompleted: {
+                        player.buttonArray.push(button_fileSelector5)
+                    }
                     onClicked: {
-                        fileDialog5.open()
+                        player.selectedFileIndex = 4
+                        customFileDialog.fileDialogVisible = true
+                        customFileDialog.updateFileList()
                     }
                 }
             }
@@ -452,30 +410,7 @@ ApplicationWindow {
                 implicitHeight: parent.height * 0.10
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: fileSelector5.bottom
-                // anchors.margins: parent.width *0.9
                 color: "#ffffff"
-
-                //File Dialog
-                FileDialog {
-                    id: fileDialog6
-                    title: "Select a File"
-                    folder: shortcuts.home
-                    selectMultiple: false
-                    nameFilters: ["H264 Files (*.h264)"]
-                    onAccepted: {
-                        applicationArea.fileURL6 = fileDialog6.fileUrl.toString().replace("file://", "")
-                        button_fileSelector6.text = applicationArea.fileURL6
-                        button_fileSelector6.background.color = "#7393b3"
-                        applicationArea.isSaveConfigEnable = true;
-                        enableButton(play)
-                    }
-                    onRejected: {
-                        applicationArea.fileURL6 = ""
-                        button_fileSelector6.text = "Select Window Item 6"
-                        button_fileSelector6.background.color = "#444444"
-                        enableButton(play)
-                    }
-                }
 
                 Item {
                     id: spacer_06
@@ -498,8 +433,13 @@ ApplicationWindow {
                         opacity: enabled ? 1 : 0.3
                         color: "#444444"
                     }
+                    Component.onCompleted: {
+                        player.buttonArray.push(button_fileSelector6)
+                    }
                     onClicked: {
-                        fileDialog6.open()
+                        player.selectedFileIndex = 5
+                        customFileDialog.fileDialogVisible = true
+                        customFileDialog.updateFileList()
                     }
                 }
             }
@@ -510,30 +450,7 @@ ApplicationWindow {
                 implicitHeight: parent.height * 0.10
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: fileSelector6.bottom
-                // anchors.margins: parent.width *0.9
                 color: "#ffffff"
-
-                //File Dialog
-                FileDialog {
-                    id: fileDialog7
-                    title: "Select a File"
-                    folder: shortcuts.home
-                    selectMultiple: false
-                    nameFilters: ["H264 Files (*.h264)"]
-                    onAccepted: {
-                        applicationArea.fileURL7 = fileDialog7.fileUrl.toString().replace("file://", "")
-                        button_fileSelector7.text = applicationArea.fileURL7
-                        button_fileSelector7.background.color = "#7393b3"
-                        applicationArea.isSaveConfigEnable = true;
-                        enableButton(play)
-                    }
-                    onRejected: {
-                        applicationArea.fileURL5 = ""
-                        button_fileSelector7.text = "Select Window Item 7"
-                        button_fileSelector7.background.color = "#444444"
-                        enableButton(play)
-                    }
-                }
 
                 Item {
                     id: spacer_07
@@ -556,8 +473,13 @@ ApplicationWindow {
                         opacity: enabled ? 1 : 0.3
                         color: "#444444"
                     }
+                    Component.onCompleted: {
+                        player.buttonArray.push(button_fileSelector7)
+                    }
                     onClicked: {
-                        fileDialog7.open()
+                        player.selectedFileIndex = 6
+                        customFileDialog.fileDialogVisible = true
+                        customFileDialog.updateFileList()
                     }
                 }
             }
@@ -568,30 +490,7 @@ ApplicationWindow {
                 implicitHeight: parent.height * 0.10
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: fileSelector7.bottom
-                // anchors.margins: parent.width *0.9
                 color: "#ffffff"
-
-                //File Dialog
-                FileDialog {
-                    id: fileDialog8
-                    title: "Select a File"
-                    folder: shortcuts.home
-                    selectMultiple: false
-                    nameFilters: ["H264 Files (*.h264)"]
-                    onAccepted: {
-                        applicationArea.fileURL8 = fileDialog8.fileUrl.toString().replace("file://", "")
-                        button_fileSelector8.text = applicationArea.fileURL8
-                        button_fileSelector8.background.color = "#7393b3"
-                        applicationArea.isSaveConfigEnable = true;
-                        enableButton(play)
-                    }
-                    onRejected: {
-                        applicationArea.fileURL8 = ""
-                        button_fileSelector8.text = "Select Window Item 8"
-                        button_fileSelector8.background.color = "#444444"
-                        enableButton(play)
-                    }
-                }
 
                 Item {
                     id: spacer_08
@@ -614,8 +513,13 @@ ApplicationWindow {
                         opacity: enabled ? 1 : 0.3
                         color: "#444444"
                     }
+                    Component.onCompleted: {
+                        player.buttonArray.push(button_fileSelector8)
+                    }
                     onClicked: {
-                        fileDialog8.open()
+                        player.selectedFileIndex = 7
+                        customFileDialog.fileDialogVisible = true
+                        customFileDialog.updateFileList()
                     }
                 }
             }
@@ -626,30 +530,7 @@ ApplicationWindow {
                 implicitHeight: parent.height * 0.10
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: fileSelector8.bottom
-                // anchors.margins: parent.width *0.9
                 color: "#ffffff"
-
-                //File Dialog
-                FileDialog {
-                    id: fileDialog9
-                    title: "Select a File"
-                    folder: shortcuts.home
-                    selectMultiple: false
-                    nameFilters: ["H264 Files (*.h264)"]
-                    onAccepted: {
-                        applicationArea.fileURL9 = fileDialog9.fileUrl.toString().replace("file://", "")
-                        button_fileSelector9.text = applicationArea.fileURL9
-                        button_fileSelector9.background.color = "#7393b3"
-                        applicationArea.isSaveConfigEnable = true;
-                        enableButton(play)
-                    }
-                    onRejected: {
-                        applicationArea.fileURL9 = ""
-                        button_fileSelector9.text = "Select Window Item 9"
-                        button_fileSelector9.background.color = "#444444"
-                        enableButton(play)
-                    }
-                }
 
                 Item {
                     id: spacer_09
@@ -672,8 +553,13 @@ ApplicationWindow {
                         opacity: enabled ? 1 : 0.3
                         color: "#444444"
                     }
+                    Component.onCompleted: {
+                        player.buttonArray.push(button_fileSelector9)
+                    }
                     onClicked: {
-                        fileDialog9.open()
+                        player.selectedFileIndex = 8
+                        customFileDialog.fileDialogVisible = true
+                        customFileDialog.updateFileList()
                     }
                 }
             }
@@ -704,15 +590,30 @@ ApplicationWindow {
                 anchors.top: spacer_x1.bottom
                 anchors.horizontalCenter: parent.horizontalCenter
                 enabled: false
+                property bool isSingleClick: true
+                property int clickThreshold: 1000
                 background: Rectangle {
                     width: parent.width
                     implicitHeight: parent.height
                     opacity: enabled ? 1 : 0.3
                     color: play.down ? "#444444" : "#444444"
                 }
-                onClicked: {
-                        playbackControl.doPlayback(applicationArea.url1, "")
+                Timer {
+                    id: waitTimer
+                    interval: play.clickThreshold
+                    running: false
+                    repeat: false
+                    onTriggered: {
+                        play.isSingleClick = true
                     }
+                }
+                onClicked: {
+                    if(play.isSingleClick) {
+                        play.isSingleClick = false
+                        playbackControl.doPlayback(applicationArea.url1, "")
+                        waitTimer.start();
+                    }
+                }
             }
 
             Item {

@@ -5,7 +5,7 @@
 
 PlaybackControl::PlaybackControl()
 {
-    windowManager = new WindowManager();
+    windowManager = new WindowManager(nullptr, this->machine);
 }
 
 PlaybackControl::~PlaybackControl()

@@ -84,12 +84,11 @@ GstBusSyncReply GstPlayer::gstBusCallback(GstBus* bus, GstMessage* message,
         gpointer user_data)
 {
     GstPlayer* player = static_cast<GstPlayer*>(user_data);
-    if(1 && gst_is_wl_display_handle_need_context_message(message)){
+    if(gst_is_wl_display_handle_need_context_message(message)){
         gst_element_set_context(GST_ELEMENT(GST_MESSAGE_SRC (message)),
                 player->windowManager->context);
         goto drop;
-    }
-    else if(1 && gst_is_video_overlay_prepare_window_handle_message(message)){
+    } else if(gst_is_video_overlay_prepare_window_handle_message(message)){
         QPlatformNativeInterface* native =
             QGuiApplication::platformNativeInterface();
         struct wl_surface* surface =

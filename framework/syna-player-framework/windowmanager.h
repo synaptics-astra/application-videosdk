@@ -19,6 +19,8 @@
 #include <QPalette>
 #include <QString>
 #include <iterator>
+#include <QThread>
+#include <QSemaphore>
 
 #include <string.h>
 #include <cstdlib>
@@ -28,6 +30,7 @@
 #include <linux/videodev2.h>
 
 #include "gstplayer.h"
+#include "settingsmanager.h"
 
 #define SL1620_ASTRA_MACHINE "sl1620"
 #define SL1640_ASTRA_MACHINE "sl1640"
@@ -48,19 +51,18 @@ class WindowManager : public QWidget {
     Q_PROPERTY(QString cameraFormat READ cameraFormat NOTIFY cameraFormatChanged)
 
 public:
-    explicit WindowManager(QWidget *parent = nullptr);
-    static QString CONFIG_FILE_PATH;
+    explicit WindowManager(QWidget *parent = nullptr, string mach = "");
 
     QString cameraFormat() const { return cameraFormatList; }
     QString hrxFormat() const { return hrxFormatList; }
     void updateCAMSRC(QVector<QString>::iterator iter);
     void updateHRXSRC(QVector<QString>::iterator iter);
     void updateRTSPSRC(QVector<QString>::iterator iter);
+    void playPipelines();
     ~WindowManager() {}
     Q_INVOKABLE void play(QString url1, QString url2);
     Q_INVOKABLE void play(int index, QString url1, QString url2,
             QString url3, QString url4);
-    static void createConfig();
     GstContext* context;
 
 public slots:
@@ -87,6 +89,10 @@ private:
     QVector<string>::iterator hrxIter;
     QString cameraFormatList = "YUY2";
     QString hrxFormatList = "NV12";
+    bool isPipelinePlaying = false;
+    QSemaphore playPipelineSem;
+    QThread* playPipelineThread = nullptr;
+    string machine;
 
 signals:
     void cameraFormatChanged();

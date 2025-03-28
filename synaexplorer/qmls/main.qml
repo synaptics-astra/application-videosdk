@@ -83,6 +83,11 @@ ApplicationWindow {
     }
 
     Component {
+        id: wifi
+        Wifi {}
+    }
+
+    Component {
         id: cameraApp
         CameraApp {}
     }
@@ -115,6 +120,9 @@ ApplicationWindow {
             sidemenu.sourceComponent = settingsPanel
             break
         case 6:
+            sidemenu.sourceComponent = wifi
+            break
+        case 7:
             if (machine === "sl1680") {
                 sidemenu.sourceComponent = cameraApp
             }
@@ -149,7 +157,7 @@ ApplicationWindow {
                 spacing: Resource.width / 25
                 property string machine: playbackControl.getMachine()
                 function updateModel() {
-                    var baseModel = ["Getting Started", "Video", "Graphics", "AI", "Capability Demo", "Settings"];
+                    var baseModel = ["Getting Started", "Video", "Graphics", "AI", "Capability Demo", "Settings", "Wi-Fi"];
                     if (machine === "sl1680") {
                         baseModel.push("ISP Camera");
                     }

@@ -1,9 +1,11 @@
 install_data(
   [
+    'about.png',
     'applications.png',
     'astra.png',
     'browser.png',
     'qr.png',
+    'settings.png',
     'setup.png',
     'terminal.png',
   ],

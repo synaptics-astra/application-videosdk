@@ -8,6 +8,7 @@
 
 #include "playbackcontrol.h"
 #include "settingsmanager.h"
+#include "wifiapp.h"
 
 using namespace std;
 
@@ -67,6 +68,10 @@ int main(int argc, char *argv[])
 
     SettingsManager settingsManager;
     engine.rootContext()->setContextProperty("settingsManager", &settingsManager);
+
+    Wifiapp wifiApp;
+    engine.rootContext()->setContextProperty("wifiapp", &wifiApp);
+
     qmlRegisterSingletonType(QStringLiteral("qrc:/qmls/res.qml"), "Resource", 1, 0, "Resource");
     const QUrl url(QStringLiteral("qrc:/qmls/main.qml"));
 

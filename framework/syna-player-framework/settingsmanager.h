@@ -30,7 +30,12 @@ public:
     Q_PROPERTY(QStringList rtspUrls READ getRtspUrls NOTIFY rtspUrlsChanged)
     Q_PROPERTY(QString hostIP READ getHostIP NOTIFY hostIPChanged)
 
+    static QStringList loadFormatPriority(const QString &filePath);
+    static QStringList loadRTSPUrls(const QString &filePath);
+    static void createConfig(const QString &filePath);
     QStringList selectedFormats() const;
+    static const QString CONFIG_FILE_PATH;
+    static QStringList getDefaultFormatPriority();
 
 signals:
     void prioritiesChanged();
@@ -45,5 +50,3 @@ private:
 };
 
 #endif // SETTINGSMANAGER_H
-
-

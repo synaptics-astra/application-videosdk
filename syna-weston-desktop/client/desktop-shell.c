@@ -169,9 +169,11 @@ struct panel_launcher {
   int focused, pressed;
   char *path;
   char *displayname;
+  char *icon_path;
   struct wl_list link;
   struct wl_array envp;
   struct wl_array argv;
+  int icon_size;
 };
 
 struct panel_clock {
@@ -192,6 +194,8 @@ struct unlock_dialog {
 };
 
 static void panel_add_launchers(struct panel *panel, struct desktop *desktop);
+
+static void panel_update_launcher_icons(struct panel *panel);
 
 static void sigchild_handler(int s) {
   int status;
@@ -340,14 +344,14 @@ static void panel_redraw_handler(struct widget *widget, void *data) {
     double half_panel_width = panel_width / 2;
 
     // Coordinates for the trapezium
-    double x1 = center_x - half_panel_width;
+    double x1 = center_x - half_panel_width - 100;
     double y1 = allocation.height - trapezium_height;
-    double x2 = center_x + half_panel_width;
+    double x2 = center_x + half_panel_width + 100;
     double y2 = allocation.height - trapezium_height;
-    double x3 = center_x + half_panel_width -
+    double x3 = center_x + half_panel_width +
                 50; // Adjust this value to control the bottom width
     double y3 = allocation.height;
-    double x4 = center_x - half_panel_width +
+    double x4 = center_x - half_panel_width -
                 50; // Adjust this value to control the bottom width
     double y4 = allocation.height;
 
@@ -557,6 +561,7 @@ static void panel_resize_handler(struct widget *widget, int32_t width,
                                  int32_t height, void *data) {
   struct panel_launcher *launcher;
   struct panel *panel = data;
+  panel_update_launcher_icons(panel);
   int x = 0;
   int y = 0;
   int w = height > width ? width : height;
@@ -567,13 +572,10 @@ static void panel_resize_handler(struct widget *widget, int32_t width,
   int first_pad_h = horizontal ? 0 : DEFAULT_SPACING / count;
   int first_pad_w = horizontal ? DEFAULT_SPACING / count : 0;
   int height_adjustment = 0;
-  int k;
 
   if (width > 0) {
-    fprintf(stderr, "width = %d", width);
-    x = (width/2) - (((width/12) * count)/2) + ((width/60)* count);
-    height_adjustment = (int)(width / 300);
-    // k = (width /(3 * count)) + (height_adjustment * 5 * count);
+    x = (width / 2) - (((width / 12) * count) / 2) + (width / 45);
+    height_adjustment = (int)(height / 250);
   }
 
   if (horizontal) {
@@ -588,14 +590,15 @@ static void panel_resize_handler(struct widget *widget, int32_t width,
       wl_list_for_each(launcher, &panel->launcher_list, link) {
         widget_set_allocation(launcher->widget, x, y - height_adjustment,
                               w + first_pad_w + 1, h + first_pad_h + 1);
-        x += w + first_pad_w + (width / (15 * count));
+        x += (width / 12);
         first_pad_h = first_pad_w = 0;
       }
     }
   } else {
     wl_list_for_each(launcher, &panel->launcher_list, link) {
-      widget_set_allocation(launcher->widget, x - 10, y - height_adjustment + 40,
-                            w + first_pad_w + 1, h + first_pad_h + 1);
+      widget_set_allocation(launcher->widget, x - 10,
+                            y - height_adjustment + 40, w + first_pad_w + 1,
+                            h + first_pad_h + 1);
       y += h + first_pad_h + (height / (10 * count));
       first_pad_h = first_pad_w = 0;
     }
@@ -675,6 +678,10 @@ static void panel_destroy_launcher(struct panel_launcher *launcher) {
 
   free(launcher->path);
   free(launcher->displayname);
+  if (launcher->icon) {
+    cairo_surface_destroy(launcher->icon);
+  }
+  free(launcher->icon_path);
 
   cairo_surface_destroy(launcher->icon);
 
@@ -795,14 +802,9 @@ static void panel_add_launcher(struct panel *panel, const char *icon,
 
   launcher = xzalloc(sizeof *launcher);
 
-  // Determine icon size based on panel position
-  int icon_size =
-      (panel->panel_position == WESTON_DESKTOP_SHELL_PANEL_POSITION_TOP ||
-       panel->panel_position == WESTON_DESKTOP_SHELL_PANEL_POSITION_BOTTOM)
-          ? 35
-          : 30;
-
-  launcher->icon = load_icon_or_fallback(icon, icon_size);
+  launcher->icon_path = xstrdup(icon);
+  launcher->icon = NULL; // Don't load the icon yet
+  launcher->icon_size = 0; // set to 0
   launcher->path = xstrdup(path);
   launcher->displayname = xstrdup(displayname);
 
@@ -862,6 +864,28 @@ static void panel_add_launcher(struct panel *panel, const char *icon,
                               panel_launcher_touch_up_handler);
   widget_set_redraw_handler(launcher->widget, panel_launcher_redraw_handler);
   widget_set_motion_handler(launcher->widget, panel_launcher_motion_handler);
+}
+
+// Update all launcher icon sizes based on current allocation
+static void panel_update_launcher_icons(struct panel *panel) {
+  struct rectangle allocation;
+  widget_get_allocation(panel->widget, &allocation);
+
+  if (allocation.width > 0) {
+    int new_icon_size = allocation.width / 55;
+    struct panel_launcher *launcher;
+    wl_list_for_each(launcher, &panel->launcher_list, link) {
+      if (launcher->icon == NULL || launcher->icon_size != new_icon_size) {
+        launcher->icon_size = new_icon_size;
+        if (launcher->icon) {
+          cairo_surface_destroy(launcher->icon);
+        }
+        launcher->icon =
+            load_icon_or_fallback(launcher->icon_path, new_icon_size);
+        widget_schedule_redraw(launcher->widget);
+      }
+    }
+  }
 }
 
 enum {
@@ -1284,59 +1308,56 @@ static void customimage_resize(struct widget *widget, int32_t width,
   widget_set_allocation(customimage->widget, 200, 200, 200, 200);
 }
 
-static void
-customimage_draw(struct widget *widget, void *data)
-{
-        struct customimage *customimage = data;
-        cairo_surface_t *surface, *image;
-        cairo_pattern_t *pattern;
-        cairo_matrix_t matrix;
-        cairo_t *cr;
-        double im_w, im_h;
-        double sx, sy, s;
-        double tx, ty;
-        struct rectangle allocation;
+static void customimage_draw(struct widget *widget, void *data) {
+  struct customimage *customimage = data;
+  cairo_surface_t *surface, *image;
+  cairo_pattern_t *pattern;
+  cairo_matrix_t matrix;
+  cairo_t *cr;
+  double im_w, im_h;
+  double sx, sy, s;
+  double tx, ty;
+  struct rectangle allocation;
 
-        surface = window_get_surface(customimage->window);
+  surface = window_get_surface(customimage->window);
 
-        cr = widget_cairo_create(customimage->widget);
-        cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
-        cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 0.0);
-        cairo_paint(cr);
+  cr = widget_cairo_create(customimage->widget);
+  cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
+  cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 0.0);
+  cairo_paint(cr);
 
-        widget_get_allocation(widget, &allocation);
-        image = NULL;
+  widget_get_allocation(widget, &allocation);
+  image = NULL;
 
-        if (customimage->image)
-                image = load_cairo_surface(customimage->image);
+  if (customimage->image)
+    image = load_cairo_surface(customimage->image);
 
-        if (image) {
-                im_w = cairo_image_surface_get_width(image);
-                im_h = cairo_image_surface_get_height(image);
-                sx = im_w / allocation.width;
-                sy = im_h / allocation.height;
+  if (image) {
+    im_w = cairo_image_surface_get_width(image);
+    im_h = cairo_image_surface_get_height(image);
+    sx = im_w / allocation.width;
+    sy = im_h / allocation.height;
 
-                pattern = cairo_pattern_create_for_surface(image);
-                s = (sx < sy) ? sx : sy;
-                s = s * 10;
+    pattern = cairo_pattern_create_for_surface(image);
+    s = (sx < sy) ? sx : sy;
+    s = s * 10;
 
-                /* align center */
-                tx = (im_w - s * allocation.width) * 0.8;
-                ty = (im_h - s * allocation.height) * 0.8;
+    /* align center */
+    tx = (im_w - s * allocation.width) * 0.8;
+    ty = (im_h - s * allocation.height) * 0.8;
 
-                cairo_matrix_init_translate(&matrix, tx, ty);
-                cairo_matrix_scale(&matrix, s, s);
-                cairo_pattern_set_matrix(pattern, &matrix);
+    cairo_matrix_init_translate(&matrix, tx, ty);
+    cairo_matrix_scale(&matrix, s, s);
+    cairo_pattern_set_matrix(pattern, &matrix);
 
-                cairo_set_source(cr, pattern);
-                cairo_pattern_destroy (pattern);
-                cairo_surface_destroy(image);
-                cairo_mask(cr, pattern);
-        }
-        cairo_destroy(cr);
-        cairo_surface_destroy(surface);
+    cairo_set_source(cr, pattern);
+    cairo_pattern_destroy(pattern);
+    cairo_surface_destroy(image);
+    cairo_mask(cr, pattern);
+  }
+  cairo_destroy(cr);
+  cairo_surface_destroy(surface);
 }
-
 
 static void customimage_configure(void *data,
                                   struct weston_desktop_shell *desktop_shell,
@@ -1601,7 +1622,7 @@ static void panel_add_launchers(struct panel *panel, struct desktop *desktop) {
       panel_add_launcher(panel, icon, path, displayname);
       count++;
     } else {
-      fprintf(stderr, "invalid launcher section\n");
+      fprintf(stderr, "Invalid launcher: icon=%s, path=%s\n", icon, path);
     }
 
     free(icon);

@@ -4,8 +4,10 @@ import QtQuick.Controls 2.2
 import QtQuick.Controls.Material 2.12
 import QtQuick.Layouts 1.1
 import QtQuick.Dialogs 1.2
+import "."
 
 ApplicationWindow {
+    id: player
     visible: true
     visibility: "FullScreen"
     title: qsTr("SL1620 :: Syna Capability Demo")
@@ -13,9 +15,26 @@ ApplicationWindow {
     width: screen.width
     height: screen.height
 
+    property int selectedFileIndex: 0
+    property string selectedFilePath: ""
+    property bool filePathUpdated: false
+    property var buttonArray: []
+
+    onVisibleChanged: {
+        var wid = -1
+        var targetScreen
+        for (var i = 0; i < Qt.application.screens.length; i++) {
+            if (wid < Qt.application.screens[i].width) {
+                wid = Qt.application.screens[i].width
+                targetScreen = Qt.application.screens[i]
+            }
+        }
+        player.screen = targetScreen
+    }
+
     function enableButton(buttonID) {
         if(buttonID) {
-            if(applicationArea.fileURL1 != "") {
+            if(applicationArea.fileURL != "") {
                 buttonID.background.color = "#7393b3"
                 buttonID.enabled = true
             }
@@ -23,6 +42,35 @@ ApplicationWindow {
                 buttonID.background.color = "#444444"
                 buttonID.enabled = false
             }
+        }
+    }
+
+    onFilePathUpdatedChanged: {
+        if (player.filePathUpdated) {
+            var index = player.selectedFileIndex;
+            if (index >= 0 && index < player.buttonArray.length) {
+                var fileURLKey = "fileURL" + (index + 1);
+                var buttonId = "button_fileSelector" + (index + 1);
+
+                applicationArea[fileURLKey] = player.selectedFilePath;
+
+                var button = player.buttonArray[(player.buttonArray.length - 1) - player.selectedFileIndex]
+                button.text = player.selectedFilePath;
+                button.background.color = "#7393b3";
+            }
+
+            applicationArea.isSaveConfigEnable = true;
+            enableButton(play);
+        }
+        player.filePathUpdated = false;
+    }
+
+
+    CustomFileDialog {
+        id: customFileDialog
+        onUpdateProperty: {
+            player.selectedFilePath = value;
+            player.filePathUpdated = true
         }
     }
 
@@ -76,7 +124,7 @@ ApplicationWindow {
                     sink_0::xpos=0 sink_0::ypos=0 sink_0::width=640 sink_0::height=360
                     sink_1::xpos=640 sink_1::ypos=0 sink_1::width=640 sink_1::height=360
                     ! video/x-raw, format=BGRA ! waylandsink
-                    multifilesrc loop=true location=" + fileURL1 + " ! h264parse ! avdec_h264 thread-type=slice ! queue ! comp.sink_0
+                    multifilesrc loop=true location=" + fileURL1 + " ! h264parse ! avdec_h264 ! queue ! comp.sink_0
                     CAMSRC ! comp.sink_1"
 
         property var synaCapabilityDemoConfigPath : "/home/root/demos/configs/syna_capability_demo_sl1620_config.txt"
@@ -119,30 +167,7 @@ ApplicationWindow {
                 implicitHeight: parent.height * 0.16
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: spacer_00.bottom
-                // anchors.margins: parent.width *0.9
                 color: "#ffffff"
-
-                //File Dialog
-                FileDialog {
-                    id: fileDialog1
-                    title: "Select a File"
-                    folder: shortcuts.home
-                    selectMultiple: false
-                    nameFilters: ["H264 Files (*.h264)"]
-                    onAccepted: {
-                        applicationArea.fileURL1 = fileDialog1.fileUrl.toString().replace("file://", "")
-                        button_fileSelector1.text = applicationArea.fileURL1
-                        button_fileSelector1.background.color = "#7393b3"
-                        applicationArea.isSaveConfigEnable = true;
-                        enableButton(play)
-                    }
-                    onRejected: {
-                        applicationArea.fileURL1 = ""
-                        button_fileSelector1.text = "Select Window Item 1"
-                        button_fileSelector1.background.color = "#444444"
-                        enableButton(play)
-                    }
-                }
 
                 Item {
                     id: spacer_01
@@ -165,8 +190,13 @@ ApplicationWindow {
                         opacity: enabled ? 1 : 0.3
                         color: "#444444"
                     }
+                    Component.onCompleted: {
+                        player.buttonArray.push(button_fileSelector1)
+                    }
                     onClicked: {
-                        fileDialog1.open()
+                        player.selectedFileIndex = 0
+                        customFileDialog.fileDialogVisible = true
+                        customFileDialog.updateFileList()
                     }
                 }
             }
@@ -198,15 +228,30 @@ ApplicationWindow {
                 anchors.top: spacer_x1.bottom
                 anchors.horizontalCenter: parent.horizontalCenter
                 enabled: false
+                property bool isSingleClick: true
+                property int clickThreshold: 1000
                 background: Rectangle {
                     width: parent.width
                     implicitHeight: parent.height
                     opacity: enabled ? 1 : 0.3
                     color: play.down ? "#444444" : "#444444"
                 }
-                onClicked: {
-                        playbackControl.doPlayback(applicationArea.url1, "")
+                Timer {
+                    id: waitTimer
+                    interval: play.clickThreshold
+                    running: false
+                    repeat: false
+                    onTriggered: {
+                        play.isSingleClick = true
                     }
+                }
+                onClicked: {
+                    if(play.isSingleClick) {
+                        play.isSingleClick = false
+                        playbackControl.doPlayback(applicationArea.url1, "")
+                        waitTimer.start();
+                    }
+                }
             }
 
             Item {
