@@ -104,7 +104,7 @@ ApplicationWindow {
                 id: label
                 anchors.centerIn: parent
                 text: "Syna Capability Demo"
-                font.pixelSize: 40
+                font.pixelSize: player.height / 25
                 font.bold: true
                 color: "white"
             }
@@ -140,7 +140,7 @@ ApplicationWindow {
                     sink_6::xpos=768 sink_6::ypos=0 sink_6::width=382 sink_6::height=210
                     sink_7::xpos=1152 sink_7::ypos=0 sink_7::width=382 sink_7::height=210
                     sink_8::xpos=1536 sink_8::ypos=0 sink_8::width=382 sink_8::height=210
-                    ! video/x-raw, format=NV12 ! waylandsink
+                    ! video/x-raw, format=NV12 ! placeholdersink
                     multifilesrc loop=true caps=\"video/x-h264, framerate=25/1\"  location=" + fileURL1 + " ! h264parse ! v4l2h264dec ! comp.sink_0
                     multifilesrc loop=true caps=\"video/x-h264, framerate=25/1\"  location=" + fileURL2 + " ! h264parse ! v4l2h264dec ! comp.sink_1
                     multifilesrc loop=true caps=\"video/x-h264, framerate=25/1\"  location=" + fileURL3 + " ! h264parse ! v4l2h264dec ! comp.sink_2
@@ -150,7 +150,7 @@ ApplicationWindow {
                     multifilesrc loop=true caps=\"video/x-h264, framerate=25/1\"  location=" + fileURL7 + " ! h264parse ! v4l2h264dec ! comp.sink_6
                     multifilesrc loop=true caps=\"video/x-h264, framerate=25/1\"  location=" + fileURL8 + " ! h264parse ! v4l2h264dec ! comp.sink_7
                     CAMSRC ! comp.sink_8"
-        property string url2 : "HRXSRC ! waylandsink"
+        property string url2 : "HRXSRC ! placeholdersink"
 
         property var synaCapabilityDemoConfigPath : "/home/root/demos/configs/syna_capability_demo_sl1680_config.txt"
 

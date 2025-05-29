@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright 2024 Synaptics Incorporated
+// Copyright 2025 Synaptics Incorporated
 
 #ifndef WIFIAPP_H
 #define WIFIAPP_H
@@ -29,4 +29,3 @@ private:
 };
 
 #endif
-

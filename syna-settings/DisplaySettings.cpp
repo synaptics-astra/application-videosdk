@@ -25,8 +25,15 @@ void DisplaySettings::fetchAvailablePanels() {
             modelData.append(panelItem);
             panelNumber++;
         }
-        emit availablePanelsUpdated(modelData);  //  Send correctly formatted data
+        emit availablePanelsUpdated(modelData);
     }
+}
+
+QString DisplaySettings::extractPanelName(const QString &fileName) {
+    QString panelName = fileName;
+    panelName.remove(0, panelName.indexOf('-') + 1);
+    panelName.chop(QString("-overlay.dtbo").length());
+    return panelName;
 }
 
 //save selected panel and store it consitently
@@ -44,11 +51,10 @@ void DisplaySettings::savePanel(const QString &panelFileName) {
     QString dtboFile;
 
     for (const QString &file : dtboFiles) {
-         if ((panelFileName.contains("Haier") && file.contains("haier-panel-overlay")) ||
-             (panelFileName.contains("Waveshare") && file.contains("ws-panel-overlay"))) {
+         if (file.endsWith(panelFileName + "-overlay.dtbo")) {
              dtboFile = file;
              break;
-          }
+         }
     }
 
     if (dtboFile.isEmpty()) {
@@ -64,6 +70,45 @@ void DisplaySettings::savePanel(const QString &panelFileName) {
 
 //Reset to default settings (removes stored settings and resets U-boot panel)
 void DisplaySettings::resetToDefault() {
+    QFile configFile(WESTON_CONFIG_PATH);
+
+    if (!configFile.exists()) {
+        emit statusUpdated("Reset to default configuration. Reboot required. (Weston config file not found.)");
+        return;
+    }
+
+    if (!configFile.open(QIODevice::ReadWrite | QIODevice::Text)) {
+        emit statusUpdated("Reset to default configuration. Reboot required. (Failed to access Weston config file.)");
+        return;
+    }
+
+    QStringList lines;
+    QTextStream in(&configFile);
+    while (!in.atEnd()) {
+        lines.append(in.readLine());
+    }
+    // Remove DPI-2 section
+    removeDpi2Section(lines);
+
+    if (!configFile.seek(0)) {
+        configFile.close();
+        emit statusUpdated("Reset to default configuration. Reboot required. (Failed to seek in Weston config file.)");
+        return;
+    }
+
+    QTextStream out(&configFile);
+    for (const QString &line : lines) {
+        out << line << "\n";
+    }
+
+    qint64 newSize = configFile.pos();
+    if (!configFile.resize(newSize)) {
+        configFile.close();
+        emit statusUpdated("Reset to default configuration. Reboot required. (Failed to resize Weston config file.)");
+        return;
+    }
+
+    configFile.close();
     executeCommand("fw_setenv dtbo");
     emit statusUpdated("Reset to default configuration. Reboot required.");
 }
@@ -77,16 +122,16 @@ void DisplaySettings::printPanelInfo() {
         return;
     }
 
-    QString currentPanel = process.readAllStandardOutput().trimmed();
+    QString output = process.readAllStandardOutput().trimmed();
+    QStringList parts = output.split("=");
+    QString currentPanel = (parts.size() > 1) ? parts[1].trimmed() : QString();
+
     if (currentPanel.isEmpty()) {
         emit statusUpdated("No panel is selected.");
-    } else if (currentPanel.contains("haier-panel-overlay")) {
-        emit statusUpdated("Selected Panel: Haier.");
-    } else if (currentPanel.contains("ws-panel-overlay")) {
-        emit statusUpdated("Selected Panel: Waveshare.");
-    } else {
-        emit statusUpdated("No panel selected.");
+        return;
     }
+
+    emit statusUpdated(QString("Selected Panel: %1").arg(extractPanelName(currentPanel)));
 }
 
 //Get the list of available DTB files from /boot
@@ -107,20 +152,20 @@ QStringList DisplaySettings::getDtbFiles() {
     }
 
     dtboFiles = output.split("\n", Qt::SkipEmptyParts);
-    QStringList filteredFiles;
+    QStringList panelNames;
 
     for (const QString &filePath : dtboFiles) {
         QFileInfo fileInfo(filePath);
         QString fileName = fileInfo.fileName();
         dtboFiles.replaceInStrings("/boot/", "");
-        if (fileName.contains("haier-panel-overlay")) {
-            filteredFiles.append("Haier Panel");
-        } else if (fileName.contains("ws-panel-overlay")) {
-            filteredFiles.append("Waveshare Panel");
+        // filter out files containing "panel"
+        if (!fileName.contains("panel")) {
+            continue; //skip non-panel files
         }
+        panelNames.append(extractPanelName(fileName));
     }
 
-    return filteredFiles;
+    return panelNames;
 }
 
 //execute shell command
@@ -145,9 +190,61 @@ void DisplaySettings::executeCommand(const QString &command, bool emitOutput) {
     }
 }
 
+bool DisplaySettings::removeDpi2Section(QStringList &lines) {
+    int dpi2StartIndex = -1;
+    int dpi2EndIndex = -1;
+    bool foundDPI2Section = false;
+    bool insideOutputSection = false;
+
+    // Parse to find DPI-2 section
+    for (int i = 0; i < lines.size(); i++) {
+        QString trimmedLine = lines[i].trimmed();
+        if (trimmedLine.startsWith("[output]")) {
+            insideOutputSection = true;
+            for (int j = i + 1; j < lines.size() && !lines[j].trimmed().startsWith("["); j++) {
+                if (lines[j].trimmed().startsWith("name=DPI-2")) {
+                    dpi2StartIndex = i;
+                    foundDPI2Section = true;
+                    break;
+                }
+            }
+        } else if (insideOutputSection && trimmedLine.startsWith("[")) {
+            insideOutputSection = false;
+            if (foundDPI2Section && dpi2EndIndex == -1) {
+                dpi2EndIndex = i;
+            }
+        }
+    }
+
+    if (foundDPI2Section && dpi2EndIndex == -1) {
+        dpi2EndIndex = lines.size();
+    }
+
+    // Remove DPI-2 section if found
+    if (foundDPI2Section) {
+        if (dpi2StartIndex >= 0 && dpi2StartIndex < lines.size() &&
+            dpi2EndIndex > dpi2StartIndex && dpi2EndIndex <= lines.size()) {
+            lines.erase(lines.begin() + dpi2StartIndex, lines.begin() + dpi2EndIndex);
+            return true;
+        } else {
+            return false;
+        }
+    }
+    return false;
+}
+
 void DisplaySettings::modifyWestonConfig(const QString &selectedPanel) {
     QFile configFile(WESTON_CONFIG_PATH);
-    qDebug() << "Selected Panel: " << selectedPanel;
+    // Get the system profile by running `uname -n`
+    QProcess process;
+    process.start("/bin/sh", QStringList() << "-c" << "uname -n");
+    if (!process.waitForFinished()) {
+        emit statusUpdated("Failed to fetch system profile.");
+        return;
+    }
+
+    QString systemProfile = process.readAllStandardOutput().trimmed();
+
     // Check if the Weston config file exists
     if (!configFile.exists()) {
         emit statusUpdated("Weston config file not found.");
@@ -167,70 +264,74 @@ void DisplaySettings::modifyWestonConfig(const QString &selectedPanel) {
     }
     configFile.close();
 
-    bool isHaierPanel = selectedPanel.contains("Haier");
-    bool isWavesharePanel = selectedPanel.contains("Waveshare");
-
-    if (!isHaierPanel && !isWavesharePanel) {
-        emit statusUpdated("No modification needed for Weston config.");
-        return;
-    }
-
+    bool isHaierPanel = selectedPanel.contains("haier");
+    bool isSL1620 = (systemProfile == "sl1620");
     bool insideOutputSection = false;
     bool transformLineFound = false;
     int transformLineIndex = -1;
+    int outputSectionIndex = -1;
 
-    // Check if the [output] section exists, if not, create it
+    // Track DPI-2 section (still needed for detection in Case 1)
+    int dpi2StartIndex = -1;
+    int dpi2EndIndex = -1;
+    bool foundDPI2Section = false;
+
+    // Parse config file to find necessary sections
     for (int i = 0; i < lines.size(); i++) {
-        if (lines[i].trimmed().startsWith("[output]")) {
+        QString trimmedLine = lines[i].trimmed();
+
+        if (trimmedLine.startsWith("[output]")) {
             insideOutputSection = true;
-            break;
-        }
-    }
+            outputSectionIndex = i;
 
-    // If [output] section doesn't exist, create it
-    if (!insideOutputSection) {
-        // Add [output] section before any other section or at the end if no other sections exist
-        bool sectionInserted = false;
-        for (int i = 0; i < lines.size(); i++) {
-            if (lines[i].trimmed().startsWith("[")) {
-                lines.insert(i, "[output]");
-                sectionInserted = true;
-                break;
-            }
-        }
-
-        // If no section was inserted, append it at the end
-        if (!sectionInserted) {
-            lines.append("\n[output]");
-        }
-    }
-
-    // Now that [output] section is ensured, check for transform=rotate-270 for Haier or Waveshare
-    for (int i = 0; i < lines.size(); i++) {
-        if (lines[i].contains("transform=rotate-270")) {
-            transformLineFound = true;
-            transformLineIndex = i;
-            break;
-        }
-    }
-
-    // For Haier panel: Add transform=rotate-270 if not found
-    if (isHaierPanel) {
-        if (!transformLineFound) {
-            // Add transform=rotate-270 under the [output] section
-            for (int i = 0; i < lines.size(); i++) {
-                if (lines[i].trimmed().startsWith("[output]")) {
-                    lines.insert(i + 1, "transform=rotate-270");
+            // Look ahead for name=DPI-2 within this section
+            for (int j = i + 1; j < lines.size() && !lines[j].trimmed().startsWith("["); j++) {
+                if (lines[j].trimmed().startsWith("name=DPI-2")) {
+                    dpi2StartIndex = i;
+                    foundDPI2Section = true;
                     break;
                 }
             }
+        } else if (insideOutputSection && trimmedLine.startsWith("[")) {
+            insideOutputSection = false;
+            if (foundDPI2Section && dpi2EndIndex == -1) {
+                dpi2EndIndex = i;
+            }
+        }
+
+        if (insideOutputSection && trimmedLine.startsWith("transform=rotate-270")) {
+            transformLineFound = true;
+            transformLineIndex = i;
         }
     }
-    // For Waveshare panel: Remove transform=rotate-270 if found
-    else if (isWavesharePanel) {
-        if (transformLineFound) {
-            lines.removeAt(transformLineIndex);
+
+    if (foundDPI2Section && dpi2EndIndex == -1) {
+        dpi2EndIndex = lines.size();
+    }
+
+    // Case 1: If profile is sl1620 and panel is Haier, ensure DPI-2 section exists
+    if (isSL1620 && isHaierPanel) {
+        if (!foundDPI2Section) {
+            if (!lines.isEmpty() && !lines.last().isEmpty()) {
+                lines.append("");
+            }
+            lines.append("[output]");
+            lines.append("name=DPI-2");
+            lines.append("transform=rotate-270");
+            lines.append("# Added by DisplaySettings");
         }
+    }
+    // Case 2: If profile is sl1620 and panel is NOT Haier, remove DPI-2 section
+    else if (isSL1620 && !isHaierPanel && foundDPI2Section) {
+        removeDpi2Section(lines);
+    }
+    // Case 3: If profile is NOT sl1620 but panel is Haier, add transform to existing [output]
+    else if (!isSL1620 && isHaierPanel && !transformLineFound && outputSectionIndex != -1) {
+        lines.insert(outputSectionIndex + 1, "transform=rotate-270");
+    }
+    // Case 4: If profile is NOT sl1620 and panel is NOT Haier, remove transform if found
+    else if (!isSL1620 && !isHaierPanel && transformLineFound) {
+        lines.removeAt(transformLineIndex);
     }
 
     // Write back the updated Weston configuration
@@ -244,5 +345,6 @@ void DisplaySettings::modifyWestonConfig(const QString &selectedPanel) {
         out << line << "\n";
     }
     configFile.close();
-}
 
+    emit statusUpdated("Weston configuration updated successfully.");
+}

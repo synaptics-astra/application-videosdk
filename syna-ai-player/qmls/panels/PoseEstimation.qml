@@ -40,16 +40,18 @@ Rectangle {
 
         GridItem {
             type: 1
+            mode: "file"
             image: "qrc:/res/images/file_icon.png"
             title:  qsTr("File")
-            command1: "filesrc location=/home/root/demos/videos/mp4/body_pose.mp4 ! qtdemux name=demux demux.video_0 ! queue ! h264parse ! v4l2h264dec ! tee name=t_data t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=640,height=352,format=RGB ! synapinfer model=/usr/share/synap/models/object_detection/body_pose/model/yolov8s-pose/model.synap mode=detector frameinterval=3 ! overlay.inference_sink t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=1920,height=1080,format=BGRA ! synapoverlay name=overlay ! waylandsink"
+            modelPipeline: "tee name=t_data t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=640,height=352,format=RGB ! synapinfer model=/usr/share/synap/models/object_detection/body_pose/model/yolov8s-pose/model.synap mode=detector frameinterval=3 ! overlay.inference_sink t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=1920,height=1080,format=BGRA ! synapoverlay name=overlay ! placeholdersink"
         }
 
         GridItem {
             type: 1
+            mode: "camera"
             image: "qrc:/res/images/camera_icon.png"
             title:  qsTr("Camera")
-            command1: "CAMSRC ! tee name=t_data t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=640,height=352,format=RGB  ! synapinfer model=/usr/share/synap/models/object_detection/body_pose/model/yolov8s-pose/model.synap mode=detector frameinterval=3 ! overlay.inference_sink t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=640,height=480,format=BGRA  ! synapoverlay name=overlay ! waylandsink"
+            command1: "CAMSRC ! tee name=t_data t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=640,height=352,format=RGB  ! synapinfer model=/usr/share/synap/models/object_detection/body_pose/model/yolov8s-pose/model.synap mode=detector frameinterval=3 ! overlay.inference_sink t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=640,height=480,format=BGRA  ! synapoverlay name=overlay ! placeholdersink"
         }
     }
 }

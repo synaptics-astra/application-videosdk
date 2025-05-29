@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright 2024 Synaptics Incorporated
+// Copyright 2025 Synaptics Incorporated
 
 #include "wifiapp.h"
 #include <QDebug>
@@ -57,4 +57,3 @@ void Wifiapp::manageKnownNetworks() {
         qCritical() << "Failed to start known_networks.py";
     }
 }
-

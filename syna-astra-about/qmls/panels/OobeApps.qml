@@ -118,7 +118,25 @@ Rectangle {
         }
 
         TextView {
+            visible: HAVE_WAYLAND
             text: qsTr("Wayland Terminal")
+            font.pixelSize: Resource.paragraphLarge
+            font.family: "Sans Serif"
+            color: "blue"
+            font.underline: true
+
+            MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                    TerminalLauncher.openTerminalLauncher();
+                }
+            }
+        }
+
+        TextView {
+            visible: HAVE_X11
+            text: qsTr("XFCE Terminal")
             font.pixelSize: Resource.paragraphLarge
             font.family: "Sans Serif"
             color: "blue"
@@ -140,7 +158,16 @@ Rectangle {
         }
 
         TextView {
+            visible: HAVE_WAYLAND
             text: qsTr("A fast and responsive terminal built for Wayland compositors.")
+            font.pixelSize: Resource.paragraphLarge
+            font.family: "Sans Serif"
+            font.capitalization: Font.MixedCase
+        }
+
+        TextView {
+            visible: HAVE_X11
+            text: qsTr("A fast and responsive terminal XFCE Terminal.")
             font.pixelSize: Resource.paragraphLarge
             font.family: "Sans Serif"
             font.capitalization: Font.MixedCase

@@ -8,11 +8,14 @@
 #include <gst/gst.h>
 #include <gst/video/videooverlay.h>
 #include <qpa/qplatformnativeinterface.h>
+#ifdef HAVE_WAYLAND
 #include <gst/wayland/wayland.h>
+#endif
 
 #include <QApplication>
 #include <QThread>
 #include <QDebug>
+#include <QWidget>
 
 #include "windowmanager.h"
 
@@ -36,11 +39,15 @@ class GstPlayer: public QThread {
         int index, x, y, width, height;
         string pipelineStr;
         const char* cmd;
+#ifdef HAVE_WAYLAND
         struct wl_surface* surface;
+#endif
+
         QString url;
         GstElement* pipeline;
         GstVideoOverlay* sink;
         WindowManager* windowManager;
+        bool configurePlatformSpecificOverlay();
         int is_valid_fd[FD_SETSIZE];
 
         int list_fds();

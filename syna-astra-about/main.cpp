@@ -22,6 +22,19 @@ int main(int argc, char *argv[])
 
     QQmlApplicationEngine engine;
 
+#ifdef HAVE_WAYLAND
+    bool isWayland = true;
+    bool isX11 = false;
+#endif
+
+#ifdef HAVE_X11
+    bool isWayland = false;
+    bool isX11 = true;
+#endif
+
+    engine.rootContext()->setContextProperty("HAVE_WAYLAND", isWayland);
+    engine.rootContext()->setContextProperty("HAVE_X11", isX11);
+
     AboutManager aboutManager;
     engine.rootContext()->setContextProperty("aboutManager", &aboutManager);
 

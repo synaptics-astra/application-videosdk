@@ -8,7 +8,10 @@
 #include <gst/gst.h>
 #include <gst/video/videooverlay.h>
 #include <qpa/qplatformnativeinterface.h>
+
+#ifdef HAVE_WAYLAND
 #include <gst/wayland/wayland.h>
+#endif
 
 #include <QApplication>
 #include <QScreen>

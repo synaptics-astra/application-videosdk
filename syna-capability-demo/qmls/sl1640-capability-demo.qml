@@ -105,7 +105,7 @@ ApplicationWindow {
                 id: label
                 anchors.centerIn: parent
                 text: "Syna Capability Demo"
-                font.pixelSize: 40
+                font.pixelSize: player.height / 25
                 font.bold: true
                 color: "white"
             }
@@ -142,7 +142,7 @@ ApplicationWindow {
                     sink_6::xpos=1280 sink_6::ypos=0 sink_6::width=640 sink_6::height=360
                     sink_7::xpos=1280 sink_7::ypos=360 sink_7::width=640 sink_7::height=360
                     sink_8::xpos=1280 sink_8::ypos=720 sink_8::width=640 sink_8::height=360
-                    ! video/x-raw, format=NV12 ! waylandsink
+                    ! video/x-raw, format=NV12 ! placeholdersink
                     multifilesrc loop=true caps=\"video/x-h264, framerate=25/1\"  location=" + fileURL1 + " ! h264parse ! v4l2h264dec ! comp.sink_0
                     multifilesrc loop=true caps=\"video/x-h264, framerate=25/1\"  location=" + fileURL2 + " ! h264parse ! v4l2h264dec ! comp.sink_1
                     multifilesrc loop=true caps=\"video/x-h264, framerate=25/1\"  location=" + fileURL3 + " ! h264parse ! v4l2h264dec ! comp.sink_2

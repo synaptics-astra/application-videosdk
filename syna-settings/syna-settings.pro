@@ -7,11 +7,15 @@ PKGCONFIG = "syna-settings-framework "
 
 SOURCES += \
     main.cpp \
-    DisplaySettings.cpp
+    DisplaySettings.cpp \
+    wifiapp.cpp \
+    bluetoothapp.cpp
 
 HEADERS += \
     settingscontrol.h \
     settingsdata.h \
-    DisplaySettings.h
+    DisplaySettings.h \
+    wifiapp.h \
+    bluetoothapp.h
 
 RESOURCES += qml.qrc

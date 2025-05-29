@@ -70,14 +70,14 @@ void WindowManager::updateCAMSRC(QVector<QString>::iterator iter)
     if(machine == SL1620_ASTRA_MACHINE) {
         camSrcPipelineH264 = "v4l2src device=CAM ! video/x-h264,framerate=15/1,format=H264,width=640,height=480 ! h264parse ! avdec_h264";
         camSrcPipelineMJPEG = "v4l2src device=CAM ! image/jpeg,framerate=15/1,format=MJPEG,width=640,height=480 ! jpegdec";
-        camSrcPipelineYUY2 = "v4l2src device=CAM ! video/x-raw,framerate=15/1,format=YUY2,width=640,height=480";
-        camSrcPipelineNV12 = "v4l2src device=CAM ! video/x-raw,framerate=15/1,format=NV12,width=640,height=480";
+        camSrcPipelineYUY2 = "v4l2src device=CAM io-mode=2 ! video/x-raw,framerate=15/1,format=YUY2,width=640,height=480";
+        camSrcPipelineNV12 = "v4l2src device=CAM io-mode=2 ! video/x-raw,framerate=15/1,format=NV12,width=640,height=480";
     }
     else {
         camSrcPipelineH264 = "v4l2src device=CAM ! video/x-h264,framerate=30/1,format=H264,width=640,height=480 ! h264parse ! v4l2h264dec";
         camSrcPipelineMJPEG = "v4l2src device=CAM ! image/jpeg,framerate=30/1,format=MJPEG,width=640,height=480 ! jpegdec";
-        camSrcPipelineYUY2 = "v4l2src device=CAM ! video/x-raw,framerate=30/1,format=YUY2,width=640,height=480";
-        camSrcPipelineNV12 = "v4l2src device=CAM ! video/x-raw,framerate=30/1,format=NV12,width=640,height=480";
+        camSrcPipelineYUY2 = "v4l2src device=CAM io-mode=2 ! video/x-raw,framerate=30/1,format=YUY2,width=640,height=480";
+        camSrcPipelineNV12 = "v4l2src device=CAM io-mode=2 ! video/x-raw,framerate=30/1,format=NV12,width=640,height=480";
     }
 
     if (camIter == cams.end()) {
@@ -369,9 +369,11 @@ WindowManager::WindowManager(QWidget *parent, string mach) : QWidget(parent), mu
     this->setPalette(pal);
 
     QPlatformNativeInterface* native = QGuiApplication::platformNativeInterface();
+#ifdef HAVE_WAYLAND
     struct wl_display* display_handle =
         (struct wl_display*)native->nativeResourceForWindow("display", nullptr);
     context = gst_wl_display_handle_context_new(display_handle);
+#endif
 
     players.clear();
     cams.clear();
@@ -428,8 +430,8 @@ void WindowManager::play(QString url1, QString url2)
     {
         updateCAMSRC(iter);
         updateHRXSRC(iter);
-        x1 = 382;
-        y1 = 212;
+        x1 = (width / 5);
+        y1 = (height / 5);
         w1 = width - x1;
         h1 = height - y1;
         player = new GstPlayer (threadCount++, x1, y1, w1, h1, *iter, this);
@@ -488,7 +490,7 @@ void WindowManager::play(int index, QString url1, QString url2,
     }
 
     closeButton = new QPushButton("Close", this);
-    closeButton->setGeometry(width - scaleFactor, height - scaleFactor/8, scaleFactor, scaleFactor/4);
+    closeButton->setGeometry(width - scaleFactor, (height - scaleFactor/8) + 10, scaleFactor, scaleFactor/4);
     closeButton->setWindowFlags(Qt::WindowStaysOnTopHint);
     closeButton->show();
     connect(closeButton, &QPushButton::clicked, this, &WindowManager::cleanUp);

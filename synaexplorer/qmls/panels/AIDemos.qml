@@ -7,12 +7,18 @@ import Resource 1.0
 import "../custom_views"
 
 Rectangle {
-    id:root
+    id: root
     color: Resource.background
+
+    property var machine: ""
+
+    Component.onCompleted: {
+        machine = playbackControl.getMachine();
+    }
 
     Item {
         id: spacer_0
-        height: Resource.width/50
+        height: Resource.width / 50
         width: 1
     }
 
@@ -41,7 +47,23 @@ Rectangle {
         GridItem {
             type: 5
             image: "qrc:/res/images/astra_icon.png"
-            title:  qsTr("AI Player")
+            title: qsTr("Video Usecases")
+        }
+
+        Loader {
+            active: machine === "sl1680"
+            sourceComponent: audioUsecaseComponent
+        }
+    }
+
+    Component {
+        id: audioUsecaseComponent
+
+        GridItem {
+            type: 9
+            image: "qrc:/res/images/astra_icon.png"
+            title: qsTr("Audio Usecases")
         }
     }
 }
+

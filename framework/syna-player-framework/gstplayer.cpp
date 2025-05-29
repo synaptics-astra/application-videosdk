@@ -2,7 +2,7 @@
 // Copyright 2024 Synaptics Incorporated
 
 #include "gstplayer.h"
-
+#include <QGuiApplication>
 #include <string.h>
 #include <stdio.h>
 #include <dirent.h>
@@ -80,24 +80,45 @@ int GstPlayer::check_and_close_fds()
      return 0;
 }
 
+bool GstPlayer::configurePlatformSpecificOverlay() {
+#ifdef HAVE_WAYLAND
+    QPlatformNativeInterface* native = QGuiApplication::platformNativeInterface();
+    if (!native) return false;
+
+    surface = static_cast<struct wl_surface*>(
+        native->nativeResourceForWindow("surface", windowManager->windowHandle()));
+    if (!surface) return false;
+
+    gst_video_overlay_set_window_handle(GST_VIDEO_OVERLAY(sink), (guintptr)surface);
+#endif
+
+#ifdef HAVE_X11
+    WId xwinid = windowManager->winId();
+    gst_video_overlay_set_window_handle(GST_VIDEO_OVERLAY(sink), xwinid);
+#endif
+
+    gst_video_overlay_set_render_rectangle(GST_VIDEO_OVERLAY(sink),
+            x, y, width, height);
+    return true;
+}
+
 GstBusSyncReply GstPlayer::gstBusCallback(GstBus* bus, GstMessage* message,
         gpointer user_data)
 {
     GstPlayer* player = static_cast<GstPlayer*>(user_data);
-    if(gst_is_wl_display_handle_need_context_message(message)){
-        gst_element_set_context(GST_ELEMENT(GST_MESSAGE_SRC (message)),
+
+#ifdef HAVE_WAYLAND
+    if (gst_is_wl_display_handle_need_context_message(message)) {
+        gst_element_set_context(GST_ELEMENT(GST_MESSAGE_SRC(message)),
                 player->windowManager->context);
         goto drop;
-    } else if(gst_is_video_overlay_prepare_window_handle_message(message)){
-        QPlatformNativeInterface* native =
-            QGuiApplication::platformNativeInterface();
-        struct wl_surface* surface =
-            static_cast<struct wl_surface*>(native->nativeResourceForWindow("surface",
-                        player->windowManager->windowHandle()));
-        gst_video_overlay_set_window_handle(GST_VIDEO_OVERLAY(GST_MESSAGE_SRC(message)),
-                (guintptr)surface);
-        gst_video_overlay_set_render_rectangle(GST_VIDEO_OVERLAY(GST_MESSAGE_SRC(message)),
-                player->x, player->y, player->width, player->height);
+    }
+#endif
+
+    if (gst_is_video_overlay_prepare_window_handle_message(message)) {
+        if (!player->configurePlatformSpecificOverlay()) {
+            qWarning() << "Failed to configure video sink";
+        }
         goto drop;
     }
 
@@ -107,6 +128,7 @@ drop:
     gst_message_unref(message);
     return GST_BUS_DROP;
 }
+
 
 GstPlayer::GstPlayer (int index, int x, int y, int width, int height,
         QString url, WindowManager *windowManager)
@@ -118,13 +140,21 @@ GstPlayer::GstPlayer (int index, int x, int y, int width, int height,
     connect(this, &QThread::finished, windowManager, &WindowManager::threadFinished);
 }
 
+
 void GstPlayer::run()
 {
     GstBus* bus;
     GError* err = nullptr;
     string gstURL = url.toStdString();
     size_t index = 0;
-    string keyword("waylandsink"), updatedKeyword("waylandsink name=sink");
+
+#ifdef HAVE_WAYLAND
+    string keyword("placeholdersink"), updatedKeyword("waylandsink name=sink");
+#endif
+
+#ifdef HAVE_X11
+    string keyword("placeholdersink"), updatedKeyword("glimagesink name=sink");
+#endif
 
     list_fds();
 
@@ -142,18 +172,18 @@ void GstPlayer::run()
     }
 
     sink = (GstVideoOverlay*)gst_bin_get_by_name(GST_BIN(pipeline), "sink");
-    if (sink == nullptr) {
-        qWarning() << "Error: Sink could not be created.";
+    if (!sink) {
+        qWarning() << "Error: Sink could not be created";
         return;
     }
 
     bus = gst_pipeline_get_bus(GST_PIPELINE(pipeline));
-    if (bus != nullptr) {
+    if (bus) {
         gst_bus_enable_sync_message_emission(bus);
         gst_bus_set_sync_handler(bus, gstBusCallback, gpointer(this), nullptr);
         gst_object_unref(bus);
     } else {
-        qWarning() << "Error: Could not get the bus.";
+        qWarning() << "Error: Could not get the bus";
     }
 
     gst_element_set_state(pipeline, GST_STATE_PLAYING);
@@ -161,14 +191,14 @@ void GstPlayer::run()
     exec();
 
     gst_element_set_state (pipeline, GST_STATE_READY);
-    gst_element_set_state (pipeline, GST_STATE_NULL);
+    gst_element_set_state(pipeline, GST_STATE_NULL);
 
-    if (sink != nullptr) {
-        gst_object_unref (sink);
+    if (sink) {
+        gst_object_unref(sink);
         sink = nullptr;
     }
-    if (pipeline != nullptr) {
-        gst_object_unref (pipeline);
+    if (pipeline) {
+        gst_object_unref(pipeline);
         pipeline = nullptr;
     }
 }

@@ -74,17 +74,14 @@ ApplicationWindow {
 
     Component {
         id: capabilityDemos
-        CapabilityDemos {}
+        CapabilityDemos {
+            visible: !isX11
+        }
     }
 
     Component {
         id: settingsPanel
-        Settings {}
-    }
-
-    Component {
-        id: wifi
-        Wifi {}
+        CameraConfig {}
     }
 
     Component {
@@ -114,15 +111,12 @@ ApplicationWindow {
             sidemenu.sourceComponent = aiDemos
             break
         case 4:
-            sidemenu.sourceComponent = capabilityDemos
+            sidemenu.sourceComponent = isX11 ? settingsPanel : capabilityDemos
             break
         case 5:
             sidemenu.sourceComponent = settingsPanel
             break
         case 6:
-            sidemenu.sourceComponent = wifi
-            break
-        case 7:
             if (machine === "sl1680") {
                 sidemenu.sourceComponent = cameraApp
             }
@@ -142,14 +136,27 @@ ApplicationWindow {
             background: Rectangle {
                 anchors.fill: parent
                 color: Resource.background
-                Image {
-                    source: "qrc:/res/images/vertical_line.png"
-                    anchors.right: parent.right
-                    anchors.verticalCenter: parent.verticalCenter
-                }
             }
 
             ListView {
+                ScrollBar.vertical: ScrollBar {
+                    id: scrollBar
+                    width: Resource.width / 80
+                    policy: ScrollBar.AlwaysOn
+                    background: Rectangle {
+                        color: "#d6e9ff" // background color
+                        border.color: "#cccccc" // border color
+                        border.width: 1
+                        radius: 5
+                    }
+                    contentItem: Rectangle {
+                        color: "#042757" // handle color
+                        border.color: "#ffffff" // handle border color
+                        border.width: 1
+                        radius: scrollBar.width / 2
+                    }
+                }
+ 
                 id: listItemView
                 anchors.fill: parent
                 highlightFollowsCurrentItem: true
@@ -157,8 +164,11 @@ ApplicationWindow {
                 spacing: Resource.width / 25
                 property string machine: playbackControl.getMachine()
                 function updateModel() {
-                    var baseModel = ["Getting Started", "Video", "Graphics", "AI", "Capability Demo", "Settings", "Wi-Fi"];
-                    if (machine === "sl1680") {
+                    var baseModel = ["Getting Started", "Video", "Graphics", "AI", "Camera Config"];
+                    if (!isX11) { // Temporary till HDMI RX issue is resolved
+                        baseModel.splice(4, 0, "Capability Demo");  // Insert at index 4
+                    }
+                    if (machine === "sl1680" && !isX11) {
                         baseModel.push("ISP Camera");
                     }
                     return baseModel;
@@ -173,8 +183,8 @@ ApplicationWindow {
                     onClicked: {
                         ListView.view.currentIndex = index
                         root.switchPage(index)
+                        }
                     }
-                }
 
                 Component.onCompleted: {
                     machine = playbackControl.getMachine();

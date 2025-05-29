@@ -7,6 +7,8 @@
 #include <QDebug>
 
 #include "playbackcontrol.h"
+#include "videoprober.h"
+#include "processhelper.h"
 
 using namespace std;
 
@@ -55,6 +57,8 @@ int main(int argc, char *argv[])
 
     PlaybackControl playbackControl;
     SettingsManager settingsManager;
+    VideoProber videoProber;
+    ProcessHelper processHelper;
 
     QStringList args = app.arguments();
     handleCommandLineOptions(args, playbackControl.machine);
@@ -76,6 +80,8 @@ int main(int argc, char *argv[])
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty("playbackControl", &playbackControl);
     engine.rootContext()->setContextProperty("settingsManager", &settingsManager);
+    engine.rootContext()->setContextProperty("videoProber", &videoProber);
+    engine.rootContext()->setContextProperty("processHelper", &processHelper);
 
     qmlRegisterSingletonType(QStringLiteral("qrc:/qmls/res.qml"), "Resource", 1, 0, "Resource");
 

@@ -7,8 +7,8 @@ import QtQuick.Dialogs 1.3
 
 ApplicationWindow {
     id: player
-    width: 1920
-    height: 1080
+    width: Screen.width
+    height: Screen.height
     visible: true
     visibility: "FullScreen"
     title: qsTr("Syna Video Player - SL1620")
@@ -138,7 +138,7 @@ ApplicationWindow {
             color: "black"
             Layout.alignment: Qt.AlignTop
             Layout.fillWidth: true
-            height: 70
+            height: player.height / 12
 
             Image {
                 source: "qrc:/images/astra_white.png"
@@ -148,7 +148,7 @@ ApplicationWindow {
             Label {
                 id: label
                 text: "Astra Video Playback Demo"
-                font.pixelSize: 40
+                font.pixelSize: player.height / 25
                 font.bold: true
                 color: "white"
                 anchors.centerIn: parent
@@ -158,9 +158,9 @@ ApplicationWindow {
         RowLayout {
             id: secondLayer
             spacing: 10
-            Layout.leftMargin: 40
-            Layout.rightMargin: 40
-            Layout.topMargin: 30
+            Layout.leftMargin: player.height / 25
+            Layout.rightMargin: player.height / 25
+            Layout.topMargin: player.height / 35
             Layout.bottomMargin: 0
             Layout.fillWidth: true
             Layout.alignment: Qt.AlignLeft
@@ -174,7 +174,7 @@ ApplicationWindow {
                         text: "VIDEO " + (index + 1)
                         font.pixelSize: 30
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 70
+                        Layout.preferredHeight: player.height / 15
                         color: "#ffffff"
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
@@ -200,7 +200,7 @@ ApplicationWindow {
                         font.pixelSize: 30
                         width: parent.width * 0.8
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 70
+                        Layout.preferredHeight: player.height / 15
                         delegate: ItemDelegate {
                             font.pixelSize: 30
                             width: comboBox.width
@@ -219,14 +219,14 @@ ApplicationWindow {
         }
 
         RowLayout {
-            Layout.topMargin: 40
+            Layout.topMargin: player.height / 25
             Layout.fillWidth: true
             Button {
                 id: update
                 text: "Update RTSP Urls"
-                font.pixelSize: 30
+                font.pixelSize: player.height / 35
                 highlighted: true
-                Layout.leftMargin: 40
+                Layout.leftMargin: player.height / 25
                 background: Rectangle {
                     color: update.down ? "#000000" : "#a9a9a9"
                     radius: 20
@@ -239,34 +239,34 @@ ApplicationWindow {
         }
 
         RowLayout {
-            Layout.topMargin: 40
+            Layout.topMargin: player.height / 25
             Layout.preferredWidth: parent.width / 4
             Layout.alignment: Qt.AlignHCenter
             Layout.fillHeight: true
             RadioButton {
                 id: singleView
                 text: "SINGLE VIEW"
-                font.pixelSize: 30
+                font.pixelSize: player.height / 35
                 Layout.alignment: Qt.AlignCenter
                 checked: true
             }
         }
 
         ColumnLayout {
-            Layout.topMargin: 40
-            Layout.leftMargin: 40
-            Layout.rightMargin: 40
+            Layout.topMargin: player.height / 25
+            Layout.leftMargin: player.height / 25
+            Layout.rightMargin: player.height / 25
             Layout.preferredWidth: parent.width / 2
             Layout.alignment: Qt.AlignHCenter
 
             Button {
                 id: play
                 text: "PLAY"
-                font.pixelSize: 30
+                font.pixelSize: player.height / 35
                 highlighted: true
                 Layout.fillWidth: true
                 Layout.alignment: Qt.AlignLeft
-                Layout.preferredHeight: 60
+                Layout.preferredHeight: player.height / 18
                 background: Rectangle {
                     opacity: enabled ? 1 : 0.3
                     color: play.down ? "#000000" : "#a9a9a9"
@@ -281,11 +281,11 @@ ApplicationWindow {
             Button {
                 id: exit
                 text: "Exit"
-                font.pixelSize: 30
+                font.pixelSize: player.height / 35
                 highlighted: true
                 Layout.fillWidth: true
                 Layout.alignment: Qt.AlignRight
-                Layout.preferredHeight: 60
+                Layout.preferredHeight: player.height / 18
                 background: Rectangle {
                     opacity: enabled ? 1 : 0.3
                     color: exit.down ? "#000000" : "#a9a9a9"
@@ -295,3 +295,4 @@ ApplicationWindow {
         }
     }
 }
+

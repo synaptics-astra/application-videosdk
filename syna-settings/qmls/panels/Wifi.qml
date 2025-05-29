@@ -5,6 +5,7 @@ import QtQuick.Window 2.1
 import Resource 1.0
 
 import "../custom_views"
+import "../elements"
 
 Rectangle {
     id: root
@@ -12,22 +13,22 @@ Rectangle {
     height: 180
     color: Resource.background
 
+    PageTitle {
+        text: qsTr("Wi-Fi")
+        Layout.alignment: Qt.AlignHCenter
+    }
+
     Item {
         width: parent.width
         height: 40
     }
 
-    Rectangle {
+    RowBar {
         id: wifiBar
-        width: 200
-        height: 60
-        color: "#007DC3"
-        radius: 12
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.topMargin: 80
-        anchors.margins: 5
 
         RowLayout {
             anchors.fill: parent
@@ -37,7 +38,7 @@ Rectangle {
             Text {
                 text: qsTr("Wi-Fi")
                 font.pixelSize: 22
-                color: "#FFFFFF"
+                color: Resource.whiteColor
                 Layout.alignment: Qt.AlignVCenter
             }
 
@@ -45,49 +46,19 @@ Rectangle {
                 Layout.fillWidth: true
             }
 
-            Rectangle {
-                width: 80
-                height: 36
-                radius: 18
-                color: wifiToggle.checked ? "#4CAF50" : "#B0BEC5"
-                border.color: "#FFFFFF"
-                border.width: 2
-                Layout.alignment: Qt.AlignVCenter
+            ToggleButton {
+                id: wifiToggleButton
+                checked: wifiapp.wifiState
 
-                Rectangle {
-                    id: toggleCircle
-                    width: 32
-                    height: 32
-                    radius: 16
-                    color: "white"
-                    anchors.verticalCenter: parent.verticalCenter
-                    x: wifiToggle.checked ? parent.width - width - 2 : 2
-
-                    Behavior on x {
-                        NumberAnimation {
-                            duration: 200
-                            easing.type: Easing.OutCubic
-                        }
-                    }
-                }
-
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: {
-                        wifiToggle.checked = !wifiToggle.checked
-                        wifiapp.togglePythonScript(wifiToggle.checked)
-                    }
+                onToggleStateChanged: {
+                    wifiapp.togglePythonScript(checked)
                 }
             }
         }
     }
 
-    Rectangle {
+    RowBar {
         id: availableNetworks
-        width: parent.width * 0.5
-        height: 60
-        color: "#007DC3"
-        radius: 12
         opacity: wifiToggle.checked ? 1 : 0
         visible: true
         anchors.top: wifiBar.bottom
@@ -110,7 +81,7 @@ Rectangle {
             Text {
                 text: qsTr("Available Networks")
                 font.pixelSize: 20
-                color: "#FFFFFF"
+                color: Resource.whiteColor
                 Layout.alignment: Qt.AlignVCenter
             }
 
@@ -139,12 +110,8 @@ Rectangle {
         }
     }
 
-    Rectangle {
+    RowBar {
         id: manageNetworks
-        width: parent.width * 0.5
-        height: 60
-        color: "#007DC3"
-        radius: 12
         opacity: wifiToggle.checked ? 1 : 0
         visible: true
         anchors.top: availableNetworks.bottom
@@ -167,7 +134,7 @@ Rectangle {
             Text {
                 text: qsTr("Manage Known Networks")
                 font.pixelSize: 20
-                color: "#FFFFFF"
+                color: Resource.whiteColor
                 Layout.alignment: Qt.AlignVCenter
             }
         }

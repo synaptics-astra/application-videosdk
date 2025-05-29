@@ -7,6 +7,8 @@
 #include <QDebug>
 #include "settingscontrol.h"
 #include "DisplaySettings.h"
+#include "wifiapp.h"
+#include "bluetoothapp.h"
 
 using namespace std;
 string machine;
@@ -64,6 +66,12 @@ int main(int argc, char *argv[]) {
     QQmlApplicationEngine engine;
     SettingsControl settingsControl;
     engine.rootContext()->setContextProperty("settingsControl", &settingsControl);
+
+    Wifiapp wifiApp;
+    engine.rootContext()->setContextProperty("wifiapp", &wifiApp);
+
+    Bluetoothapp bluetoothApp;
+    engine.rootContext()->setContextProperty("bluetoothapp", &bluetoothApp);
 
     bool isSampleModuleEnabled = false;
 #ifdef SAMPLE_MODULE

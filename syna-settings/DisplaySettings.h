@@ -20,6 +20,7 @@ public:
     Q_INVOKABLE void printPanelInfo ();
     Q_INVOKABLE void executeCommand(const QString &command, bool emitOutput = true);
     void modifyWestonConfig(const QString &selectedPanel);
+    QString extractPanelName(const QString &fileName);
 
 signals:
     void availablePanelsUpdated(const QVariantList &panels);
@@ -28,6 +29,7 @@ signals:
 private:
     QStringList getDtbFiles ();
     QStringList dtboFiles;
+    bool removeDpi2Section(QStringList &lines);
 };
 
 #endif // DISPLAYSETTINGS_H

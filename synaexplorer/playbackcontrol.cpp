@@ -26,9 +26,18 @@ void PlaybackControl::launch(QString path)
     arguments.push_back(path.toStdString());
 
     std::vector<std::string> environmentVariables;
+
+#ifdef HAVE_WAYLAND
     environmentVariables.push_back("XDG_RUNTIME_DIR=/var/run/user/0");
     environmentVariables.push_back("WAYLAND_DISPLAY=wayland-1");
     environmentVariables.push_back("QT_QPA_PLATFORM=wayland");
+#endif
+
+#ifdef HAVE_X11
+    environmentVariables.push_back("DISPLAY=:0");
+    environmentVariables.push_back("QT_QPA_PLATFORM=xcb");
+    environmentVariables.push_back("GST_GL_API=gles2");
+#endif
 
     std::string scriptpath = path.toStdString();
     std::vector<char*> args;

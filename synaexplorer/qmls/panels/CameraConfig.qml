@@ -3,6 +3,7 @@ import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import Resource 1.0
 import "../custom_views"
+import QtQuick.Window 2.15
 
 Rectangle {
     id: root
@@ -31,7 +32,7 @@ Rectangle {
 
         TextView {
             Layout.alignment: Qt.AlignLeft
-            Layout.leftMargin: 100
+            Layout.leftMargin: root.width * 0.05
             font.pixelSize: Resource.h2
             isBold: true
             isHighlight: true
@@ -41,44 +42,41 @@ Rectangle {
         Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.alignment: Qt.AlignCenter
-            Layout.leftMargin: 10
-            Layout.rightMargin: 10
 
             ColumnLayout {
                 anchors.fill: parent
-                spacing: 10
-                anchors.margins: 10
+                spacing: Screen.height * 0.01
+                anchors.margins: root.width * 0.02
 
-                Text {
-                    text: "USB Camera Format Priorities"
-                    font.bold: true
-                    font.pointSize: 14
-                    Layout.alignment: Qt.AlignCenter
-                }
+                Column {
+                    spacing: Screen.height * 0.015
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.preferredWidth: root.width * 0.6
 
-                Item {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    Layout.alignment: Qt.AlignCenter
+                    Text {
+                        text: "USB Camera Format Priorities"
+                        font.bold: true
+                        font.pointSize: root.height / 60
+                        width: parent.width
+                        horizontalAlignment: Text.AlignHCenter
+                    }
 
                     GridLayout {
-                        anchors.centerIn: parent
                         columns: 2
-                        columnSpacing: 10
-                        rowSpacing: 5
-                        width: parent.width * 0.6
+                        columnSpacing: root.width * 0.01
+                        rowSpacing: Screen.height * 0.005
+                        width: parent.width
 
                         Column {
-                            Layout.preferredWidth: 120
+                            Layout.preferredWidth: root.width * 0.1
                             Layout.fillHeight: true
-                            spacing: 5
+                            spacing: Screen.height * 0.005
 
                             Repeater {
-                                model: settingsManager.selectedFormats.length
+                                model: settingsManager ? settingsManager.selectedFormats.length : 0
                                 Rectangle {
                                     width: parent.width
-                                    height: 40
+                                    height: Screen.height * 0.03
                                     color: "#E0E0E0"
                                     border.color: "black"
                                     radius: 4
@@ -96,18 +94,18 @@ Rectangle {
                         Column {
                             Layout.fillWidth: true
                             Layout.fillHeight: true
-                            spacing: 5
+                            spacing: Screen.height * 0.005
 
                             Repeater {
-                                model: settingsManager.selectedFormats
+                                model: settingsManager ? settingsManager.selectedFormats : []
                                 Row {
                                     width: parent.width
-                                    height: 40
-                                    spacing: 5
+                                    height: Screen.height * 0.03
+                                    spacing: root.width * 0.005
 
                                     Rectangle {
-                                        width: parent.width - 100
-                                        height: 40
+                                        width: parent.width * 0.7
+                                        height: Screen.height * 0.03
                                         color: "#F5F5F5"
                                         border.color: "black"
                                         radius: 4
@@ -123,15 +121,15 @@ Rectangle {
                                         spacing: 2
                                         Button {
                                             text: "▲"
-                                            width: 40
-                                            height: 18
+                                            width: root.width * 0.03
+                                            height: Screen.height * 0.015
                                             enabled: index > 0
                                             onClicked: settingsManager.reorderPriority(index, index - 1)
                                         }
                                         Button {
                                             text: "▼"
-                                            width: 40
-                                            height: 18
+                                            width: root.width * 0.03
+                                            height: Screen.height * 0.015 // Reduced by 20%
                                             enabled: index < settingsManager.selectedFormats.length - 1
                                             onClicked: settingsManager.reorderPriority(index, index + 1)
                                         }
@@ -143,14 +141,18 @@ Rectangle {
                 }
 
                 Row {
-                    spacing: 10
+                    spacing: root.width * 0.01
                     Layout.alignment: Qt.AlignCenter
                     Button {
                         text: "Reset Priorities"
+                        width: root.width * 0.1
+                        height: Screen.height * 0.024 // Reduced by 20% from 0.03
                         onClicked: settingsManager.resetPriorities()
                     }
                     Button {
                         text: "Save Priorities"
+                        width: root.width * 0.1
+                        height: Screen.height * 0.024 // Reduced by 20%
                         onClicked: settingsManager.saveConfig("/home/root/demos/configs/synaexplorer_config.txt")
                     }
                 }
@@ -158,60 +160,57 @@ Rectangle {
         }
 
         Item {
-            Layout.preferredHeight: 10
+            Layout.preferredHeight: Screen.height * 0.01
         }
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 2
             color: "#B0BEC5"
-            Layout.leftMargin: 10
-            Layout.rightMargin: 10
+            Layout.leftMargin: root.width * 0.02
+            Layout.rightMargin: root.width * 0.02
         }
         Item {
-            Layout.preferredHeight: 10
+            Layout.preferredHeight: Screen.height * 0.01
         }
 
         Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.alignment: Qt.AlignCenter
-            Layout.leftMargin: 10
-            Layout.rightMargin: 10
 
             ColumnLayout {
                 anchors.fill: parent
-                spacing: 10
-                anchors.margins: 10
+                spacing: Screen.height * 0.01
+                anchors.margins: root.width * 0.02
 
-                Text {
-                    text: "RTSP URLs Testing"
-                    font.bold: true
-                    font.pointSize: 14
-                    Layout.alignment: Qt.AlignCenter
-                }
+                Column {
+                    spacing: Screen.height * 0.015
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.preferredWidth: root.width * 0.6
 
-                Item {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    Layout.alignment: Qt.AlignCenter
+                    Text {
+                        text: "RTSP URLs Testing"
+                        font.bold: true
+                        font.pointSize: root.height / 60
+                        width: parent.width
+                        horizontalAlignment: Text.AlignHCenter
+                    }
 
                     GridLayout {
-                        anchors.centerIn: parent
                         columns: 2
-                        columnSpacing: 10
-                        rowSpacing: 5
-                        width: parent.width * 0.6
+                        columnSpacing: root.width * 0.01
+                        rowSpacing: Screen.height * 0.005
+                        width: parent.width
 
                         Column {
-                            Layout.preferredWidth: 120
+                            Layout.preferredWidth: root.width * 0.1
                             Layout.fillHeight: true
-                            spacing: 5
+                            spacing: Screen.height * 0.005
 
                             Repeater {
                                 model: 4
                                 Rectangle {
                                     width: parent.width
-                                    height: 40
+                                    height: Screen.height * 0.03 // Reduced by 20% from 0.0375
                                     color: "#E0E0E0"
                                     border.color: "black"
                                     radius: 4
@@ -229,22 +228,26 @@ Rectangle {
                         Column {
                             Layout.fillWidth: true
                             Layout.fillHeight: true
-                            spacing: 5
+                            spacing: Screen.height * 0.005
 
                             Repeater {
                                 model: rtspUrlsModel
                                 TextField {
-                                    width: parent.width - 100
-                                    Layout.preferredHeight: 40
+                                    width: parent.width * 0.7
+                                    height: Screen.height * 0.03 // Reduced by 20% from 0.0375
                                     text: modelData
                                     placeholderText: "Enter RTSP URL"
+                                    background: Rectangle {
+                                        color: "#F5F5F5"
+                                        border.color: "black"
+                                        radius: 4
+                                    }
                                     onEditingFinished: {
                                         var urls = settingsManager.getRtspUrls()
                                         if (index < urls.length)
                                             urls[index] = text;
                                         else 
                                             urls.push(text);
-
                                         settingsManager.setRtspUrls(urls);
                                     }
                                 }
@@ -254,10 +257,12 @@ Rectangle {
                 }
 
                 Row {
-                    spacing: 10
+                    spacing: root.width * 0.01
                     Layout.alignment: Qt.AlignCenter
                     Button {
                         text: "Validate URLs"
+                        width: root.width * 0.1
+                        height: Screen.height * 0.024 // Reduced by 20% from 0.03
                         onClicked: {
                             rtspValidationResults = settingsManager.validateAllRtspUrls();
                             currentIndex = 0;
@@ -267,70 +272,83 @@ Rectangle {
                     }
                     Button {
                         text: "Save URLs"
+                        width: root.width * 0.1
+                        height: Screen.height * 0.024 // Reduced by 20%
                         onClicked: settingsManager.saveConfig("/home/root/demos/configs/synaexplorer_config.txt")
                     }
                 }
             }
         }
     }
+
     Dialog {
         id: rtspInfoDialog
         title: "RTSP Stream Information"
         standardButtons: Dialog.Ok
         visible: false
         modal: true
-        width: 500
-        height: 600
+        width: root.width * 0.3
+        height: Screen.height * 0.6
 
         ColumnLayout {
-            spacing: 10
-            anchors.margins: 10
+            spacing: Screen.height * 0.01
+            anchors.margins: root.width * 0.02
 
             Text {
                 text: "URL: " + (currentRtspResult.url || "Unknown")
                 font.bold: true
+                font.pointSize: root.height / 100
             }
 
             Text {
                 text: "Status: " + (currentRtspResult.status || "Unknown")
+                font.pointSize: root.height / 60
             }
 
             Text {
                 text: "Message: " + (currentRtspResult.message || "No additional info")
+                font.pointSize: root.height / 60
             }
 
             Repeater {
                 model: Object.keys(currentRtspResult).filter(key => key.startsWith("stream_"))
 
                 Column {
-                    spacing: 5
+                    spacing: Screen.height * 0.005
                     Text {
                         text: "Stream: " + modelData
                         font.bold: true
+                        font.pointSize: root.height / 80
                     }
                     Text {
                         text: "Type: " + (currentRtspResult[modelData].type || "Unknown")
+                        font.pointSize: root.height / 80
                     }
                     Text {
                         text: "Format: " + (currentRtspResult[modelData].format || "Unknown")
+                        font.pointSize: root.height / 80
                     }
 
                     Component.onCompleted: console.log("Media Type: ", currentRtspResult[modelData].type)
                     Text {
                         visible: currentRtspResult[modelData].type === "video"
                         text: "Resolution: " + (currentRtspResult[modelData].resolution || "Unknown")
+                        font.pointSize: root.height / 80
                     }
                     Text {
                         visible: currentRtspResult[modelData].type === "video"
                         text: "Framerate: " + (currentRtspResult[modelData].framerate || "Unknown")
+                        font.pointSize: root.height / 80
                     }
                 }
             }
 
             RowLayout {
-                spacing: 10
+                spacing: root.width * 0.01
                 Button {
                     text: "Previous"
+                    width: root.width * 0.060
+                    height: Screen.height * 0.024
                     enabled: currentIndex > 0
                     onClicked: {
                         currentIndex--;
@@ -340,6 +358,8 @@ Rectangle {
 
                 Button {
                     text: "Next"
+                    width: root.width * 0.060
+                    height: Screen.height * 0.024
                     enabled: currentIndex < rtspValidationResults.length - 1
                     onClicked: {
                         currentIndex++;
@@ -350,4 +370,3 @@ Rectangle {
         }
     }
 }
-

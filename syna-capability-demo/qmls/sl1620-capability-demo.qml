@@ -101,7 +101,7 @@ ApplicationWindow {
                 id: label
                 anchors.centerIn: parent
                 text: "Syna Capability Demo"
-                font.pixelSize: 40
+                font.pixelSize: player.height / 25
                 font.bold: true
                 color: "white"
             }
@@ -123,7 +123,7 @@ ApplicationWindow {
         property string url1 : "glvideomixer name=comp background=1
                     sink_0::xpos=0 sink_0::ypos=0 sink_0::width=640 sink_0::height=360
                     sink_1::xpos=640 sink_1::ypos=0 sink_1::width=640 sink_1::height=360
-                    ! video/x-raw, format=BGRA ! waylandsink
+                    ! video/x-raw, format=BGRA ! placeholdersink
                     multifilesrc loop=true location=" + fileURL1 + " ! h264parse ! avdec_h264 ! queue ! comp.sink_0
                     CAMSRC ! comp.sink_1"
 

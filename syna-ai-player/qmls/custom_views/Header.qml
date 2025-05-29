@@ -15,6 +15,8 @@ Image {
         Image {
             source: "qrc:/res/images/astra_icon.png"
             sourceSize: Qt.size(parent.height, parent.height)
+            Layout.preferredWidth: parent.height
+            Layout.preferredHeight: parent.height
         }
 
         TextView {

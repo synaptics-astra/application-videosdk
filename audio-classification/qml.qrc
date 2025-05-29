@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>qmls/main.qml</file>
+        <file>res/images/astra_icon.png</file>
+    </qresource>
+</RCC>

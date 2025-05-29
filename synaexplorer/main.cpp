@@ -8,7 +8,7 @@
 
 #include "playbackcontrol.h"
 #include "settingsmanager.h"
-#include "wifiapp.h"
+#include "processhelper.h"
 
 using namespace std;
 
@@ -64,13 +64,22 @@ int main(int argc, char *argv[])
     }
 
     QQmlApplicationEngine engine;
+
+#ifdef HAVE_X11
+    engine.rootContext()->setContextProperty("isX11", true);
+#endif
+
+#ifdef HAVE_WAYLAND
+    engine.rootContext()->setContextProperty("isX11", false);
+#endif
+
     engine.rootContext()->setContextProperty("playbackControl", &playbackControl);
 
     SettingsManager settingsManager;
     engine.rootContext()->setContextProperty("settingsManager", &settingsManager);
 
-    Wifiapp wifiApp;
-    engine.rootContext()->setContextProperty("wifiapp", &wifiApp);
+    ProcessHelper processHelper;
+    engine.rootContext()->setContextProperty("processHelper", &processHelper);
 
     qmlRegisterSingletonType(QStringLiteral("qrc:/qmls/res.qml"), "Resource", 1, 0, "Resource");
     const QUrl url(QStringLiteral("qrc:/qmls/main.qml"));

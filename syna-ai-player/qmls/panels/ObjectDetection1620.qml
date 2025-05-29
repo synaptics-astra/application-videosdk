@@ -40,9 +40,10 @@ Rectangle {
 
         GridItem {
             type: 1
+            mode: "camera"
             image: "qrc:/res/images/camera_icon.png"
             title:  qsTr("Camera")
-            command1: "CAMSRC ! tee name=t_data t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=256,height=160,format=RGB  ! synapinfer model=/usr/share/synap/models/object_detection/coco/model.synap mode=detector frameinterval=4 ! overlay.inference_sink t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=640,height=480,format=BGRA  ! synapoverlay name=overlay label=/usr/share/synap/models/object_detection/coco/info.json ! waylandsink"
+            command1: "CAMSRC ! tee name=t_data t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=256,height=160,format=RGB  ! synapinfer model=/usr/share/synap/models/object_detection/coco/model.synap mode=detector frameinterval=4 ! overlay.inference_sink t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=640,height=480,format=BGRA  ! synapoverlay name=overlay label=/usr/share/synap/models/object_detection/coco/info.json ! placeholdersink"
         }
     }
 }

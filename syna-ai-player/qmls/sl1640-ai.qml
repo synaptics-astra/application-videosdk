@@ -95,14 +95,27 @@ ApplicationWindow {
             background: Rectangle {
                 anchors.fill: parent
                 color: Resource.background
-                Image {
-                    source: "qrc:/res/images/vertical_line.png"
-                    anchors.right: parent.right
-                    anchors.verticalCenter: parent.verticalCenter
-                }
             }
 
             ListView {
+                ScrollBar.vertical: ScrollBar {
+                    id: scrollBar
+                    width: 10
+                    policy: ScrollBar.AlwaysOn
+                    background: Rectangle {
+                        color: "#d6e9ff" // background color
+                        border.color: "#cccccc" // border color
+                        border.width: 1
+                        radius: 5
+                    }
+                    contentItem: Rectangle {
+                        color: "#3d88f0" // handle color
+                        border.color: "#ffffff" // handle border color
+                        border.width: 1
+                        radius: 5
+                    }
+                }
+
                 id:listItemView
                 anchors.fill: parent
                 highlightFollowsCurrentItem :true

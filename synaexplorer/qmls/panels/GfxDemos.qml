@@ -29,7 +29,7 @@ Rectangle {
             font.pixelSize: Resource.h2
             isBold: true
             isHighlight: true
-            text: qsTr("Gfx Demos")
+            text: qsTr("Graphics Demos")
         }
     }
 

@@ -23,7 +23,7 @@ Rectangle {
         TextView {
             font.pixelSize: Resource.paragraph
             font.family: Resource.cabal.name
-            text: "This is synaptics Settings application. It can help to configure settings of diferent modules which can be navigated from left side menu..!"
+            text: "This is synaptics Settings application. It can help to configure settings of different modules which can be navigated from left side menu..!"
         }
     }
 }
