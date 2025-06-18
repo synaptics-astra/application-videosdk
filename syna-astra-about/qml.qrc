@@ -1,0 +1,15 @@
+<RCC>
+    <qresource prefix="/">
+        <file>qmls/main.qml</file>
+        <file>qmls/res.qml</file>
+        <file>qmls/custom_views/Header.qml</file>
+        <file>qmls/custom_views/ListItem.qml</file>
+        <file>qmls/custom_views/TextView.qml</file>
+        <file>qmls/panels/About.qml</file>
+        <file>qmls/panels/OobeApps.qml</file>
+        <file>qmls/panels/Resources.qml</file>
+        <file>res/images/header_banner.png</file>
+        <file>res/images/vertical_line.png</file>
+        <file>res/fonts/vollkorn_regular.ttf</file>
+    </qresource>
+</RCC>

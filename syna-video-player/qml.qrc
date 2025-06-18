@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/">
+        <file>images/astra_white.png</file>
+        <file>qmls/sl1620.qml</file>
+        <file>qmls/sl1640.qml</file>
+        <file>qmls/sl1680.qml</file>
+    </qresource>
+</RCC>
