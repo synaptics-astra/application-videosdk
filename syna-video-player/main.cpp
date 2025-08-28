@@ -62,11 +62,11 @@ int main(int argc, char *argv[])
     app.setOrganizationName("synaptics");
     app.setOrganizationDomain("synaptics.com");
 
-    PlaybackControl playbackControl;
-    SettingsManager settingsManager;
-
+    string machine, mode;
     QStringList args = app.arguments();
-    handleCommandLineOptions(args, playbackControl.machine, playbackControl.mode);
+    handleCommandLineOptions(args, machine, mode);
+    PlaybackControl playbackControl(machine, mode);
+    SettingsManager settingsManager;
 
     QString qmlStr;
     if (playbackControl.machine == SL1620_ASTRA_MACHINE) {

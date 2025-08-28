@@ -133,6 +133,12 @@ Pane {
                     case 9:
                         playbackControl.launch("/usr/bin/audio-classification")
                         break;
+                    case 10:
+                        playbackControl.launch("/usr/bin/syna-gst-webrtc")
+                        break;
+                    case 11:
+                        playbackControl.launch("/usr/bin/syna-dash-player")
+                        break;
                     default:
                         break;
                     }

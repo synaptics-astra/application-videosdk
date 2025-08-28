@@ -68,6 +68,16 @@ ApplicationWindow {
         Bluetooth {}
     }
 
+    Component {
+        id: usbformatpriorities
+        UsbFormatPriorities {}
+    }
+
+    Component {
+        id: rtspConfigComponent
+        RtspConfig {}
+    }
+
     function switchPage (index) {
         switch (index) {
         case 0:
@@ -77,7 +87,7 @@ ApplicationWindow {
         case 1:
             sidemenu.sourceComponent = panelSelection
             break
-        /* Add new module beofre sample module*/
+        /* Add new module before sample module*/
 
         case 1:
             sidemenu.sourceComponent = sampleModule
@@ -88,6 +98,12 @@ ApplicationWindow {
             break
         case 3:
             sidemenu.sourceComponent = bluetooth
+            break
+        case 4:
+            sidemenu.sourceComponent = usbformatpriorities
+            break
+        case 5:
+            sidemenu.sourceComponent = rtspConfigComponent
             break
         }
     }
@@ -130,7 +146,7 @@ ApplicationWindow {
                 highlight: null
                 spacing: Resource.width / 25
                 function updateModel() {
-                    var baseModel = ["Home", "Display Config", "Wi-Fi", "Bluetooth"]
+                    var baseModel = ["Home", "Display", "Wi-Fi", "Bluetooth", "USB Camera", "RTSP Camera"]
                     /* Adding new module */
                     if (isSampleModuleEnabled)
                         baseModel.push("Sample Module");

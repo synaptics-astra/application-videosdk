@@ -29,7 +29,7 @@ class Embedding {
         double computeDistance(const cv::Mat& matrix1, const cv::Mat& matrix2, bool isNormalized);
         cv::Mat getNormVector(const cv::Mat& matrix);
         QString getMatchedName(cv::Mat& matrix);
-        bool registerFace(const QString& name, const cv::Mat& faceEmbedding);
+        bool registerFace(const std::vector<QString>& nameCollection, const std::vector<cv::Mat>& faceEmbeddingCollection);
 
     private:
         void saveDatabase();

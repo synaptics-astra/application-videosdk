@@ -34,12 +34,8 @@
 
 #include "gstplayer.h"
 #include "settingsmanager.h"
-
-#define SL1620_ASTRA_MACHINE "sl1620"
-#define SL1640_ASTRA_MACHINE "sl1640"
-#define SL1680_ASTRA_MACHINE "sl1680"
-#define USE_SOFTWARE_DECODER "ffmpeg"
-#define USE_HARDWARE_DECODER "v4l2"
+#include "statswidget.h"
+#include "common.h"
 
 using namespace std;
 
@@ -49,12 +45,13 @@ struct v4l2dev_t
     int dev_fd;
     uint32_t dev_v4l2_fmt;
 };
+
 class WindowManager : public QWidget {
     Q_OBJECT
     Q_PROPERTY(QString cameraFormat READ cameraFormat NOTIFY cameraFormatChanged)
 
 public:
-    explicit WindowManager(QWidget *parent = nullptr, string mach = "");
+    explicit WindowManager(QWidget *parent = nullptr, string mach = "", QString appName = "");
 
     QString cameraFormat() const { return cameraFormatList; }
     QString hrxFormat() const { return hrxFormatList; }
@@ -70,20 +67,22 @@ public:
 
 public slots:
     void threadFinished();
+    void requestStatsClose();
 
 private:
     int findScaleFactor(int a, int b);
     void getDevicePath();
     void getHRXDevicePath();
-    int index{-1}, width{-1}, height{-1}, scaleFactor{-1};
+    int index{-1}, width{-1}, height{-1};
+    float scaleFactor{-1.0f};
     int threadCount{0};
     int camCount;
     int hrxCount;
+    int rtspIndex = 0;
     QMutex mutex;
     QVector<QString> urls;
     QVector<QString>::iterator iter;
     QVector<GstPlayer*> players;
-    QPushButton *closeButton;
     QVector<string> cams;
     QVector<string>camsfmt;
     QVector<string> hrxs;
@@ -96,6 +95,9 @@ private:
     QSemaphore playPipelineSem;
     QThread* playPipelineThread = nullptr;
     string machine;
+    SettingsManager* settingsManager;
+    StatsWidget *statsWidget = nullptr;
+    QString appName = "";
 
 signals:
     void cameraFormatChanged();

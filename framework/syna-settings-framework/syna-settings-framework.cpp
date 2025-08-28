@@ -6,6 +6,22 @@
 
 #define SETTINGS_DIR "/home/root/settings"
 
+SETTINGS_ERROR_e SynaSettingsFramework::checkFile(SETTINGS_ID_e id) {
+    if (SETTINGS_ID_MAX <= id) {
+        std::cout << "Invalid setting ID for checkFile: " << id << std::endl;
+        return SETTINGS_ERROR_INVALID_ID;
+    }
+
+    char filename[1024];
+    snprintf(filename, 1024, "%s/%d.data", SETTINGS_DIR, id);
+    FILE *file = fopen(filename, "rb");
+    if (file) {
+        fclose(file);
+        return SETTINGS_ERROR_NONE;
+    }
+    return SETTINGS_ERROR_IO;
+}
+
 SETTINGS_ERROR_e SynaSettingsFramework::synaSettingsWrite(SETTINGS_ID_e id, void *data, int size) {
 
     if (SETTINGS_ID_MAX <= id)

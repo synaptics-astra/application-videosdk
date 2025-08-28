@@ -7,6 +7,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <cstring>
 
 //#define SAMPLE_MODULE
 
@@ -15,6 +16,8 @@ typedef enum {
 #ifdef SAMPLE_MODULE
     SETTINGS_ID_SAMPLE_MODULE,
 #endif
+    SETTINGS_ID_USB_FORMAT_PRIORITIES,
+    SETTINGS_ID_RTSP_URLS,
     SETTINGS_ID_MAX
 }SETTINGS_ID_e;
 
@@ -29,6 +32,7 @@ typedef enum {
 
 class SynaSettingsFramework {
 public:
+    SETTINGS_ERROR_e checkFile(SETTINGS_ID_e id);
     SETTINGS_ERROR_e synaSettingsWrite(SETTINGS_ID_e id, void *data, int size);
     SETTINGS_ERROR_e synaSettingsRead(SETTINGS_ID_e id, void *data, int *size);
     SETTINGS_ERROR_e synaSettingsDelete(SETTINGS_ID_e id);

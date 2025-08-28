@@ -3,19 +3,21 @@ QT += gui-private widgets
 
 CONFIG += link_pkgconfig
 
-PKGCONFIG = "syna-settings-framework "
+PKGCONFIG = "syna-settings-framework gstreamer-1.0 gstreamer-rtsp-1.0 glib-2.0"
 
 SOURCES += \
     main.cpp \
     DisplaySettings.cpp \
     wifiapp.cpp \
-    bluetoothapp.cpp
+    bluetoothapp.cpp \
+    rtspconfig.cpp   \
 
 HEADERS += \
     settingscontrol.h \
     settingsdata.h \
     DisplaySettings.h \
     wifiapp.h \
-    bluetoothapp.h
+    bluetoothapp.h \
+    rtspconfig.h  \
 
 RESOURCES += qml.qrc

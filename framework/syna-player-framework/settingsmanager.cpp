@@ -1,15 +1,15 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2025 Synaptics Incorporated
+
 #include <glib.h>
 #include <gst/rtsp/gstrtsp.h>
 #include <gst/sdp/gstsdpmessage.h>
 #include <QDir>
+#include <QFile>
 #include <QDebug>
 #include "settingsmanager.h"
 
 const QString SettingsManager::CONFIG_FILE_PATH = "/home/root/demos/configs/synaexplorer_config.txt";
-
-QStringList SettingsManager::getDefaultFormatPriority() {
-    return {"YUY2", "NV12", "H264", "MJPEG"};
-}
 
 void SettingsManager::createConfig(const QString &filePath) {
     QDir dir = QFileInfo(filePath).absoluteDir();
@@ -20,20 +20,7 @@ void SettingsManager::createConfig(const QString &filePath) {
     QFile configFile(filePath);
     if (configFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QTextStream out(&configFile);
-
-        // Save Format Priorities
-        out << "[FORMAT]\n";
-        QStringList defaultFormats = getDefaultFormatPriority();
-        for (const QString &format : defaultFormats) {
-            out << format << "\n";
-        }
-
-        // Save RTSP URLs (Initially Empty Placeholder)
-        out << "\n[RTSP]\n";
-
-        // Save HOST IP (Initially Empty Placeholder)
         out << "\n[HOST_IP]\n";
-
         configFile.close();
     } else {
         qWarning() << "Failed to create config file at" << CONFIG_FILE_PATH
@@ -42,185 +29,44 @@ void SettingsManager::createConfig(const QString &filePath) {
 }
 
 SettingsManager::SettingsManager(QObject *parent)
-    : QObject(parent),
-      allFormats(QStringList() << "YUY2" << "NV12" << "H264" << "MJPEG"),
-      selectedFormatsList(QStringList() << "YUY2" << "NV12" << "H264" << "MJPEG")
+    : QObject(parent)
 {
     loadConfig(SettingsManager::CONFIG_FILE_PATH);
 }
 
-QStringList SettingsManager::getAvailableFormats() {
-    return allFormats;
-}
-
-// Reorder format priority
-void SettingsManager::reorderPriority(int fromIndex, int toIndex) {
-    if (fromIndex < 0 || fromIndex >= selectedFormatsList.size() ||
-        toIndex < 0 || toIndex >= selectedFormatsList.size()) {
-        return;
-    }
-
-    QString item = selectedFormatsList.takeAt(fromIndex);
-    selectedFormatsList.insert(toIndex, item);
-
-    emit prioritiesChanged();
-}
-
-// Reset priorities
-void SettingsManager::resetPriorities() {
-    selectedFormatsList = allFormats;
-    emit prioritiesChanged();
-}
-
-// Save formats and RTSP URLs
 void SettingsManager::saveConfig(const QString &filePath) {
-    QFile file(filePath);
+   QFile file(filePath);
     if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QTextStream out(&file);
-
-        // Save Format Priorities
-        out << "[FORMAT]\n";
-        for (const QString &format : selectedFormatsList) {
-            out << format << "\n";
-        }
-
-        // Save RTSP URLs
-        out << "\n[RTSP]\n";
-        for (const QString &url : rtspUrls) {
-            out << url << "\n";
-        }
-
-        // Save HOST IP
-        out << "\n[HOST_IP]\n";
+        out << "[HOST_IP]\n";
         out << hostIP << "\n";
-
         file.close();
     }
 }
 
-// Load formats and RTSP URLs
 void SettingsManager::loadConfig(const QString &filePath) {
     QFile file(filePath);
     if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         QTextStream in(&file);
-
         QString currentSection;
-        selectedFormatsList.clear();
-        rtspUrls.clear();
+        hostIP.clear();
 
         while (!in.atEnd()) {
             QString line = in.readLine().trimmed();
-
             if (line.isEmpty()) continue;
 
-            if (line == "[FORMAT]") {
-                currentSection = "FORMAT";
-            } else if (line == "[RTSP]") {
-                currentSection = "RTSP";
-            } else if (line == "[HOST_IP]") {
+            if (line == "[HOST_IP]") {
                 currentSection = "HOST_IP";
-            } else {
-                if (currentSection == "FORMAT") {
-                    selectedFormatsList.append(line);
-                } else if (currentSection == "RTSP") {
-                    rtspUrls.append(line);
-                } else if (currentSection == "HOST_IP") {
-                    hostIP = line;
-                }
+            } else if (currentSection == "HOST_IP") {
+                hostIP = line;
             }
-        }
-        // To Ensure rtspUrls has exactly 4 entries
-        while (rtspUrls.size() < 4) {
-            rtspUrls.append("");
         }
 
         file.close();
-        emit prioritiesChanged();
-        emit rtspUrlsChanged();
         emit hostIPChanged();
     } else {
         createConfig(SettingsManager::CONFIG_FILE_PATH);
     }
-}
-
-QStringList SettingsManager::loadFormatPriority(const QString &filePath) {
-    QFile file(filePath);
-    QStringList formatPriority;
-    QSet<QString> validFormats = {"YUY2", "NV12", "H264", "MJPEG"};
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        createConfig(SettingsManager::CONFIG_FILE_PATH);
-        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            qWarning() << "Failed to open config file after creation.";
-            return getDefaultFormatPriority();
-        }
-    }
-    QTextStream in(&file);
-    bool inFormatSection = false;
-    while (!in.atEnd())
-    {
-        QString line = in.readLine().trimmed();
-        if (line == "[FORMAT]") {
-           inFormatSection = true;
-           continue;
-        }
-        if (line == "[RTSP]") {
-           break;
-        }
-
-        if (inFormatSection && validFormats.contains(line)) {
-           formatPriority.append(line);
-        }
-    }
-    file.close();
-    if (formatPriority.isEmpty()) {
-        return getDefaultFormatPriority();
-    }
-
-    return formatPriority;
-}
-
-QStringList SettingsManager::loadRTSPUrls(const QString &filePath) {
-    QFile file(filePath);
-    QStringList rtspUrls;
-
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        qWarning() << "Failed to open config file for RTSP URLs.";
-        return rtspUrls;
-    }
-
-    QTextStream in(&file);
-    bool inRtspSection = false;
-
-    while (!in.atEnd()) {
-        QString line = in.readLine().trimmed();
-
-        if (line == "[RTSP]") {
-            inRtspSection = true;
-            continue;
-        }
-
-        if (inRtspSection && line.startsWith("rtsp://")) {
-            rtspUrls.append(line);
-        }
-    }
-
-    file.close();
-    return rtspUrls;
-}
-
-// Getter and setter for RTSP URLs
-void SettingsManager::setRtspUrls(const QStringList &urls) {
-    rtspUrls = urls;
-    emit rtspUrlsChanged();
-}
-
-QStringList SettingsManager::getRtspUrls() const {
-    return rtspUrls;
-}
-
-// Selected formats getter
-QStringList SettingsManager::selectedFormats() const {
-    return selectedFormatsList;
 }
 
 void SettingsManager::setHostIP(const QString &addr) {
@@ -232,143 +78,170 @@ QString SettingsManager::getHostIP() const {
     return hostIP;
 }
 
-const gchar *get_format_string(const gchar *media_type, const gchar *format) {
-    if (g_strcmp0(media_type, "video") == 0) {
-        if (g_strcmp0(format, "96") == 0) {
-            return "H.264";
-        } else {
-            return format;
-        }
-    } else if (g_strcmp0(media_type, "audio") == 0) {
-        if (g_strcmp0(format, "8") == 0) {
-            return "G.711 µ-law";
-        } else if (g_strcmp0(format, "0") == 0) {
-            return "PCMA (G.711)";
-        } else if (g_strcmp0(format, "18") == 0) {
-            return "G.729";
-        } else {
-            return format;
-        }
-    }
-    return format;
-}
+bool SettingsManager::setData(int id, const QVariantMap &data) {
 
-GstRTSPResult check_camera_live(const gchar *url_str, gint64 timeout, QVariantMap &resultMap) {
+    SynaSettingsFramework settingsFramework;
 
-    GstRTSPUrl *url = NULL;
-    GstRTSPConnection *conn = NULL;
-    GstRTSPResult result;
-
-    result = gst_rtsp_url_parse(url_str, &url);
-    if (result != GST_RTSP_OK) {
-        resultMap["status"] = "Error";
-        resultMap["message"] = "Failed to parse RTSP URL";
-        return result;
-    }
-
-    result = gst_rtsp_connection_create(url, &conn);
-    if (result != GST_RTSP_OK) {
-        resultMap["status"] = "Error";
-        resultMap["message"] = "Failed to create connection";
-        gst_rtsp_url_free(url);
-        return result;
-    }
-
-    result = gst_rtsp_connection_connect_usec(conn, timeout);
-    if (result != GST_RTSP_OK) {
-        resultMap["status"] = "Error";
-        resultMap["message"] = "RTSP camera not live";
-        gst_rtsp_connection_close(conn);
-        gst_rtsp_connection_free(conn);
-        gst_rtsp_url_free(url);
-        return result;
-    }
-
-    GstRTSPMessage *request = NULL;
-    GstRTSPMessage *response = NULL;
-
-    result = gst_rtsp_message_new_request(&request, GST_RTSP_DESCRIBE, url_str);
-    if (result != GST_RTSP_OK) {
-        resultMap["status"] = "Error";
-        resultMap["message"] = "Failed to create DESCRIBE request";
-        gst_rtsp_connection_close(conn);
-        gst_rtsp_connection_free(conn);
-        gst_rtsp_url_free(url);
-        return result;
-    }
-
-    result = gst_rtsp_connection_send_messages_usec(conn, request, 1, timeout);
-    if (result != GST_RTSP_OK) {
-        resultMap["status"] = "Error";
-        resultMap["message"] = "Failed to send DESCRIBE request";
-        gst_rtsp_message_free(request);
-        gst_rtsp_connection_close(conn);
-        gst_rtsp_connection_free(conn);
-        gst_rtsp_url_free(url);
-        return result;
-    }
-
-    result = gst_rtsp_message_new(&response);
-    if (result != GST_RTSP_OK) {
-        resultMap["status"] = "Error";
-        resultMap["message"] = "Failed to allocate response message";
-        gst_rtsp_message_free(request);
-        gst_rtsp_connection_close(conn);
-        gst_rtsp_connection_free(conn);
-        gst_rtsp_url_free(url);
-        return result;
-    }
-
-    result = gst_rtsp_connection_receive_usec(conn, response, timeout);
-    if (result == GST_RTSP_OK) {
-        guint8 *body_data = NULL;
-        guint body_size = 0;
-
-        if (gst_rtsp_message_get_body(response, &body_data, &body_size) == GST_RTSP_OK && body_data != NULL) {
-            GstSDPMessage *sdp_msg = NULL;
-            if (gst_sdp_message_new(&sdp_msg) == GST_SDP_OK &&
-                gst_sdp_message_parse_buffer(body_data, body_size, sdp_msg) == GST_SDP_OK) {
-                guint media_count = gst_sdp_message_medias_len(sdp_msg);
-
-                for (guint i = 0; i < media_count; i++) {
-                    const GstSDPMedia *media = gst_sdp_message_get_media(sdp_msg, i);
-                    if (media) {
-                        const gchar *media_type = gst_sdp_media_get_media(media);
-                        QVariantMap mediaInfo;
-                        mediaInfo["type"] = media_type;
-                        mediaInfo["format"] = get_format_string(media_type, gst_sdp_media_get_format(media, 0));
-                        mediaInfo["resolution"] = gst_sdp_media_get_attribute_val(media, "x-dimensions") ?: "Unknown";
-                        mediaInfo["framerate"] = gst_sdp_media_get_attribute_val(media, "x-framerate") ?: "Unknown";
-
-                        resultMap[QString("stream_%1").arg(i)] = mediaInfo;
+    switch (id) {
+        case SETTINGS_ID_USB_FORMAT_PRIORITIES: {
+            UsbFormatPrioritiesData usbData;
+            const char* defaultFormatPriorities[] = {"YUY2", "NV12", "H264", "MJPEG"};
+            if (data.contains("formatPriorities")) {
+                QVariantList priorities = data["formatPriorities"].toList();
+                if (priorities.size() != 4) {
+                    for (size_t i = 0; i < 4; i++) {
+                        strncpy(usbData.formatPriorities[i], defaultFormatPriorities[i], sizeof(usbData.formatPriorities[i]) - 1);
+                        usbData.formatPriorities[i][sizeof(usbData.formatPriorities[i]) - 1] = '\0';
+                    }
+                } else {
+                    for (int i = 0; i < 4; i++) {
+                        strncpy(usbData.formatPriorities[i], priorities[i].toString().toUtf8().constData(), sizeof(usbData.formatPriorities[i]) - 1);
+                        usbData.formatPriorities[i][sizeof(usbData.formatPriorities[i]) - 1] = '\0';
                     }
                 }
-                resultMap["status"] = "Live";
-                gst_sdp_message_free(sdp_msg);
+            } else {
+                for (size_t i = 0; i < 4; i++) {
+                    strncpy(usbData.formatPriorities[i], defaultFormatPriorities[i], sizeof(usbData.formatPriorities[i]) - 1);
+                    usbData.formatPriorities[i][sizeof(usbData.formatPriorities[i]) - 1] = '\0';
+                }
+            }
+
+            if (SETTINGS_ERROR_NONE != settingsFramework.synaSettingsWrite((SETTINGS_ID_e)id, &usbData, sizeof(UsbFormatPrioritiesData))) {
+                qDebug() << "Failed to write USB FORMAT Priorities";
+                return false;
+            }
+            emit prioritiesChanged();
+            break;
+        }
+
+        case SETTINGS_ID_RTSP_URLS: {
+            RtspSettingsData rtspData;
+            const char* defaultRtspUrls[] = {"", "", "", ""};
+            if (data.contains("rtspUrls")) {
+                QVariantList urls = data["rtspUrls"].toList();
+                for (size_t i = 0; i < std::min<size_t>(4, urls.size()); i++) {
+                    if (!urls[i].toString().isEmpty()) {
+                        strncpy(rtspData.rtspUrls[i], urls[i].toString().toUtf8().constData(), sizeof(rtspData.rtspUrls[i]) - 1);
+                        rtspData.rtspUrls[i][sizeof(rtspData.rtspUrls[i]) - 1] = '\0';
+                    } else {
+                        rtspData.rtspUrls[i][0] = '\0';
+                    }
+                }
+                for (size_t i = urls.size(); i < 4; i++) {
+                    strncpy(rtspData.rtspUrls[i], defaultRtspUrls[i], sizeof(rtspData.rtspUrls[i]) - 1);
+                    rtspData.rtspUrls[i][sizeof(rtspData.rtspUrls[i]) - 1] = '\0';
+                }
+            } else {
+                qDebug() << "No rtspUrls key in data";
+                for (size_t i = 0; i < 4; i++) {
+                    strncpy(rtspData.rtspUrls[i], defaultRtspUrls[i], sizeof(rtspData.rtspUrls[i]) - 1);
+                    rtspData.rtspUrls[i][sizeof(rtspData.rtspUrls[i]) - 1] = '\0';
+                }
+            }
+
+            SETTINGS_ERROR_e error = settingsFramework.synaSettingsWrite((SETTINGS_ID_e)id, &rtspData, sizeof(RtspSettingsData));
+            if (error != SETTINGS_ERROR_NONE) {
+                qDebug() << "Failed to write RTSP Settings, Error:" << error << "Data Size:" << sizeof(RtspSettingsData);
+                return false;
+            }
+            emit rtspUrlsChanged();
+            break;
+        }
+
+        default: {
+            qDebug() << "Invalid ID";
+            return false;
+        }
+    }
+
+    return true;
+}
+
+QVariantMap SettingsManager::getData(int id) const {
+    QVariantMap result;
+    SynaSettingsFramework settingsFramework;
+
+    switch (id) {
+        case SETTINGS_ID_USB_FORMAT_PRIORITIES: {
+            UsbFormatPrioritiesData usbData;
+            QVariantList priorities;
+            int size = sizeof(UsbFormatPrioritiesData);
+            if (SETTINGS_ERROR_NONE != settingsFramework.synaSettingsRead((SETTINGS_ID_e)id, &usbData, &size)) {
+                priorities = {"YUY2", "NV12", "H264", "MJPEG"};
+            } else {
+                for (int i = 0; i < 4; i++) {
+                    priorities.append(QString::fromUtf8(usbData.formatPriorities[i]));
+                }
+            }
+            result["formatPriorities"] = priorities;
+            return result;
+        }
+
+        case SETTINGS_ID_RTSP_URLS: {
+            RtspSettingsData rtspData;
+            QVariantList urls;
+            int size = sizeof(RtspSettingsData);
+            if (SETTINGS_ERROR_NONE != settingsFramework.synaSettingsRead((SETTINGS_ID_e)id, &rtspData, &size)) {
+                qDebug() << "Failed to read RTSP Settings";
+                urls = {"", "", "", ""};
+            } else {
+                for (int i = 0; i < 4; i++) {
+                    urls.append(QString::fromUtf8(rtspData.rtspUrls[i]));
+                }
+            }
+            result["rtspUrls"] = urls;
+            return result;
+        }
+
+        default: {
+            qDebug() << "Invalid ID";
+            return result;
+        }
+    }
+    return result;
+}
+
+QStringList SettingsManager::rtspUrls() const {
+    QVariantMap rtspData = getData(SETTINGS_ID_RTSP_URLS);
+    return rtspData["rtspUrls"].toStringList();
+}
+
+QStringList SettingsManager::formatPriorities() const {
+    QVariantMap formatData = getData(SETTINGS_ID_USB_FORMAT_PRIORITIES);
+    return formatData["formatPriorities"].toStringList();
+}
+
+bool SettingsManager::checkData(int id) {
+    SynaSettingsFramework settingsFramework;
+    bool dataExists = settingsFramework.checkFile((SETTINGS_ID_e)id) == SETTINGS_ERROR_NONE;
+
+    if (!dataExists) {
+        switch (id) {
+            case SETTINGS_ID_USB_FORMAT_PRIORITIES: {
+                QVariantMap formatMap;
+                formatMap.insert("formatPriorities", QStringList({"YUY2", "NV12", "H264", "MJPEG"}));
+                if (!setData(id, formatMap)) {
+                    qWarning() << "Failed to set default USB format priorities";
+                    return false;
+                }
+                return true;
+            }
+
+            case SETTINGS_ID_RTSP_URLS: {
+                QVariantMap rtspMap;
+                rtspMap.insert("rtspUrls", QStringList({"", "", "", ""}));
+                if (!setData(id, rtspMap)) {
+                    qWarning() << "Failed to set default RTSP URLs";
+                    return false;
+                }
+                return true;
+            }
+
+            default: {
+                qWarning() << "Invalid settings ID: " << id;
+                return false;
             }
         }
     }
-
-    gst_rtsp_message_free(request);
-    gst_rtsp_message_free(response);
-    gst_rtsp_connection_close(conn);
-    gst_rtsp_connection_free(conn);
-    gst_rtsp_url_free(url);
-
-    return result;
-}
-
-QVariantMap SettingsManager::validateRtspUrl(const QString &url) {
-    QVariantMap result;
-    check_camera_live(url.toUtf8().constData(), 1000000, result);
-    result.insert("url", url);
-    return result;
-}
-
-QVariantList SettingsManager::validateAllRtspUrls() {
-    QVariantList results;
-    for (const QString &url : rtspUrls) {
-        results.append(validateRtspUrl(url));
-    }
-    return results;
+    return true;
 }

@@ -1,0 +1,13 @@
+<RCC>
+    <qresource prefix="/">
+        <file>qmls/res.qml</file>
+        <file>qmls/main.qml</file>
+        <file>res/images/astra_icon.png</file>
+        <file>res/images/header_banner.png</file>
+        <file>res/images/syna_icon.png</file>
+        <file>qmls/panels/GstWebRTC.qml</file>
+        <file>qmls/custom_views/Header.qml</file>
+        <file>qmls/custom_views/ListItem.qml</file>
+        <file>qmls/custom_views/TextView.qml</file>
+    </qresource>
+</RCC>

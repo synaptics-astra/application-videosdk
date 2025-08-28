@@ -13,7 +13,7 @@ class PlaybackControl : public QWidget {
     Q_OBJECT
 
     public:
-        PlaybackControl();
+        explicit PlaybackControl(string machine, string mode);
         ~PlaybackControl();
         Q_INVOKABLE void doPlayback(int index, QString url1, QString url2,
                 QString url3, QString url4);

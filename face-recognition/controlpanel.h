@@ -16,10 +16,15 @@ class ControlPanel : public QWidget {
     public:
         ControlPanel(QWidget *parent) : QWidget(parent) {
             setStyleSheet("background-color: #313131;");
+
+            stopPreviewButton = new QToolButton(this);
             playButton = new QToolButton(this);
             stopButton = new QToolButton(this);
             exitButton = new QToolButton(this);
 
+            stopPreviewButton->setFocusPolicy(Qt::StrongFocus);
+            stopPreviewButton->setIcon(QIcon(":/images/preview.png"));
+            stopPreviewButton->setIconSize(QSize(24, 24));
             playButton->setIcon(QIcon(":/images/play.png"));
             playButton->setIconSize(QSize(24, 24));
             stopButton->setIcon(QIcon(":/images/stop.png"));
@@ -33,6 +38,7 @@ class ControlPanel : public QWidget {
             QVBoxLayout *mainLayout = new QVBoxLayout;
             QHBoxLayout *buttonLayout = new QHBoxLayout;
 
+            buttonLayout->addWidget(stopPreviewButton);
             buttonLayout->addStretch();
             buttonLayout->addWidget(playButton);
             buttonLayout->addWidget(stopButton);
@@ -45,6 +51,7 @@ class ControlPanel : public QWidget {
 
             setLayout(mainLayout);
 
+            connect(stopPreviewButton, &QPushButton::clicked, [this](){ this->stopPreviewButtonClicked();});
             connect(playButton, &QPushButton::clicked, [this](){ this->playButtonClicked(); });
             connect(stopButton, &QPushButton::clicked, [this](){ this->stopButtonClicked(); });
             connect(exitButton, &QPushButton::clicked, [this](){ this->exitButtonClicked(); });
@@ -53,6 +60,9 @@ class ControlPanel : public QWidget {
         }
 
     public slots:
+        void stopPreviewButtonClicked() {
+            emit stopPreview();
+        }
         void playButtonClicked() {
             emit startPlayback();
             playButton->hide();
@@ -70,11 +80,13 @@ class ControlPanel : public QWidget {
         }
 
     signals:
+        void stopPreview();
         void startPlayback();
         void stopPlayback();
         void exitApplication();
 
     private:
+        QToolButton *stopPreviewButton;
         QToolButton *playButton;
         QToolButton *stopButton;
         QToolButton *exitButton;

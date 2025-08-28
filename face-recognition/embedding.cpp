@@ -131,7 +131,7 @@ QString Embedding::getMatchedName(cv::Mat& matrix)
 
     if (matchedNamesInfo.isEmpty()) {
         unrecognizedFaces.append(matrix);
-        recognizedNames.append("Unknown");
+        recognizedNames.append(" ");
         recognizedIndices.append(0);
     }
 
@@ -142,26 +142,31 @@ QString Embedding::getMatchedName(cv::Mat& matrix)
     }
 }
 
-bool Embedding::registerFace(const QString& name, const cv::Mat& faceEmbedding)
+bool Embedding::registerFace(const std::vector<QString>& nameCollection, const std::vector<cv::Mat>& faceEmbeddingCollection)
 {
-    int matchCount = 0;
-    for (const auto& unknownFace : unrecognizedFaces) {
-        double distance = computeDistance(faceEmbedding, unknownFace, true);
-        if (distance < distanceThreshold) {
-            matchCount++;
+    int size = nameCollection.size();
+    for (int i = 0; i < size ; i++) {
+        QString name = nameCollection[i];
+        cv::Mat faceEmbedding = faceEmbeddingCollection[i];
+        int matchCount = 0;
+        for (const auto& unknownFace : unrecognizedFaces) {
+            double distance = computeDistance(faceEmbedding, unknownFace, true);
+            if (distance < distanceThreshold) {
+                matchCount++;
+            }
         }
-    }
 
-    if (matchCount >= 8) {
-        QStringList faceName;
-        if (!name.isEmpty()) {
-            faceName.append(name);
-            registeredFaces.append(qMakePair(faceName, faceEmbedding));
+        if (matchCount >= 8) {
+            QStringList faceName;
+            if (!name.isEmpty()) {
+                faceName.append(name);
+                registeredFaces.append(qMakePair(faceName, faceEmbedding));
 
-            unrecognizedFaces.erase(std::remove_if(unrecognizedFaces.begin(), unrecognizedFaces.end(),
-                        [this, &faceEmbedding](const cv::Mat& face) {
+                unrecognizedFaces.erase(std::remove_if(unrecognizedFaces.begin(), unrecognizedFaces.end(),
+                            [this, &faceEmbedding](const cv::Mat& face) {
                             return computeDistance(faceEmbedding, face, true) < this->distanceThreshold;
-                        }), unrecognizedFaces.end());
+                            }), unrecognizedFaces.end());
+            }
         }
     }
 

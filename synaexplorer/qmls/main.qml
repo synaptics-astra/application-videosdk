@@ -80,13 +80,13 @@ ApplicationWindow {
     }
 
     Component {
-        id: settingsPanel
-        CameraConfig {}
+        id: cameraApp
+        CameraApp {}
     }
 
     Component {
-        id: cameraApp
-        CameraApp {}
+        id: realTimeStreaming
+        RealTimeStreaming {}
     }
 
     function switchPage (index) {
@@ -114,7 +114,7 @@ ApplicationWindow {
             sidemenu.sourceComponent = isX11 ? settingsPanel : capabilityDemos
             break
         case 5:
-            sidemenu.sourceComponent = settingsPanel
+            sidemenu.sourceComponent = realTimeStreaming
             break
         case 6:
             if (machine === "sl1680") {
@@ -156,7 +156,7 @@ ApplicationWindow {
                         radius: scrollBar.width / 2
                     }
                 }
- 
+
                 id: listItemView
                 anchors.fill: parent
                 highlightFollowsCurrentItem: true
@@ -164,7 +164,7 @@ ApplicationWindow {
                 spacing: Resource.width / 25
                 property string machine: playbackControl.getMachine()
                 function updateModel() {
-                    var baseModel = ["Getting Started", "Video", "Graphics", "AI", "Camera Config"];
+                    var baseModel = ["Getting Started", "Video", "Graphics", "AI","Real Time Streaming"];
                     if (!isX11) { // Temporary till HDMI RX issue is resolved
                         baseModel.splice(4, 0, "Capability Demo");  // Insert at index 4
                     }

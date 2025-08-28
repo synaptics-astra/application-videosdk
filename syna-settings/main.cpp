@@ -9,6 +9,7 @@
 #include "DisplaySettings.h"
 #include "wifiapp.h"
 #include "bluetoothapp.h"
+#include "rtspconfig.h"
 
 using namespace std;
 string machine;
@@ -72,6 +73,9 @@ int main(int argc, char *argv[]) {
 
     Bluetoothapp bluetoothApp;
     engine.rootContext()->setContextProperty("bluetoothapp", &bluetoothApp);
+
+    RtspConfig rtspConfig;
+    engine.rootContext()->setContextProperty("cppRtspConfig", &rtspConfig);
 
     bool isSampleModuleEnabled = false;
 #ifdef SAMPLE_MODULE

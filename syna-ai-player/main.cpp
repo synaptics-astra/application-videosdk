@@ -55,13 +55,13 @@ int main(int argc, char *argv[])
     app.setOrganizationName("synaptics");
     app.setOrganizationDomain("synaptics.com");
 
-    PlaybackControl playbackControl;
+    string machine;
+    QStringList args = app.arguments();
+    handleCommandLineOptions(args, machine);
+    PlaybackControl playbackControl(machine);
     SettingsManager settingsManager;
     VideoProber videoProber;
     ProcessHelper processHelper;
-
-    QStringList args = app.arguments();
-    handleCommandLineOptions(args, playbackControl.machine);
 
     QString qmlStr;
     if (playbackControl.machine == SL1620_ASTRA_MACHINE) {
@@ -78,6 +78,13 @@ int main(int argc, char *argv[])
     }
     const QUrl url = QUrl(qmlStr);
     QQmlApplicationEngine engine;
+
+#ifdef HAVE_X11
+    engine.rootContext()->setContextProperty("isX11", true);
+#else
+    engine.rootContext()->setContextProperty("isX11", false);
+#endif
+
     engine.rootContext()->setContextProperty("playbackControl", &playbackControl);
     engine.rootContext()->setContextProperty("settingsManager", &settingsManager);
     engine.rootContext()->setContextProperty("videoProber", &videoProber);

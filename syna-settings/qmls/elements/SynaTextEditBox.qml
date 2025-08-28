@@ -12,6 +12,9 @@ RowLayout {
     property var placeHolderText: "Enter value"
     property var value: "Field Value"
     property var label: "Edit box label"
+    property real editBoxWidth: parent.width - 100
+    property real editBoxHeight: 40
+    signal editingFinished()
     TextView {
         width: 50
         font.pixelSize: Resource.paragraph
@@ -20,12 +23,15 @@ RowLayout {
         text: root.label
     }
     TextField {
-        width: parent.width - 100
-        Layout.preferredHeight: 40
+        // width: parent.width - 100
+        Layout.preferredWidth: root.editBoxWidth
+        Layout.preferredHeight: root.editBoxHeight
         text: root.value
         placeholderText: root.placeHolderText
+        font.pixelSize: Resource.paragraph + 4
         onEditingFinished: {
             root.value = text
+            root.editingFinished()
         }
     }
 }

@@ -13,6 +13,8 @@ RowLayout {
     property var label: "Dropdown box label"
     property var value: 0
     property var model: ""
+    property real comboWidth: 500
+    property real comboHeight: 40
 
     TextView {
         width: 50
@@ -28,13 +30,14 @@ RowLayout {
         valueRole: "value"
         model: root.model
         font.pixelSize: Resource.paragraph
-        Layout.preferredHeight: 40
-        Layout.preferredWidth: 500
+        Layout.preferredHeight: root.comboHeight
+        Layout.preferredWidth: root.comboWidth
         delegate: ItemDelegate {
             font.pixelSize: Resource.paragraph
             contentItem: Text {
                 text: model.text
                 font: comboBox.font
+                verticalAlignment: Text.AlignVCenter
             }
         }
 

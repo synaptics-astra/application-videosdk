@@ -22,6 +22,11 @@ class SettingsControl : public QObject {
 public:
     explicit SettingsControl(QObject *parent = nullptr) {}
 
+    Q_INVOKABLE bool checkData(int id) {
+        SynaSettingsFramework settingsFramework;
+        return settingsFramework.checkFile((SETTINGS_ID_e)id) == SETTINGS_ERROR_NONE;
+    }
+
     Q_INVOKABLE bool setData(int id, const QVariantMap &data) {
 
         SynaSettingsFramework settingsFramework;
@@ -86,6 +91,70 @@ public:
                 break;
             }
 
+            case SETTINGS_ID_USB_FORMAT_PRIORITIES: {
+                UsbFormatPrioritiesData usbData;
+                const char* defaultFormatPriorities[] = {"YUY2, NV12, H264", "MJPEG"};
+                if (data.contains("formatPriorities")) {
+                    QVariantList priorities = data["formatPriorities"].toList();
+                    if(priorities.size() != 4){
+                        for (size_t i = 0; i < 4; i++) {
+                            strncpy(usbData.formatPriorities[i], defaultFormatPriorities[i], sizeof(usbData.formatPriorities[i]) - 1);
+                            usbData.formatPriorities[i][sizeof(usbData.formatPriorities[i]) - 1] = '\0';
+                        }
+                    } else {
+                        for (int i = 0; i < 4; i++) {
+                            strncpy(usbData.formatPriorities[i], priorities[i].toString().toUtf8().constData(), sizeof(usbData.formatPriorities[i]) - 1);
+                            usbData.formatPriorities[i][sizeof(usbData.formatPriorities[i]) - 1] = '\0';
+                        }
+                    }
+                } else {
+                    for (size_t i = 0; i < 4; i++) {
+                        strncpy(usbData.formatPriorities[i], defaultFormatPriorities[i], sizeof(usbData.formatPriorities[i]) - 1);
+                        usbData.formatPriorities[i][sizeof(usbData.formatPriorities[i]) - 1] = '\0';
+                    }
+                }
+
+                if (SETTINGS_ERROR_NONE != settingsFramework.synaSettingsWrite((SETTINGS_ID_e)id, &usbData, sizeof(UsbFormatPrioritiesData))) {
+                    qDebug() << "Failed to write USB FORMAT Priorities";
+                    return false;
+                }
+
+                break;
+            }
+
+            case SETTINGS_ID_RTSP_URLS: {
+                RtspSettingsData rtspData;
+                const char* defaultRtspUrls[] = {"", "", "", ""}; // 4 URLs
+                if (data.contains("rtspUrls")) {
+                    QVariantList urls = data["rtspUrls"].toList();
+                    for (size_t i = 0; i < std::min<size_t>(4, urls.size()); i++) {
+                        if (!urls[i].toString().isEmpty()) {
+                            strncpy(rtspData.rtspUrls[i], urls[i].toString().toUtf8().constData(), sizeof(rtspData.rtspUrls[i]) - 1);
+                            rtspData.rtspUrls[i][sizeof(rtspData.rtspUrls[i]) - 1] = '\0';
+                        } else {
+                            rtspData.rtspUrls[i][0] = '\0';
+                        }
+                    }
+                    for (size_t i = urls.size(); i < 4; i++) {
+                        strncpy(rtspData.rtspUrls[i], defaultRtspUrls[i], sizeof(rtspData.rtspUrls[i]) - 1);
+                        rtspData.rtspUrls[i][sizeof(rtspData.rtspUrls[i]) - 1] = '\0';
+                    }
+                } else {
+                    qDebug() << "No rtspUrls key in data";
+                    for (size_t i = 0; i < 4; i++) {
+                        strncpy(rtspData.rtspUrls[i], defaultRtspUrls[i], sizeof(rtspData.rtspUrls[i]) - 1);
+                        rtspData.rtspUrls[i][sizeof(rtspData.rtspUrls[i]) - 1] = '\0';
+                    }
+                }
+
+                SETTINGS_ERROR_e error = settingsFramework.synaSettingsWrite((SETTINGS_ID_e)id, &rtspData, sizeof(RtspSettingsData));
+                if (error != SETTINGS_ERROR_NONE) {
+                    qDebug() << "Failed to write RTSP Settings, Error:" << error << "Data Size:" << sizeof(RtspSettingsData);
+                    return false;
+                }
+                break;
+            }
+
             default: {
                 qDebug() << "Invalid ID";
                 return false;
@@ -137,6 +206,38 @@ public:
 
             }
 
+            case SETTINGS_ID_USB_FORMAT_PRIORITIES: {
+                UsbFormatPrioritiesData usbData;
+                QVariantList priorities;
+                int size = sizeof(UsbFormatPrioritiesData);
+
+                if (SETTINGS_ERROR_NONE != settingsFramework.synaSettingsRead((SETTINGS_ID_e)SETTINGS_ID_USB_FORMAT_PRIORITIES, &usbData, &size)) {
+                    priorities = { "YUY2", "NV12", "H264", "MJPEG" };
+                } else {
+                    for (int i = 0; i < 4; i++) {
+                        priorities.append(QString::fromUtf8(usbData.formatPriorities[i]));
+                    }
+                }
+                result["formatPriorities"] = priorities;
+                return result;
+            }
+
+            case SETTINGS_ID_RTSP_URLS: {
+                RtspSettingsData rtspData;
+                QVariantList urls;
+                int size = sizeof(RtspSettingsData);
+                if (SETTINGS_ERROR_NONE != settingsFramework.synaSettingsRead((SETTINGS_ID_e)id, &rtspData, &size)) {
+                    qDebug() << "Failed to read RTSP Settings";
+                    urls = {"", "", "", ""};
+                } else {
+                    for (int i = 0; i < 4; i++) {
+                        urls.append(QString::fromUtf8(rtspData.rtspUrls[i]));
+                    }
+                }
+                result["rtspUrls"] = urls;
+                return result;
+            }
+
             default: {
                 qDebug() << "Invalid ID";
                 return result;
@@ -155,10 +256,23 @@ public:
                 if (SETTINGS_ERROR_NONE != settingsFramework.synaSettingsDelete(SETTINGS_ID_DISPLAY_SETTINGS)) {
                     qDebug() << "Failed to delete Display Settings.";
                 }
-
                 break;
             }
-            // Add more cases if you have other settings IDs to delete
+
+            case SETTINGS_ID_USB_FORMAT_PRIORITIES: {
+                if (SETTINGS_ERROR_NONE != settingsFramework.synaSettingsDelete(SETTINGS_ID_USB_FORMAT_PRIORITIES)) {
+                    qDebug() << "Failed to delete USB Format Priorities";
+                }
+                break;
+            }
+
+            case SETTINGS_ID_RTSP_URLS: {
+                if (SETTINGS_ERROR_NONE != settingsFramework.synaSettingsDelete((SETTINGS_ID_e)id)) {
+                    qDebug() << "Failed to delete RTSP Settings";
+                }
+                break;
+            }
+
             default:
                 qDebug() << "Invalid or unsupported settings ID: ";
                 break;

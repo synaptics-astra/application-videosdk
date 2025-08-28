@@ -20,6 +20,7 @@ ApplicationWindow {
     property string url2: ""
     property string url3: ""
     property string url4: ""
+    property int settingsIdRtspUrls: 2
 
     Component.onCompleted: {
         var cmdComponent
@@ -30,12 +31,8 @@ ApplicationWindow {
             cmdComponent = Qt.createComponent("file:///home/root/demos/qmls/v4l2commands.qml")
         }
         cmdsModel = cmdComponent.createObject()
-        var rtspUrls = settingsManager.getRtspUrls()
-        if (rtspUrls === null || rtspUrls.length === 0) {
-            rtspUrlsModel = ["", "", "", ""]
-        } else {
-            rtspUrlsModel = rtspUrls
-        }
+        var rtspData = settingsManager.getData(settingsIdRtspUrls)
+        rtspUrlsModel = rtspData["rtspUrls"] || ["", "", "", ""]
     }
 
     onVisibleChanged: {
@@ -134,8 +131,8 @@ ApplicationWindow {
                     console.error("Row not found")
                 }
             }
-            settingsManager.setRtspUrls(urls)
-            settingsManager.saveConfig("/home/root/demos/configs/synaexplorer_config.txt")
+            var rtspData = { "rtspUrls": urls }
+            settingsManager.setData(settingsIdRtspUrls, rtspData)
         }
     }
 

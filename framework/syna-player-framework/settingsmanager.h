@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2025 Synaptics Incorporated
+
 #ifndef SETTINGSMANAGER_H
 #define SETTINGSMANAGER_H
 
@@ -5,6 +8,15 @@
 #include <QStringList>
 #include <QFile>
 #include <QTextStream>
+#include <syna-settings-framework.h>
+
+typedef struct {
+    char rtspUrls[4][256];
+} RtspSettingsData;
+
+typedef struct {
+    char formatPriorities[4][16];
+} UsbFormatPrioritiesData;
 
 class SettingsManager : public QObject {
     Q_OBJECT
@@ -12,30 +24,23 @@ class SettingsManager : public QObject {
 public:
     explicit SettingsManager(QObject *parent = nullptr);
 
-    Q_INVOKABLE QStringList getAvailableFormats();
-    Q_INVOKABLE void reorderPriority(int fromIndex, int toIndex);
     Q_INVOKABLE void saveConfig(const QString &filePath);
     Q_INVOKABLE void loadConfig(const QString &filePath);
-    Q_INVOKABLE void resetPriorities();
-
-    Q_INVOKABLE void setRtspUrls(const QStringList &urls);
-    Q_INVOKABLE QStringList getRtspUrls() const;
-    Q_INVOKABLE QVariantMap validateRtspUrl(const QString &url);
-    Q_INVOKABLE QVariantList validateAllRtspUrls();
 
     Q_INVOKABLE void setHostIP(const QString &addr);
     Q_INVOKABLE QString getHostIP() const;
+    Q_INVOKABLE bool setData(int id, const QVariantMap &data);
+    Q_INVOKABLE QVariantMap getData(int id) const;
+    Q_INVOKABLE QStringList formatPriorities() const;
+    Q_INVOKABLE QStringList rtspUrls() const;
 
-    Q_PROPERTY(QStringList selectedFormats READ selectedFormats NOTIFY prioritiesChanged)
-    Q_PROPERTY(QStringList rtspUrls READ getRtspUrls NOTIFY rtspUrlsChanged)
+    Q_PROPERTY(QStringList rtspUrls READ rtspUrls NOTIFY rtspUrlsChanged)
+    Q_PROPERTY(QStringList formatPriorities READ formatPriorities NOTIFY prioritiesChanged)
     Q_PROPERTY(QString hostIP READ getHostIP NOTIFY hostIPChanged)
 
-    static QStringList loadFormatPriority(const QString &filePath);
-    static QStringList loadRTSPUrls(const QString &filePath);
     static void createConfig(const QString &filePath);
-    QStringList selectedFormats() const;
     static const QString CONFIG_FILE_PATH;
-    static QStringList getDefaultFormatPriority();
+    bool checkData(int id);
 
 signals:
     void prioritiesChanged();
@@ -43,9 +48,6 @@ signals:
     void hostIPChanged();
 
 private:
-    QStringList allFormats;
-    QStringList selectedFormatsList;
-    QStringList rtspUrls;
     QString hostIP;
 };
 

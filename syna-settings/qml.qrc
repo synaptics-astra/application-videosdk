@@ -19,6 +19,8 @@
         <file>qmls/panels/PanelSelection.qml</file>
         <file>qmls/panels/Wifi.qml</file>
         <file>qmls/panels/Bluetooth.qml</file>
+        <file>qmls/panels/UsbFormatPriorities.qml</file>
+        <file>qmls/panels/RtspConfig.qml</file>
         <file>res/images/astra_icon.png</file>
         <file>res/images/header_banner.png</file>
         <file>res/images/vertical_line.png</file>

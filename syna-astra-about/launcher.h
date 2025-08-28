@@ -63,16 +63,25 @@ public:
     explicit TerminalLauncher(QObject *parent = nullptr) : QObject(parent) {}
 
     Q_INVOKABLE void openTerminalLauncher() {
-
+        AboutManager aboutManager;
+        QString detectedMachine = aboutManager.getMachine();
+        QString command;
 #ifdef HAVE_WAYLAND
-        QString command = "weston-terminal &";
+        command = "weston-terminal &";
         if (!QProcess::startDetached("/bin/sh", QStringList() << "-c" << command)) {
             qWarning() << "Failed to launch Weston terminal.";
         }
 #endif
 
 #ifdef HAVE_X11
-        QString command = "xfce4-terminal &";
+        if (detectedMachine == "sl1620") {
+            command = "matchbox-terminal &";
+        } else if (detectedMachine == "sl1640") {
+            command = "matchbox-terminal &";
+        } else if (detectedMachine == "sl1680") {
+            command = "xfce4-terminal &";
+        }
+
         if (!QProcess::startDetached("/bin/sh", QStringList() << "-c" << command)) {
             qWarning() << "Failed to launch xfce4 terminal.";
         }
