@@ -80,47 +80,75 @@ ApplicationWindow {
     }
 
     Component {
-        id: settingsPanel
-        CameraConfig {}
-    }
-
-    Component {
         id: cameraApp
         CameraApp {}
     }
 
-    function switchPage (index) {
+    Component {
+        id: realTimeStreaming
+        RealTimeStreaming {}
+    }
+
+    function switchPage(index) {
         var machine = playbackControl.getMachine();
-        switch (index) {
-        case 0:
-            sidemenu.sourceComponent = gettingStarted
-            break
-        case 1:
-            if (machine === "sl1620") {
-                sidemenu.sourceComponent = videoDemos1620
-            } else if (machine === "sl1640") {
-                sidemenu.sourceComponent = videoDemos1640
-            } else if (machine === "sl1680") {
-                sidemenu.sourceComponent = videoDemos1680
+        if (isX11) {
+            // In X11 mode, skip Capability Demo
+            switch (index) {
+            case 0:
+                sidemenu.sourceComponent = gettingStarted
+                break
+            case 1:
+                if (machine === "sl1620") {
+                    sidemenu.sourceComponent = videoDemos1620
+                } else if (machine === "sl1640") {
+                    sidemenu.sourceComponent = videoDemos1640
+                } else if (machine === "sl1680") {
+                    sidemenu.sourceComponent = videoDemos1680
+                }
+                break
+            case 2:
+                sidemenu.sourceComponent = gfxDemos
+                break
+            case 3:
+                sidemenu.sourceComponent = aiDemos
+                break
+            case 4:
+                sidemenu.sourceComponent = realTimeStreaming
+                break
             }
-            break
-        case 2:
-            sidemenu.sourceComponent = gfxDemos
-            break
-        case 3:
-            sidemenu.sourceComponent = aiDemos
-            break
-        case 4:
-            sidemenu.sourceComponent = isX11 ? settingsPanel : capabilityDemos
-            break
-        case 5:
-            sidemenu.sourceComponent = settingsPanel
-            break
-        case 6:
-            if (machine === "sl1680") {
-                sidemenu.sourceComponent = cameraApp
+        } else {
+            // In non-X11 mode, include Capability Demo
+            switch (index) {
+            case 0:
+                sidemenu.sourceComponent = gettingStarted
+                break
+            case 1:
+                if (machine === "sl1620") {
+                    sidemenu.sourceComponent = videoDemos1620
+                } else if (machine === "sl1640") {
+                    sidemenu.sourceComponent = videoDemos1640
+                } else if (machine === "sl1680") {
+                    sidemenu.sourceComponent = videoDemos1680
+                }
+                break
+            case 2:
+                sidemenu.sourceComponent = gfxDemos
+                break
+            case 3:
+                sidemenu.sourceComponent = aiDemos
+                break
+            case 4:
+                sidemenu.sourceComponent = capabilityDemos
+                break
+            case 5:
+                sidemenu.sourceComponent = realTimeStreaming
+                break
+            case 6:
+                if (machine === "sl1680") {
+                    sidemenu.sourceComponent = cameraApp
+                }
+                break
             }
-            break
         }
     }
 
@@ -156,7 +184,7 @@ ApplicationWindow {
                         radius: scrollBar.width / 2
                     }
                 }
- 
+
                 id: listItemView
                 anchors.fill: parent
                 highlightFollowsCurrentItem: true
@@ -164,7 +192,7 @@ ApplicationWindow {
                 spacing: Resource.width / 25
                 property string machine: playbackControl.getMachine()
                 function updateModel() {
-                    var baseModel = ["Getting Started", "Video", "Graphics", "AI", "Camera Config"];
+                    var baseModel = ["Getting Started", "Video", "Graphics", "AI","Real Time Streaming"];
                     if (!isX11) { // Temporary till HDMI RX issue is resolved
                         baseModel.splice(4, 0, "Capability Demo");  // Insert at index 4
                     }

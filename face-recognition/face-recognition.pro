@@ -21,7 +21,8 @@ HEADERS += \
     preview.h \
     command.h \
     qtdevice.h \
-    embedding.h
+    embedding.h \
+    welcomepage.h \
 
 RESOURCES += \
     app.qrc

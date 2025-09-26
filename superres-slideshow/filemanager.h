@@ -9,6 +9,7 @@
 #include <QStringList>
 #include <QDir>
 #include <QFileInfo>
+#include <QFile>
 
 class FileManager : public QObject {
     Q_OBJECT
@@ -42,7 +43,6 @@ public:
         bool success = true;
         for (const QString &filePath : filePaths) {
             if (QFile::remove(filePath)) {
-                qDebug() << "Deleted" << filePath;
             } else {
                 qWarning() << "Failed to delete" << filePath << ":" << QFile(filePath).errorString();
                 success = false;

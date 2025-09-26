@@ -1,5 +1,6 @@
 /*
  * Copyright © 2015 Samsung Electronics Co., Ltd
+ * Copyright © 2025 Synaptics Incorporated
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -21,6 +22,8 @@
 
 #ifndef WESTON_HELPERS_H
 #define WESTON_HELPERS_H
+
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -78,6 +81,32 @@ extern "C" {
 #ifndef MAX
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #endif
+
+/**
+ * Clips the value to the maximum to the first item provided.
+ *
+ * @param c the first item to compare.
+ * @param x the second item to compare.
+ * @param y the third item to compare.
+ * @return the value that evaluates to lesser than the maximum of
+ * the two other parameters.
+ */
+#ifndef CLIP
+#define CLIP(c, x, y) MIN(MAX(c, x), y)
+#endif
+
+/**
+ * Divides two integers, rounding up.
+ *
+ * @param n the numerator to divide.
+ * @param d the denominator to divide by.
+ * @return the rounded up result of the division n / d.
+ */
+#define DIV_ROUND_UP(n, d)                                                     \
+  ({                                                                           \
+    typeof(d) tmp = (d);                                                       \
+    ((n) + tmp - 1) / tmp;                                                     \
+  })
 
 /**
  * Returns a pointer to the containing struct of a given member item.
@@ -160,6 +189,42 @@ extern "C" {
     (void)((type)0 == tmp___);                                                 \
     tmp___;                                                                    \
   })
+#endif
+
+/** Private symbol export for tests
+ *
+ * Symbols tagged with this are private libweston functions that are exported
+ * only for the test suite to allow unit testing. Nothing else internal or
+ * external to libweston is allowed to use these exports.
+ *
+ * Therefore, the ABI exported with this tag is completely unversioned, and
+ * is allowed to break at any time without any indication or version bump.
+ * This may happen in all git branches, including stable release branches.
+ */
+#define WESTON_EXPORT_FOR_TESTS __attribute__((visibility("default")))
+
+static inline uint64_t u64_from_u32s(uint32_t hi, uint32_t lo) {
+  return ((uint64_t)hi << 32) + lo;
+}
+
+#ifndef __has_builtin
+#define __has_builtin(x) 0
+#endif
+
+#if defined(HAVE_UNREACHABLE) || __has_builtin(__builtin_unreachable)
+#define unreachable(str)                                                       \
+  do {                                                                         \
+    assert(!str);                                                              \
+    __builtin_unreachable();                                                   \
+  } while (0)
+#elif defined(_MSC_VER)
+#define unreachable(str)                                                       \
+  do {                                                                         \
+    assert(!str);                                                              \
+    __assume(0);                                                               \
+  } while (0)
+#else
+#define unreachable(str) assert(!str)
 #endif
 
 #ifdef __cplusplus

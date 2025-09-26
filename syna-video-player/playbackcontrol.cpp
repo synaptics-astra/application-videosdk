@@ -3,9 +3,9 @@
 
 #include "playbackcontrol.h"
 
-PlaybackControl::PlaybackControl()
+PlaybackControl::PlaybackControl(string machine, string mode) : machine(machine), mode(mode)
 {
-    windowManager = new WindowManager(nullptr, this->machine);
+    windowManager = new WindowManager(nullptr, this->machine, "Synaptics Video Player");
 }
 
 PlaybackControl::~PlaybackControl()

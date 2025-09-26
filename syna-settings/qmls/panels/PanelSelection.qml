@@ -16,7 +16,7 @@ Rectangle {
 
     // Display Settings Title
     PageTitle {
-        text: qsTr("Display Config")
+        text: qsTr("Display")
         Layout.alignment: Qt.AlignHCenter
     }
 
@@ -37,8 +37,8 @@ Rectangle {
         SynaDropDownMenu {
             id: panelSelector
             label: "Select Panel"
-            width: root.width * 0.5
-            height: root.height * 0.05
+            comboWidth: root.width * 0.30
+            comboHeight: root.height * 0.04
             model: dropdownListModel
             Layout.alignment: Qt.AlignHCenter
             onModelChanged: {
@@ -53,14 +53,16 @@ Rectangle {
         // Buttons Row (Save, Reset, Print)
         RowLayout {
             id: buttonRow
+            Layout.topMargin: root.height * 0.03
             Layout.alignment: Qt.AlignHCenter
-            spacing: 10
+            spacing: root.width * 0.01
 
             SynaButton {
                 id: savePanelButton
                 text: qsTr("Save Panel")
-                width: root.width * 0.2
-                height: root.height * 0.05
+                font.pixelSize: root.height * 0.020
+                Layout.preferredWidth: root.width * 0.10
+                height: root.height * 0.055
                 onClicked: {
                     if (!panelSelector.value || panelSelector.value === "") {
                         console.log("Error: No panel selected")
@@ -76,8 +78,9 @@ Rectangle {
             SynaButton {
                 id: resetButton
                 text: qsTr("Reset to Default")
-                width: root.width * 0.2
-                height: root.height * 0.05
+                font.pixelSize: root.height * 0.020
+                Layout.preferredWidth: root.width * 0.10
+                height: root.height * 0.055
                 onClicked: {
                     displaySettings.resetToDefault()
                     var SETTINGS_ID_DISPLAY_SETTINGS = 0;
@@ -89,8 +92,9 @@ Rectangle {
             SynaButton {
                 id: printInfobutton
                 text: qsTr("Print Panel Info")
-                width: root.width * 0.2
-                height: root.height * 0.05
+                font.pixelSize: root.height * 0.020
+                Layout.preferredWidth: root.width * 0.10
+                height: root.height * 0.055
                 onClicked: displaySettings.printPanelInfo()
             }
         }

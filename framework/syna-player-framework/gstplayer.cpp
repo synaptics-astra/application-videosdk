@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sys/resource.h>
+#include <wayland-client.h>
 
 #ifndef FALSE
 #define FALSE (0)
@@ -99,6 +100,12 @@ bool GstPlayer::configurePlatformSpecificOverlay() {
 
     gst_video_overlay_set_render_rectangle(GST_VIDEO_OVERLAY(sink),
             x, y, width, height);
+
+#ifdef HAVE_WAYLAND
+    wl_surface_damage(surface, x, y, width, height);
+    wl_surface_commit(surface);
+#endif
+
     return true;
 }
 

@@ -5,6 +5,7 @@
 #define PLAYERUI_H
 
 #include <QWidget>
+#include <QStackedLayout>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -20,6 +21,7 @@
 #include <QMetaType>
 
 #include "gstplayer.h"
+#include "welcomepage.h"
 #include "preview.h"
 #include "controlpanel.h"
 
@@ -36,13 +38,17 @@ class PlayerUI: public QWidget {
         void startPlayback();
         void stopPlayback();
         void exitApplication();
-        void showPreview(QImage image, cv::Mat m);
+        void showPreview(std::vector<QImage>* image, std::vector<cv::Mat>* m);
+        void stopPreview();
 
     protected:
         void resizeEvent(QResizeEvent* event) override;
 
     private:
+        bool playerflag = false;
         GstPlayer* player;
+        WelcomePage* welcomePage;
+        QStackedLayout* stackedLayout;
         Preview *preview;
         QDateTime lastPreviewClosedTime;
 };

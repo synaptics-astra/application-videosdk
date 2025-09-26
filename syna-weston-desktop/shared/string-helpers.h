@@ -1,5 +1,6 @@
 /*
  * Copyright © 2016 Samsung Electronics Co., Ltd
+ * Copyright © 2025 Synaptics Incorporated
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -91,5 +92,7 @@ str_printf(char **str_out, const char *fmt, ...) {
   else
     *str_out = NULL;
 }
+
+static inline const char *yesno(bool cond) { return cond ? "yes" : "no"; }
 
 #endif /* WESTON_STRING_HELPERS_H */

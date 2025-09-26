@@ -1,5 +1,6 @@
 /*
  * Copyright © 2014 - 2015 Collabora, Ltd.
+ * Copyright © 2025 Synaptics Incorporated
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -27,6 +28,7 @@
 #define TIMESPEC_UTIL_H
 
 #include <assert.h>
+#include <shared/helpers.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <time.h>
@@ -195,7 +197,7 @@ static inline void timespec_from_msec(struct timespec *a, int64_t b) {
  */
 static inline void timespec_from_proto(struct timespec *a, uint32_t tv_sec_hi,
                                        uint32_t tv_sec_lo, uint32_t tv_nsec) {
-  a->tv_sec = ((uint64_t)tv_sec_hi << 32) + tv_sec_lo;
+  a->tv_sec = u64_from_u32s(tv_sec_hi, tv_sec_lo);
   a->tv_nsec = tv_nsec;
 }
 

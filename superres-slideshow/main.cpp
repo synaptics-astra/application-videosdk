@@ -8,6 +8,8 @@
 #include "frameprovider.h"
 #include "videoprober.h"
 #include "filemanager.h"
+#include "cameramanager.h"
+#include "cameraimageprovider.h"
 
 int main(int argc, char *argv[])
 {
@@ -25,12 +27,15 @@ int main(int argc, char *argv[])
     FrameProvider *frameProvider = new FrameProvider(&app);
     VideoProber videoProber;
     FileManager fileManager;
+    CameraImageProvider *cameraImageProvider = new CameraImageProvider();
+    CameraManager cameraManager(cameraImageProvider);
 
     engine.rootContext()->setContextProperty("frameProvider", frameProvider);
     engine.addImageProvider("frameProvider", frameProvider);
     engine.rootContext()->setContextProperty("videoProber", &videoProber);
     engine.rootContext()->setContextProperty("fileManager", &fileManager);
-
+    engine.rootContext()->setContextProperty("cameraManager", &cameraManager);
+    engine.addImageProvider("cameraProvider", cameraImageProvider);
 
     const QUrl url(QStringLiteral("qrc:/main.qml"));
     QObject::connect(

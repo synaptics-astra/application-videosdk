@@ -50,11 +50,11 @@ typedef struct {
 
 typedef struct {
     GstMeta meta;
-    gpointer data;
-    gint tlx;
-    gint tly;
-    gint brx;
-    gint bry;
+    GArray *data;
+    GArray *tlx;
+    GArray *tly;
+    GArray *brx;
+    GArray *bry;
     gint width;
     gint height;
 } GstRecognitionMeta;
@@ -76,17 +76,20 @@ class GstPlayer: public QWidget {
         GstPlayer(QWidget* parent);
         ~GstPlayer();
 
+        static bool playerflag;
         bool startPlayback();
         void stopPlayback();
-        void setFaceName(QString name, cv::Mat m);
+        void setFaceName(std::vector<QString> name, std::vector<cv::Mat> m);
         void updateImage(const QImage& image);
 
     signals:
-        void faceDetected(QImage image, cv::Mat m);
+        void faceDetected(std::vector<QImage>* image, std::vector<cv::Mat>* m);
         void pushFrame(QImage image);
 
     private:
         static GstFlowReturn newBuffer(GstAppSink *appsink, gpointer userData);
+        static std::vector<cv::Point> myPointCollection;
+        static std::vector<std::string> namePastCollection;
 
         GstElement* pipeline;
         GstAppSink *appsink;

@@ -54,9 +54,10 @@ int main(int argc, char *argv[])
     app.setOrganizationName("synaptics");
     app.setOrganizationDomain("synaptics.com");
 
+    string machine;
     QStringList args = app.arguments();
-    PlaybackControl playbackControl;
-    handleCommandLineOptions(args, playbackControl.machine);
+    handleCommandLineOptions(args, machine);
+    PlaybackControl playbackControl(machine);
 
     if (playbackControl.machine.empty()) {
         displayUsage();

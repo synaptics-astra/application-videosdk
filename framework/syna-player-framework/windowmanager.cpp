@@ -23,12 +23,13 @@ int WindowManager::findScaleFactor(int width, int height)
     return findScaleFactor(height, width % height);
 }
 
-static int detectCameraFormat(v4l2dev_t *pV4l2Cam)
+static int detectCameraFormat(v4l2dev_t *pV4l2Cam, SettingsManager* settingsManager)
 {
     struct v4l2_fmtdesc fmt;
     fmt.index = 0;
     fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    QStringList formatPriority = SettingsManager::loadFormatPriority(SettingsManager::CONFIG_FILE_PATH);
+    QVariantMap formatData = settingsManager->getData(SETTINGS_ID_USB_FORMAT_PRIORITIES);
+    QStringList formatPriority = formatData["formatPriorities"].toStringList();
     QMap<QString, uint32_t> supportedFormats;
 
     while (ioctl(pV4l2Cam->dev_fd, VIDIOC_ENUM_FMT, &fmt) == 0)
@@ -66,7 +67,7 @@ void WindowManager::updateCAMSRC(QVector<QString>::iterator iter)
     QString camSrcPipelineH264, camSrcPipelineMJPEG, camSrcPipelineYUY2, camSrcPipelineNV12;
     QString videoTestSrcPipeline = "videotestsrc ! video/x-raw, framerate=30/1,format=NV12,width=640,height=480 !"
     " textoverlay text='No camera source detected..!'";
-    // Predefine pipelines for each camera format
+    /* Predefine pipelines for each camera format */
     if(machine == SL1620_ASTRA_MACHINE) {
         camSrcPipelineH264 = "v4l2src device=CAM ! video/x-h264,framerate=15/1,format=H264,width=640,height=480 ! h264parse ! avdec_h264";
         camSrcPipelineMJPEG = "v4l2src device=CAM ! image/jpeg,framerate=15/1,format=MJPEG,width=640,height=480 ! jpegdec";
@@ -106,7 +107,6 @@ void WindowManager::updateCAMSRC(QVector<QString>::iterator iter)
                 qWarning() << "Unsupported camera format: " << currentFormat;
                 camSrcPipeline = videoTestSrcPipeline;
             }
-
             (*iter).replace(camSrcIndex, camSrcReplaceWord.length(), camSrcPipeline);
 
             camSrcIndex = (*iter).indexOf(camSrcReplaceWord, camSrcIndex + 1, Qt::CaseInsensitive);
@@ -137,8 +137,8 @@ void WindowManager::updateCAMSRC(QVector<QString>::iterator iter)
 void WindowManager::updateRTSPSRC(QVector<QString>::iterator iter)
 {
     QString rtspSrcReplaceWord = "RTSPURL";
-    QStringList rtspUrls = SettingsManager::loadRTSPUrls(SettingsManager::CONFIG_FILE_PATH);
-    static int rtspIndex = 0;
+    QVariantMap rtspData = settingsManager->getData(SETTINGS_ID_RTSP_URLS);
+    QStringList rtspUrls = rtspData["rtspUrls"].toStringList();
     if (rtspUrls.isEmpty()) {
         return;
     }
@@ -294,7 +294,7 @@ void WindowManager::getDevicePath()
                                    << QString::fromStdString(deviceNode);
                         continue;
                     }
-                    if (detectCameraFormat(&camDetails) == 0) {
+                    if (detectCameraFormat(&camDetails, settingsManager) == 0) {
                         if (camDetails.dev_v4l2_fmt == V4L2_PIX_FMT_YUYV) {
                             camsfmt.push_back("YUY2");
                         }
@@ -334,15 +334,24 @@ void WindowManager::playPipelines()
                 (*player)->start();
                 QThread::sleep (1);
             }
-            closeButton->show();
+            if (statsWidget)
+                statsWidget->show();
         } else {
             break;
         }
     }
 }
 
-WindowManager::WindowManager(QWidget *parent, string mach) : QWidget(parent), mutex(QMutex::Recursive), machine(mach)
+WindowManager::WindowManager(QWidget *parent, string mach, QString appName) : QWidget(parent), mutex(QMutex::Recursive),
+machine(mach), rtspIndex(0), appName(appName)
 {
+    settingsManager = new SettingsManager();
+    if (!settingsManager) {
+        qFatal("Failed to allocate SettingsManager!");
+    }
+    settingsManager->checkData(SETTINGS_ID_USB_FORMAT_PRIORITIES);
+    settingsManager->checkData(SETTINGS_ID_RTSP_URLS);
+
     gst_init (nullptr, nullptr);
 
     QList<QScreen*> screens = QGuiApplication::screens();
@@ -390,22 +399,36 @@ WindowManager::WindowManager(QWidget *parent, string mach) : QWidget(parent), mu
 
 void WindowManager::play(QString url1, QString url2)
 {
-    GstPlayer* player = NULL;
+    GstPlayer* player = nullptr;
     int x1, y1, w1, h1;
 
     isPipelinePlaying = true;
     playPipelineThread = QThread::create([this]() {
         this->playPipelines();
     });
-
     playPipelineThread->start();
 
     width = geometry().width();
     height = geometry().height();
-    height -= (height * 0.02);
+
+    float reservePercent = 0.10f;
+    float marginPercent = 0.02f;
+
+    int reservedHeight = static_cast<int>(height * reservePercent);
+    int verticalMargin = static_cast<int>(height * marginPercent);
+    int horizontalMargin = static_cast<int>(width * marginPercent);
+
+    int videoHeight = height - reservedHeight - 2 * verticalMargin;
+    int videoWidth = width - 2 * horizontalMargin;
+
+    float scaleFactor = static_cast<float>(videoHeight) / height;
+    int scaledWidth = static_cast<int>(width * scaleFactor);
+    int scaledHeight = videoHeight;
+
+    int gapX = (width - scaledWidth) / 2;
+    int gapY = verticalMargin;
 
     urls.clear();
-
     urls.push_back(url1);
     urls.push_back(url2);
 
@@ -418,54 +441,76 @@ void WindowManager::play(QString url1, QString url2)
 
     updateCAMSRC(iter);
     updateHRXSRC(iter);
-    w1 = width;
-    h1 = height;
-    x1 = 0;
-    y1 = 0;
-    player = new GstPlayer (threadCount++, x1, y1, w1, h1, *iter, this);
+
+    x1 = gapX;
+    y1 = gapY;
+    w1 = scaledWidth;
+    h1 = scaledHeight;
+    player = new GstPlayer(threadCount++, x1, y1, w1, h1, *iter, this);
     iter++;
     players.append(player);
 
-    if(url2 != "")
-    {
+    if (!url2.isEmpty()) {
         updateCAMSRC(iter);
         updateHRXSRC(iter);
-        x1 = (width / 5);
-        y1 = (height / 5);
-        w1 = width - x1;
-        h1 = height - y1;
-        player = new GstPlayer (threadCount++, x1, y1, w1, h1, *iter, this);
+
+        int insetX = scaledWidth / 5;
+        int insetY = scaledHeight / 5;
+        x1 = gapX + insetX + (gapX / 2);
+        y1 = gapY + insetY + (gapY / 2);
+        w1 = scaledWidth - (insetX + (gapX / 2));
+        h1 = scaledHeight - (insetY + (gapY / 2));
+
+        player = new GstPlayer(threadCount++, x1, y1, w1, h1, *iter, this);
         iter++;
         players.append(player);
     }
-    closeButton = new QPushButton("Close", this);
-    closeButton->setGeometry(width - (height * 0.02 * 4), height, (height * 0.02 * 4), (height * 0.02));
-    closeButton->setWindowFlags(Qt::WindowStaysOnTopHint);
-    connect(closeButton, &QPushButton::clicked, this, &WindowManager::cleanUp);
+
+    statsWidget = new StatsWidget(this, this->appName, this->machine);
+    statsWidget->setGeometry(0, height - reservedHeight, width, reservedHeight);
+
+    connect(statsWidget, &StatsWidget::requestClose, this, &WindowManager::requestStatsClose);
+
     playPipelineSem.release();
 }
 
 void WindowManager::play(int index, QString url1, QString url2,
         QString url3, QString url4)
 {
+    GstPlayer* player = nullptr;
+
+    int originalWidth = geometry().width();
+    int originalHeight = geometry().height();
+
+    float reservePercent = 0.10f;
+    float marginPercent = 0.02f;
+    float paddingPercent = 0.01f;
+
+    int reservedHeight = static_cast<int>(reservePercent * originalHeight);
+    int verticalMargin = static_cast<int>(marginPercent * originalHeight);
+    int horizontalMargin = static_cast<int>(marginPercent * originalWidth);
+
+    int availableHeight = originalHeight - reservedHeight - 2 * verticalMargin;
+    int availableWidth = originalWidth - 2 * horizontalMargin;
+
+    float scaleFactor = static_cast<float>(availableHeight) / static_cast<float>(originalHeight);
+    int scaledWidth = static_cast<int>(originalWidth * scaleFactor);
+    int scaledHeight = availableHeight;
+
+    int tileWidth = (scaledWidth - static_cast<int>((index - 1) * paddingPercent * scaledWidth)) / index;
+    int tileHeight = (scaledHeight - static_cast<int>((index - 1) * paddingPercent * scaledHeight)) / index;
+    int paddingX = static_cast<int>(paddingPercent * scaledWidth);
+    int paddingY = static_cast<int>(paddingPercent * scaledHeight);
+
+    int gapX = (originalWidth - scaledWidth) / 2;
+    int gapY = verticalMargin;
+
+    rtspIndex = (index == 1) ? 0 : rtspIndex;
     urls.clear();
     urls.push_back(url1);
     urls.push_back(url2);
     urls.push_back(url3);
     urls.push_back(url4);
-
-    int x1, y1, w1, h1, posX, posY;
-    width = geometry().width();
-    height = geometry().height();
-    posX = frameGeometry().width() - geometry().width();
-    posY = frameGeometry().height() - geometry().height();
-    scaleFactor = findScaleFactor(width, height);
-
-    width -= (2*width/scaleFactor);
-    height -= (4*height/scaleFactor);
-
-    w1 = width/index - 2*width/scaleFactor-20;
-    h1 = height/index - 2*height/scaleFactor-20;
 
     iter = urls.begin();
     camIter = cams.begin();
@@ -476,29 +521,54 @@ void WindowManager::play(int index, QString url1, QString url2,
     {
         for (int j = 0; j < index; j++)
         {
-            x1 = j*width/index + width/scaleFactor + 2*width/scaleFactor;
-            y1 = i*height/index + width/scaleFactor;
+            int x1 = j * (tileWidth + paddingX) + gapX;
+            int y1 = i * (tileHeight + paddingY) + gapY;
 
             updateCAMSRC(iter);
             updateRTSPSRC(iter);
-            GstPlayer* player = new GstPlayer(threadCount++, x1, y1, w1, h1,
-                *iter, this);
-            player->start();
+            player = new GstPlayer(threadCount++, x1, y1, tileWidth, tileHeight,
+                                              *iter, this);
             iter++;
             players.append(player);
         }
     }
 
-    closeButton = new QPushButton("Close", this);
-    closeButton->setGeometry(width - scaleFactor, (height - scaleFactor/8) + 10, scaleFactor, scaleFactor/4);
-    closeButton->setWindowFlags(Qt::WindowStaysOnTopHint);
-    closeButton->show();
-    connect(closeButton, &QPushButton::clicked, this, &WindowManager::cleanUp);
+    statsWidget = new StatsWidget(this, this->appName, this->machine);
+    statsWidget->setGeometry(0, (originalHeight - reservedHeight), width, reservedHeight);
+
+    connect(statsWidget, &StatsWidget::requestClose, this, &WindowManager::requestStatsClose);
+
+    if (statsWidget) {
+        statsWidget->show();
+    }
+
+    this->show();
+    this->update();
+    QCoreApplication::processEvents();
+
+    for (auto player = players.begin(); player != players.end(); ++player) {
+        (*player)->start();
+    }
+
 }
 
 void WindowManager::cleanUp()
 {
     emit exitThread();
+    if (settingsManager) {
+        delete settingsManager;
+        settingsManager = nullptr;
+    }
+}
+
+void WindowManager::requestStatsClose() {
+    if (statsWidget) {
+        statsWidget->hide();
+        statsWidget->deleteLater();
+        statsWidget = nullptr;
+    }
+
+    cleanUp();
 }
 
 void WindowManager::threadFinished()
@@ -516,10 +586,6 @@ void WindowManager::threadFinished()
             delete playPipelineThread;
         }
 
-        if (closeButton) {
-            delete closeButton;
-            closeButton = nullptr;
-        }
         urls.clear();
 
         // delete player object in reverse order of allocation
@@ -531,4 +597,3 @@ void WindowManager::threadFinished()
         this->hide();
     }
 }
-

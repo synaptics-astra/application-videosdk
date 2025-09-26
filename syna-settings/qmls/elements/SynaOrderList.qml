@@ -12,6 +12,15 @@ ColumnLayout {
     property var label: ""
     property var listModel: ""
     property int maxTextWidth: 0  // Store the max text width
+    property real listWidth: 200
+    property real listHeight: 300
+    property real buttonWidth: 40
+    property real buttonHeight: 18
+    width: listWidth
+    height: listHeight
+    property int itemFontSize: 12
+    property int itemSpacing: 5
+
 
     spacing: 10
     anchors.margins: 10
@@ -28,12 +37,13 @@ ColumnLayout {
         id: repeaterList
         model: listModel
         Row {
-            spacing: 5
+            spacing: root.itemSpacing
 
             Button {
                 text: "▼"
-                width: 40
-                height: 18
+                width: root.buttonWidth
+                height: root.buttonHeight
+                font.pixelSize: root.buttonHeight * 0.6
                 enabled: index < (repeaterList.count - 1)
                 onClicked: {
                     listModel.move(index, index+1,1)
@@ -43,13 +53,15 @@ ColumnLayout {
             Text {
                 width: maxTextWidth
                 text: model.text
-                font.pointSize: 12
+                font.pointSize: root.itemFontSize
+                horizontalAlignment: Text.AlignHCenter
             }
 
             Button {
                 text: "▲"
-                width: 40
-                height: 18
+                width: root.buttonWidth
+                height: root.buttonHeight
+                font.pixelSize: root.buttonHeight * 0.6
                 enabled: index > 0
                 onClicked: {
                     listModel.move(index, index-1,1)
@@ -71,7 +83,7 @@ ColumnLayout {
             textHelper.text = listModel.get(i).text
             maxWidth = Math.max(maxWidth, textHelper.implicitWidth)
         }
-        maxTextWidth = maxWidth
+        maxTextWidth = Math.min(maxWidth, listWidth * 0.3)
     }
 
 }

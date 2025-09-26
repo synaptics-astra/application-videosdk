@@ -25,10 +25,15 @@ Pane {
     property var hostIP: null
     property real rootWidth: Window.window ? Window.window.width : Resource.width
     property real rootHeight: Window.window ? Window.window.height : Resource.height
+    property string synaDrmFilePath: ""
 
     Component.onCompleted: {
         hostIP = settingsManager.getHostIP()
         hostIP !== null ? hostIP : ""
+        synaDrmFilePath = processHelper.findFile(["/etc/modprobe.d/syna_drm.conf", "/usr/lib/modprobe.d/syna_drm.conf"])
+        if (!synaDrmFilePath) {
+            console.log("Error: syna_drm.conf not found in either location")
+        }
     }
 
     Popup {
@@ -108,8 +113,14 @@ Pane {
                         font.pixelSize: gridItem.rootWidth / 110
                     }
                     onClicked: {
-                        var command = "mv /etc/modprobe.d/syna_drm.conf /home/syna_drm.conf && sync && reboot";
-                        processHelper.executeCommand(command);
+                        if (synaDrmFilePath) {
+                            var contents = processHelper.readFile(synaDrmFilePath)
+                            var updatedContents = contents.replace("hdmi_preferred_mode=1920x1080", "hdmi_preferred_mode=3840x2160")
+                            processHelper.writeFile(synaDrmFilePath, updatedContents)
+                            processHelper.executeCommand("sync && reboot")
+                        } else {
+                            console.log("Error: Cannot switch to 4K, syna_drm.conf not found")
+                        }
                         resolutionSwitchPopup.close()
                     }
                 }
@@ -172,8 +183,14 @@ Pane {
                         font.pixelSize: gridItem.rootWidth / 110
                     }
                     onClicked: {
-                        var command = "mv /home/syna_drm.conf /etc/modprobe.d/syna_drm.conf && sync && reboot";
-                        processHelper.executeCommand(command);
+                        if (synaDrmFilePath) {
+                            var contents = processHelper.readFile(synaDrmFilePath)
+                            var updatedContents = contents.replace("hdmi_preferred_mode=3840x2160", "hdmi_preferred_mode=1920x1080")
+                            processHelper.writeFile(synaDrmFilePath, updatedContents)
+                            processHelper.executeCommand("sync && reboot")
+                        } else {
+                            console.log("Error: Cannot switch to 2K, syna_drm.conf not found")
+                        }
                         resolutionSwitchBackPopup.close()
                     }
                 }
@@ -320,13 +337,11 @@ Pane {
             var selectedFile = fileDialog.fileUrl.toString().replace("file://", "")
             var videoInfo = videoProber.probeFile(selectedFile)
 
-            // Resolution check
             if (videoInfo.width > 1920 || videoInfo.height > 1080) {
                 resolutionPopup.open()
                 return
             }
 
-            // Framerate check
             var framerateValue = 0
             if (videoInfo.framerate && videoInfo.framerate.includes("/")) {
                 framerateValue = parseInt(videoInfo.framerate.split("/")[0])
@@ -341,7 +356,6 @@ Pane {
             var decoder = ""
             var demuxer = ""
 
-            // Demuxer based on container
             if (videoInfo.container.toLowerCase() === "mp4") {
                 demuxer = "qtdemux name=demux demux.video_0 ! queue"
             } else if (!videoInfo.container) {
@@ -351,7 +365,6 @@ Pane {
                 return
             }
 
-            // Decoder based on codec
             if (videoInfo.codec === "h264") {
                 decoder = "h264parse ! v4l2h264dec"
             } else if (videoInfo.codec === "h265") {
@@ -361,7 +374,6 @@ Pane {
                 return
             }
 
-            // Final command
             gridItem.command1 = "filesrc location=" + selectedFile + " ! " +
                                 demuxer + " ! " + decoder + " ! " + gridItem.modelPipeline
 
@@ -387,55 +399,69 @@ Pane {
                 focus: true
                 anchors.fill: parent
                 onClicked: {
+                    var is2K = false
+                    if (synaDrmFilePath) {
+                        var contents = processHelper.readFile(synaDrmFilePath)
+                        if (contents.includes("hdmi_preferred_mode=1920x1080")) {
+                            is2K = true
+                        }
+                    } else {
+                        console.log("Error: syna_drm.conf not found, assuming 4K")
+                    }
+
                     switch (gridItem.type) {
                         case 1:
                             if (gridItem.mode === "file") {
-                                if (!processHelper.fileExists("/etc/modprobe.d/syna_drm.conf")) {
-                                    resolutionSwitchBackPopup.open()
-                                } else {
+                                if (is2K) {
                                     fileDialog.open()
+                                } else {
+                                    resolutionSwitchBackPopup.open()
                                 }
                             } else if (gridItem.mode === "camera") {
-                                if (!processHelper.fileExists("/etc/modprobe.d/syna_drm.conf")) {
-                                    resolutionSwitchBackPopup.open()
-                                } else {
+                                if (is2K) {
                                     playbackControl.doPlayback(gridItem.type, gridItem.command1, "", "", "")
+                                } else {
+                                    resolutionSwitchBackPopup.open()
                                 }
                             }
                             break;
                         case 2:
-                            if (!processHelper.fileExists("/etc/modprobe.d/syna_drm.conf")) {
-                                resolutionSwitchBackPopup.open()
-                            } else {
+                            if (is2K) {
                                 playbackControl.doPlayback(gridItem.type, gridItem.command1, gridItem.command2, gridItem.command3, gridItem.command4)
+                            } else {
+                                resolutionSwitchBackPopup.open()
                             }
                             break;
                         case 3:
-                            dialog.open()
+                            if (is2K) {
+                                dialog.open()
+                            } else {
+                                resolutionSwitchBackPopup.open()
+                            }
                             break;
                         case 4:
-                            if (!processHelper.fileExists("/etc/modprobe.d/syna_drm.conf")) {
+                            if (!is2K) {
                                 playbackControl.launch("/usr/bin/superres-slideshow")
                             } else {
                                 resolutionSwitchPopup.open()
                             }
                             break;
                         case 5:
-                            if (!processHelper.fileExists("/etc/modprobe.d/syna_drm.conf")) {
+                            if (!is2K) {
                                 playbackControl.launch("/usr/bin/superres")
                             } else {
                                 resolutionSwitchPopup.open()
                             }
                             break;
                         case 6:
-                        if (!processHelper.fileExists("/etc/modprobe.d/syna_drm.conf")) {
-                                    resolutionSwitchBackPopup.open()
-                                } else {
+                            if (is2K) {
                                 playbackControl.launch("/usr/bin/face-recognition")
-                                }
+                            } else {
+                                resolutionSwitchBackPopup.open()
+                            }
                             break;
                         default:
-                            if (!processHelper.fileExists("/etc/modprobe.d/syna_drm.conf")) {
+                            if (is2K) {
                                 playbackControl.doPlayback(1, gridItem.command1, gridItem.command2, gridItem.command3, gridItem.command4)
                             } else {
                                 resolutionSwitchBackPopup.open()

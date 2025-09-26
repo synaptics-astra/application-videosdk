@@ -2,7 +2,7 @@
  * Copyright © 2010-2012 Intel Corporation
  * Copyright © 2011-2012 Collabora, Ltd.
  * Copyright © 2013 Raspberry Pi Foundation
- * Copyright © 2024 Synaptics Incorporated
+ * Copyright © 2025 Synaptics Incorporated
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -58,20 +58,23 @@ static void input_panel_slide_done(struct weston_view_animation *animation,
 }
 
 static int calc_input_panel_position(struct input_panel_surface *ip_surface,
-                                     float *x, float *y) {
+                                     struct weston_coord_global *out_pos) {
   struct desktop_shell *shell = ip_surface->shell;
+  struct weston_coord_global pos;
+
   if (ip_surface->panel) {
     struct weston_view *view = get_default_view(shell->text_input.surface);
     if (view == NULL)
       return -1;
-    *x = view->geometry.x + shell->text_input.cursor_rectangle.x2;
-    *y = view->geometry.y + shell->text_input.cursor_rectangle.y2;
+    pos = weston_view_get_pos_offset_global(view);
+    pos.c.x += shell->text_input.cursor_rectangle.x2;
+    pos.c.y += shell->text_input.cursor_rectangle.y2;
   } else {
-    *x = ip_surface->output->x +
-         (ip_surface->output->width - ip_surface->surface->width) / 2;
-    *y = ip_surface->output->y + ip_surface->output->height -
-         ip_surface->surface->height;
+    pos = ip_surface->output->pos;
+    pos.c.x += (ip_surface->output->width - ip_surface->surface->width) / 2;
+    pos.c.y += ip_surface->output->height - ip_surface->surface->height;
   }
+  *out_pos = pos;
   return 0;
 }
 
@@ -79,7 +82,13 @@ static void show_input_panel_surface(struct input_panel_surface *ipsurf) {
   struct desktop_shell *shell = ipsurf->shell;
   struct weston_seat *seat;
   struct weston_surface *focus;
-  float x, y;
+  struct weston_coord_global pos;
+
+  if (!weston_surface_is_mapped(ipsurf->surface))
+    return;
+
+  if (weston_view_is_mapped(ipsurf->view))
+    return;
 
   wl_list_for_each(seat, &shell->compositor->seat_list, link) {
     struct weston_keyboard *keyboard = weston_seat_get_keyboard(seat);
@@ -90,18 +99,14 @@ static void show_input_panel_surface(struct input_panel_surface *ipsurf) {
     if (!focus)
       continue;
     ipsurf->output = focus->output;
-    if (calc_input_panel_position(ipsurf, &x, &y))
+    if (calc_input_panel_position(ipsurf, &pos))
       continue;
-    weston_view_set_position(ipsurf->view, x, y);
-  }
 
-  weston_layer_entry_insert(&shell->input_panel_layer.view_list,
-                            &ipsurf->view->layer_link);
-  weston_view_geometry_dirty(ipsurf->view);
-  weston_view_update_transform(ipsurf->view);
-  ipsurf->surface->is_mapped = true;
-  ipsurf->view->is_mapped = true;
-  weston_surface_damage(ipsurf->surface);
+    weston_view_set_position(ipsurf->view, pos);
+    weston_view_move_to_layer(ipsurf->view,
+                              &shell->input_panel_layer.view_list);
+    break;
+  }
 
   if (ipsurf->anim)
     weston_view_animation_destroy(ipsurf->anim);
@@ -127,9 +132,6 @@ static void show_input_panels(struct wl_listener *listener, void *data) {
                               WESTON_LAYER_POSITION_TOP_UI);
 
   wl_list_for_each_safe(ipsurf, next, &shell->input_panel.surfaces, link) {
-    if (ipsurf->surface->width == 0)
-      continue;
-
     show_input_panel_surface(ipsurf);
   }
 }
@@ -148,7 +150,7 @@ static void hide_input_panels(struct wl_listener *listener, void *data) {
     weston_layer_unset_position(&shell->input_panel_layer);
 
   wl_list_for_each_safe(view, next, &shell->input_panel_layer.view_list.link,
-                        layer_link.link) weston_view_unmap(view);
+                        layer_link.link) weston_view_move_to_layer(view, NULL);
 }
 
 static void update_input_panels(struct wl_listener *listener, void *data) {
@@ -163,20 +165,20 @@ static int input_panel_get_label(struct weston_surface *surface, char *buf,
   return snprintf(buf, len, "input panel");
 }
 
-static void input_panel_committed(struct weston_surface *surface, int32_t sx,
-                                  int32_t sy) {
+static void input_panel_committed(struct weston_surface *surface,
+                                  struct weston_coord_surface new_origin) {
   struct input_panel_surface *ip_surface = surface->committed_private;
   struct desktop_shell *shell = ip_surface->shell;
-  float x, y;
 
-  if (surface->width == 0)
+  if (!weston_surface_has_content(surface))
     return;
 
-  if (calc_input_panel_position(ip_surface, &x, &y))
+  if (weston_surface_is_mapped(surface))
     return;
-  weston_view_set_position(ip_surface->view, x, y);
 
-  if (!weston_surface_is_mapped(surface) && shell->showing_input_panels)
+  weston_surface_map(surface);
+
+  if (shell->showing_input_panels)
     show_input_panel_surface(ip_surface);
 }
 
@@ -250,13 +252,14 @@ static void input_panel_surface_set_toplevel(
   struct input_panel_surface *input_panel_surface =
       wl_resource_get_user_data(resource);
   struct desktop_shell *shell = input_panel_surface->shell;
-  struct weston_head *head;
+  struct weston_head *head = weston_head_from_resource(output_resource);
 
-  wl_list_insert(&shell->input_panel.surfaces, &input_panel_surface->link);
+  if (head) {
+    wl_list_insert(&shell->input_panel.surfaces, &input_panel_surface->link);
 
-  head = weston_head_from_resource(output_resource);
-  input_panel_surface->output = head->output;
-  input_panel_surface->panel = 0;
+    input_panel_surface->output = head->output;
+    input_panel_surface->panel = 0;
+  }
 }
 
 static void

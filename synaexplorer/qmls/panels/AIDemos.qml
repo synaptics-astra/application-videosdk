@@ -51,7 +51,7 @@ Rectangle {
         }
 
         Loader {
-            active: machine === "sl1680"
+            active: machine === "sl1680" && !isX11
             sourceComponent: audioUsecaseComponent
         }
     }

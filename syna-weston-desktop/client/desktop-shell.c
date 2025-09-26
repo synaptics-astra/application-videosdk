@@ -1,7 +1,7 @@
 /*
  * Copyright © 2011 Kristian Høgsberg
  * Copyright © 2011 Collabora, Ltd.
- * Copyright © 2024 Synaptics Incorporated
+ * Copyright © 2025 Synaptics Incorporated
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -39,15 +39,18 @@
 #include <time.h>
 #include <unistd.h>
 
+#include <wayland-client.h>
+
 #include "shared/cairo-util.h"
 #include "shared/file-util.h"
 #include "shared/helpers.h"
+#include "shared/process-util.h"
 #include "shared/timespec-util.h"
 #include "shared/xalloc.h"
-#include "window.h"
 #include <libweston/config-parser.h>
 #include <libweston/zalloc.h>
-#include <wayland-client.h>
+
+#include "window.h"
 
 #include "weston-desktop-shell-client-protocol.h"
 
@@ -55,8 +58,6 @@
 #define DEFAULT_SPACING 10
 
 static int count;
-
-extern char **environ; /* defined by libc */
 
 enum clock_format {
   CLOCK_FORMAT_MINUTES,
@@ -171,8 +172,9 @@ struct panel_launcher {
   char *displayname;
   char *icon_path;
   struct wl_list link;
-  struct wl_array envp;
-  struct wl_array argv;
+  struct custom_env env;
+  char *const *argp;
+  char *const *envp;
   int icon_size;
 };
 
@@ -233,7 +235,6 @@ static void check_desktop_ready(struct window *window) {
 }
 
 static void panel_launcher_activate(struct panel_launcher *widget) {
-  char **argv;
   pid_t pid;
 
   pid = fork();
@@ -245,13 +246,12 @@ static void panel_launcher_activate(struct panel_launcher *widget) {
   if (pid)
     return;
 
-  argv = widget->argv.data;
-
   if (setsid() == -1)
     exit(EXIT_FAILURE);
 
-  if (execve(argv[0], argv, widget->envp.data) < 0) {
-    fprintf(stderr, "execl '%s' failed: %s\n", argv[0], strerror(errno));
+  if (execve(widget->argp[0], widget->argp, widget->envp) < 0) {
+    fprintf(stderr, "execl '%s' failed: %s\n", widget->argp[0],
+            strerror(errno));
     exit(1);
   }
 }
@@ -637,8 +637,6 @@ static void panel_configure(void *data,
     return;
   }
 
-  panel->owner->width = width;
-  panel->owner->height = height;
   switch (desktop->panel_position) {
   case WESTON_DESKTOP_SHELL_PANEL_POSITION_TOP:
   case WESTON_DESKTOP_SHELL_PANEL_POSITION_BOTTOM:
@@ -673,8 +671,7 @@ static void panel_configure(void *data,
 }
 
 static void panel_destroy_launcher(struct panel_launcher *launcher) {
-  wl_array_release(&launcher->argv);
-  wl_array_release(&launcher->envp);
+  custom_env_fini(&launcher->env);
 
   free(launcher->path);
   free(launcher->displayname);
@@ -797,59 +794,19 @@ static cairo_surface_t *load_icon_or_fallback(const char *icon, int icon_size) {
 static void panel_add_launcher(struct panel *panel, const char *icon,
                                const char *path, const char *displayname) {
   struct panel_launcher *launcher;
-  char *start, *p, *eq, **ps;
-  int i, j, k;
 
   launcher = xzalloc(sizeof *launcher);
 
   launcher->icon_path = xstrdup(icon);
-  launcher->icon = NULL; // Don't load the icon yet
-  launcher->icon_size = 0; // set to 0
+  launcher->icon = NULL; // Don't load icon yet
+  launcher->icon_size = 0;
   launcher->path = xstrdup(path);
   launcher->displayname = xstrdup(displayname);
 
-  wl_array_init(&launcher->envp);
-  wl_array_init(&launcher->argv);
-  for (i = 0; environ[i]; i++) {
-    ps = wl_array_add(&launcher->envp, sizeof *ps);
-    *ps = environ[i];
-  }
-  j = 0;
-
-  start = launcher->path;
-  while (*start) {
-    for (p = start, eq = NULL; *p && !isspace(*p); p++)
-      if (*p == '=')
-        eq = p;
-
-    if (eq && j == 0) {
-      ps = launcher->envp.data;
-      for (k = 0; k < i; k++)
-        if (strncmp(ps[k], start, eq - start) == 0) {
-          ps[k] = start;
-          break;
-        }
-      if (k == i) {
-        ps = wl_array_add(&launcher->envp, sizeof *ps);
-        *ps = start;
-        i++;
-      }
-    } else {
-      ps = wl_array_add(&launcher->argv, sizeof *ps);
-      *ps = start;
-      j++;
-    }
-
-    while (*p && isspace(*p))
-      *p++ = '\0';
-
-    start = p;
-  }
-
-  ps = wl_array_add(&launcher->envp, sizeof *ps);
-  *ps = NULL;
-  ps = wl_array_add(&launcher->argv, sizeof *ps);
-  *ps = NULL;
+  custom_env_init_from_environ(&launcher->env);
+  custom_env_add_from_exec_string(&launcher->env, launcher->path);
+  launcher->envp = custom_env_get_envp(&launcher->env);
+  launcher->argp = custom_env_get_argp(&launcher->env);
 
   launcher->panel = panel;
   wl_list_insert(panel->launcher_list.prev, &launcher->link);
@@ -999,9 +956,6 @@ static void background_configure(void *data,
     owner->background = NULL;
     return;
   }
-
-  background->owner->width = width;
-  background->owner->height = height;
 
   if (!background->image && background->color) {
     widget_set_viewport_destination(background->widget, width, height);
@@ -1271,7 +1225,7 @@ static struct background *background_create(struct desktop *desktop,
 
   weston_config_section_get_string(s, "background-type", &type, "tile");
   if (type == NULL) {
-    fprintf(stderr, "string: out of memory\n");
+    fprintf(stderr, "%s: out of memory\n", program_invocation_short_name);
     exit(EXIT_FAILURE);
   }
 
@@ -1614,15 +1568,14 @@ static void panel_add_launchers(struct panel *panel, struct desktop *desktop) {
     weston_config_section_get_string(s, "icon", &icon, NULL);
     weston_config_section_get_string(s, "path", &path, NULL);
     weston_config_section_get_string(s, "displayname", &displayname, NULL);
-    if (displayname == NULL) {
+    if (displayname == NULL)
       displayname = xstrdup(basename(path));
-    }
 
     if (icon != NULL && path != NULL) {
       panel_add_launcher(panel, icon, path, displayname);
       count++;
     } else {
-      fprintf(stderr, "Invalid launcher: icon=%s, path=%s\n", icon, path);
+      fprintf(stderr, "invalid launcher section\n");
     }
 
     free(icon);
@@ -1668,9 +1621,9 @@ static void parse_clock_format(struct desktop *desktop,
     desktop->clock_format = CLOCK_FORMAT_MINUTES_24H;
   else if (strcmp(clock_format, "seconds-24h") == 0)
     desktop->clock_format = CLOCK_FORMAT_SECONDS_24H;
-  else if (strcmp(clock_format, "none") == 0) {
+  else if (strcmp(clock_format, "none") == 0)
     desktop->clock_format = CLOCK_FORMAT_NONE;
-  } else
+  else
     desktop->clock_format = DEFAULT_CLOCK_FORMAT;
   free(clock_format);
 }
@@ -1719,7 +1672,7 @@ int main(int argc, char *argv[]) {
   if (desktop.want_panel)
     weston_desktop_shell_set_panel_position(desktop.shell,
                                             desktop.panel_position);
-  wl_list_for_each(output, &desktop.outputs, link) if (!output->panel)
+  wl_list_for_each(output, &desktop.outputs, link) if (!output->background)
       output_init(output, &desktop);
 
   grab_surface_create(&desktop);

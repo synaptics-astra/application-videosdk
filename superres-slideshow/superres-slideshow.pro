@@ -5,10 +5,14 @@ PKGCONFIG += "gstreamer-1.0 gstreamer-app-1.0 glib-2.0 gobject-2.0 syna-player-f
 
 SOURCES += \
         frameprovider.cpp \
-        main.cpp
+        main.cpp \
+        cameramanager.cpp \
+        cameraimageprovider.cpp
 
 RESOURCES += qml.qrc
 
 HEADERS += \
         frameprovider.h \
-        filemanager.h
+        filemanager.h \
+        cameramanager.h \
+        cameraimageprovider.h

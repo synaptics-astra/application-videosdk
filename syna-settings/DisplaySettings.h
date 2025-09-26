@@ -19,7 +19,9 @@ public:
     Q_INVOKABLE void resetToDefault ();
     Q_INVOKABLE void printPanelInfo ();
     Q_INVOKABLE void executeCommand(const QString &command, bool emitOutput = true);
+#ifdef HAVE_WAYLAND
     void modifyWestonConfig(const QString &selectedPanel);
+#endif // HAVE_WAYLAND
     QString extractPanelName(const QString &fileName);
 
 signals:
@@ -29,7 +31,9 @@ signals:
 private:
     QStringList getDtbFiles ();
     QStringList dtboFiles;
+#ifdef HAVE_WAYLAND
     bool removeDpi2Section(QStringList &lines);
+#endif // HAVE_WAYLAND
 };
 
 #endif // DISPLAYSETTINGS_H

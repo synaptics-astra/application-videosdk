@@ -1,6 +1,6 @@
 /*
  * Copyright © 2012 Collabora, Ltd.
- * Copyright © 2024 Synaptics Incorporated
+ * Copyright © 2025 Synaptics Incorporated
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -28,6 +28,8 @@
 #define OS_COMPATIBILITY_H
 
 #include <sys/types.h>
+
+int os_fd_clear_cloexec(int fd);
 
 int os_fd_set_cloexec(int fd);
 

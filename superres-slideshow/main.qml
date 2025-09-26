@@ -12,7 +12,7 @@ ApplicationWindow {
     visible: true
     visibility: "FullScreen"
     title: qsTr("SR Slideshow")
-    color: "#0069d9" // Fallback background, matches header
+    color: "#0069d9"
 
     property var leftImageSource
     property var rightImageSource
@@ -21,10 +21,13 @@ ApplicationWindow {
     property bool isTransitioning: false
     property bool isPlaying: false
     property string userFilesDir: "file:///home/root/demos/user-slideshow-images"
+    property bool isCameraActive: false
+    property bool isCapturing: false
+    property string lastCapturedImagePath: ""
 
     Rectangle {
         anchors.fill: parent
-        color: "#f0f0f0" // Matches title bar shade
+        color: "#f0f0f0"
         z: -2
     }
 
@@ -104,6 +107,14 @@ ApplicationWindow {
                 border.width: 0
                 border.color: "transparent"
 
+                Image {
+                    id: backgroundImage
+                    anchors.fill: parent
+                    source: "qrc:/res/images/sr.png"
+                    fillMode: Image.PreserveAspectFit
+                    visible: !isCameraActive
+                }
+
                 RowLayout {
                     anchors.fill: parent
                     spacing: 0
@@ -125,6 +136,79 @@ ApplicationWindow {
                         sourceSize.height: root.height / 2
                         cache: false
                     }
+
+                    Image {
+                        id: cameraPreview
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        sourceSize.width: 640
+                        sourceSize.height: 480
+                        cache: false
+                        visible: isCameraActive
+                        fillMode: Image.PreserveAspectFit
+                        source: "image://cameraProvider/preview"
+
+                       Connections {
+                            target: cameraManager
+                            function onPreviewUpdated() {
+                                cameraPreview.source = "image://cameraProvider/preview?" + Math.random()
+                            }
+                            function onNoCameraDetected(message) {
+                                noCameraPopup.open()
+                            }
+                            function onPreviewStarted() {
+                                isCameraActive = true
+                                navPanel.visible = false
+                                isTransitioning = false
+                            }
+                        }
+
+                        Button {
+                            id: captureImageButton
+                            width: root.height * 0.05
+                            height: root.height * 0.05
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            anchors.bottom: parent.bottom
+                            anchors.bottomMargin: root.height * 0.02
+                            visible: isCameraActive
+                            enabled: !isCapturing
+                            hoverEnabled: false
+
+                            background: Rectangle {
+                                id: outerBorder
+                                anchors.fill: parent
+                                color: "transparent"
+                                radius: width / 2
+                                border.color: "#ffffff"
+                                border.width: captureImageButton.pressed ? 8 : 6
+
+                                Behavior on border.width { NumberAnimation { duration: 200 } }
+
+                                Rectangle {
+                                    id: innerButton
+                                    width: parent.width
+                                    height: parent.height
+                                    anchors.centerIn: parent
+                                    color: "transparent"
+                                    radius: width / 2
+                                    border.color: "#ffffff"
+                                    border.width: 1
+                                    opacity: isCapturing ? 0.5 : 1.0
+
+                                    scale: captureImageButton.pressed ? 1.05 : 1.0
+                                    Behavior on scale { NumberAnimation { duration: 200 } }
+                                }
+                            }
+
+                            scale: pressed ? 0.9 : 1.0
+                            Behavior on scale { NumberAnimation { duration: 100 } }
+
+                            onClicked: {
+                                isCapturing = true
+                                cameraManager.captureImage()
+                            }
+                        }
+                    }
                 }
 
                 Button {
@@ -133,7 +217,7 @@ ApplicationWindow {
                     height: root.height * 0.04 * 1.6
                     anchors.centerIn: parent
                     z: 1
-                    visible: leftImage.source.toString() === "" && rightImage.source.toString() === ""
+                    visible: leftImage.source.toString() === "" && rightImage.source.toString() === "" && !isCameraActive
                     opacity: visible ? 1.0 : 0.0
                     Behavior on opacity { NumberAnimation { duration: 200 } }
 
@@ -165,11 +249,10 @@ ApplicationWindow {
                             isClosing = false
                             isTransitioning = true
                             isPlaying = true
-                            navPanel.visible = false // Hide nav panel on play
+                            navPanel.visible = false
                             frameProvider.startWithDefaultFiles()
                             updateImages()
                             initialTimer.start()
-                            // mouse.accepted = true
                         } else {
                             console.log("Play blocked: isTransitioning =", isTransitioning)
                             mouse.accepted = true
@@ -177,7 +260,6 @@ ApplicationWindow {
                     }
                 }
 
-                // Toggle Button (Hamburger)
                 Button {
                     id: toggleNavButton
                     width: root.height * 0.025
@@ -221,7 +303,7 @@ ApplicationWindow {
     Rectangle {
         id: navPanel
         width: root.width * 0.11
-        height: root.height * 0.25
+        height: root.height * 0.30
         y: rowLayout.y + playbackRect.y
         color: "#80b3b3b3"
         anchors.left: parent.left
@@ -244,6 +326,7 @@ ApplicationWindow {
                 Layout.leftMargin: root.width * 0.0052
                 implicitHeight: root.height * 0.025
                 hoverEnabled: true
+                enabled: !isCameraActive
                 scale: hovered ? 1.1 : 1.0
                 Behavior on scale { NumberAnimation { duration: 200 } }
                 onClicked: {
@@ -251,7 +334,7 @@ ApplicationWindow {
                         isClosing = false
                         isTransitioning = true
                         isPlaying = true
-                        navPanel.visible = false // Hide nav panel on play
+                        navPanel.visible = false
                         frameProvider.startWithDefaultFiles()
                         updateImages()
                         initialTimer.start()
@@ -268,11 +351,11 @@ ApplicationWindow {
 
                 contentItem: Text {
                     text: "Play Default"
-                    font.pixelSize: root.height * 0.018
+                    font.pixelSize: root.height * 0.017
                     color: parent.hovered ? "#ffffff" : "#000000"
                     horizontalAlignment: Text.AlignLeft
                     verticalAlignment: Text.AlignVCenter
-                    leftPadding: root.width * 0.0026
+                    leftPadding: root.width * 0.005
                     Layout.fillWidth: true
                     Behavior on color { ColorAnimation { duration: 200 } }
                 }
@@ -285,6 +368,7 @@ ApplicationWindow {
                 Layout.leftMargin: root.width * 0.0052
                 implicitHeight: root.height * 0.025
                 hoverEnabled: true
+                enabled: !isCameraActive
                 scale: hovered ? 1.1 : 1.0
                 Behavior on scale { NumberAnimation { duration: 200 } }
                 onClicked: {
@@ -299,7 +383,7 @@ ApplicationWindow {
                     isClosing = false
                     isTransitioning = true
                     isPlaying = true
-                    navPanel.visible = false // Hide nav panel on play
+                    navPanel.visible = false
                     frameProvider.playUserFiles()
                     updateImages()
                     initialTimer.start()
@@ -313,11 +397,11 @@ ApplicationWindow {
 
                 contentItem: Text {
                     text: "Play User Files"
-                    font.pixelSize: root.height * 0.018
+                    font.pixelSize: root.height * 0.017
                     color: parent.hovered ? "#ffffff" : "#000000"
                     horizontalAlignment: Text.AlignLeft
                     verticalAlignment: Text.AlignVCenter
-                    leftPadding: root.width * 0.0026
+                    leftPadding: root.width * 0.005
                     Layout.fillWidth: true
                     Behavior on color { ColorAnimation { duration: 200 } }
                 }
@@ -348,11 +432,11 @@ ApplicationWindow {
 
                 contentItem: Text {
                     text: "Add Files"
-                    font.pixelSize: root.height * 0.018
+                    font.pixelSize: root.height * 0.017
                     color: parent.hovered ? "#ffffff" : "#000000"
                     horizontalAlignment: Text.AlignLeft
                     verticalAlignment: Text.AlignVCenter
-                    leftPadding: root.width * 0.0026
+                    leftPadding: root.width * 0.005
                     Layout.fillWidth: true
                     Behavior on color { ColorAnimation { duration: 200 } }
                 }
@@ -383,11 +467,81 @@ ApplicationWindow {
 
                 contentItem: Text {
                     text: "Remove Files"
-                    font.pixelSize: root.height * 0.018
+                    font.pixelSize: root.height * 0.017
                     color: parent.hovered ? "#ffffff" : "#000000"
                     horizontalAlignment: Text.AlignLeft
                     verticalAlignment: Text.AlignVCenter
-                    leftPadding: root.width * 0.0026
+                    leftPadding: root.width * 0.005
+                    Layout.fillWidth: true
+                    Behavior on color { ColorAnimation { duration: 200 } }
+                }
+            }
+
+            Button {
+                id: launchCameraButton
+                Layout.preferredWidth: root.width * 0.075
+                Layout.preferredHeight: root.height * 0.025
+                Layout.leftMargin: root.width * 0.0052
+                implicitHeight: root.height * 0.025
+                hoverEnabled: true
+                enabled: !isCameraActive
+                scale: hovered ? 1.1 : 1.0
+                Behavior on scale { NumberAnimation { duration: 200 } }
+                onClicked: {
+                    if (!isTransitioning) {
+                        cameraManager.launchCamera()
+                    } else {
+                        console.log("Launch camera blocked: isTransitioning =", isTransitioning)
+                    }
+                }
+
+                background: Rectangle {
+                    color: parent.hovered ? "#0069d9" : "transparent"
+                    radius: 4
+                    Behavior on color { ColorAnimation { duration: 200 } }
+                }
+
+                contentItem: Text {
+                    text: "Launch Camera"
+                    font.pixelSize: root.height * 0.017
+                    color: parent.hovered ? "#ffffff" : "#000000"
+                    horizontalAlignment: Text.AlignLeft
+                    verticalAlignment: Text.AlignVCenter
+                    leftPadding: root.width * 0.005
+                    Layout.fillWidth: true
+                    Behavior on color { ColorAnimation { duration: 200 } }
+                }
+            }
+
+            Button {
+                id: exitCameraButton
+                Layout.preferredWidth: root.width * 0.075
+                Layout.preferredHeight: root.height * 0.025
+                Layout.leftMargin: root.width * 0.0052
+                implicitHeight: root.height * 0.025
+                visible: isCameraActive
+                hoverEnabled: true
+                scale: hovered ? 1.1 : 1.0
+                Behavior on scale { NumberAnimation { duration: 200 } }
+                onClicked: {
+                    cameraManager.stopCamera()
+                    isCameraActive = false
+                    cameraPreview.source = ""
+                }
+
+                background: Rectangle {
+                    color: parent.hovered ? "#0069d9" : "transparent"
+                    radius: 4
+                    Behavior on color { ColorAnimation { duration: 200 } }
+                }
+
+                contentItem: Text {
+                    text: "Exit Camera"
+                    font.pixelSize: root.height * 0.017
+                    color: parent.hovered ? "#ffffff" : "#000000"
+                    horizontalAlignment: Text.AlignLeft
+                    verticalAlignment: Text.AlignVCenter
+                    leftPadding: root.width * 0.005
                     Layout.fillWidth: true
                     Behavior on color { ColorAnimation { duration: 200 } }
                 }
@@ -409,13 +563,7 @@ ApplicationWindow {
                     regularTimer.stop()
                     leftImage.source = ""
                     rightImage.source = ""
-                    if (frameProvider) {
-                        if (frameProvider.clear) {
-                            frameProvider.clear()
-                        } else if (frameProvider.stop) {
-                            frameProvider.stop()
-                        }
-                    }
+                    frameProvider.clear()
                     closeDelayTimer.start()
                 }
 
@@ -427,11 +575,11 @@ ApplicationWindow {
 
                 contentItem: Text {
                     text: "Close Playback"
-                    font.pixelSize: root.height * 0.018
+                    font.pixelSize: root.height * 0.017
                     color: parent.hovered ? "#ffffff" : "#000000"
                     horizontalAlignment: Text.AlignLeft
                     verticalAlignment: Text.AlignVCenter
-                    leftPadding: root.width * 0.0026
+                    leftPadding: root.width * 0.005
                     Layout.fillWidth: true
                     Behavior on color { ColorAnimation { duration: 200 } }
                 }
@@ -456,11 +604,11 @@ ApplicationWindow {
 
                 contentItem: Text {
                     text: "Help"
-                    font.pixelSize: root.height * 0.018
+                    font.pixelSize: root.height * 0.017
                     color: parent.hovered ? "#ffffff" : "#000000"
                     horizontalAlignment: Text.AlignLeft
                     verticalAlignment: Text.AlignVCenter
-                    leftPadding: root.width * 0.0026
+                    leftPadding: root.width * 0.005
                     Layout.fillWidth: true
                     Behavior on color { ColorAnimation { duration: 200 } }
                 }
@@ -468,7 +616,6 @@ ApplicationWindow {
         }
     }
 
-    // Exit Button
     Button {
         id: exitButton
         width: root.width * 0.04
@@ -496,13 +643,7 @@ ApplicationWindow {
         }
 
         onClicked: {
-            if (frameProvider) {
-                if (frameProvider.clear) {
-                    frameProvider.clear()
-                } else if (frameProvider.stop) {
-                    frameProvider.stop()
-                }
-            }
+            frameProvider.clear()
             Qt.quit()
         }
     }
@@ -635,6 +776,20 @@ ApplicationWindow {
         }
     }
 
+    Connections {
+        target: cameraManager
+        function onCaptureResult(success, message) {
+            isCapturing = false
+            if (success) {
+                var prefix = "Image captured to "
+                if (message.startsWith(prefix)) {
+                    lastCapturedImagePath = message.substring(prefix.length)
+                }
+            }
+            capturePopup.open()
+        }
+    }
+
     Popup {
         id: resolutionPopup
         width: root.width * 0.15
@@ -675,8 +830,8 @@ ApplicationWindow {
 
     Popup {
         id: emptyFolderPopup
-        width: root.width * 0.15
-        height: root.height * 0.075
+        width: root.width * 0.17
+        height: root.height * 0.080
         modal: false
         focus: true
         x: playButton.x + playButton.width + 20
@@ -697,6 +852,7 @@ ApplicationWindow {
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 width: parent.width - 20
+                font.pixelSize: root.height * 0.018
             }
         }
 
@@ -709,6 +865,123 @@ ApplicationWindow {
         }
 
         onOpened: emptyFolderAutoCloseTimer.start()
+    }
+
+    Popup {
+        id: noCameraPopup
+        width: root.width * 0.15
+        height: root.height * 0.075
+        modal: false
+        focus: true
+        x: playButton.x + playButton.width + 20
+        y: playButton.y - height / 2
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+
+        Rectangle {
+            anchors.fill: parent
+            color: "#f8d7da"
+            border.color: "#f5c2c7"
+            radius: 8
+
+            Text {
+                anchors.centerIn: parent
+                text: "No camera detected.\nPlease connect a camera."
+                color: "#721c24"
+                wrapMode: Text.WordWrap
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                width: parent.width - 20
+                font.pixelSize: root.height * 0.018
+            }
+        }
+
+        Timer {
+            id: noCameraAutoCloseTimer
+            interval: 3000
+            running: false
+            repeat: false
+            onTriggered: noCameraPopup.close()
+        }
+
+        onOpened: noCameraAutoCloseTimer.start()
+    }
+
+    Popup {
+        id: capturePopup
+        width: root.width * 0.15
+        height: root.height * 0.1
+        modal: false
+        focus: true
+        x: playButton.x + playButton.width + 20
+        y: playButton.y - height / 2
+        closePolicy: Popup.CloseOnEscape
+
+        Rectangle {
+            anchors.fill: parent
+            color: "#f8d7da"
+            border.color: "#f5c2c7"
+            radius: 8
+
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: 10
+
+                Text {
+                    id: capturePopupText
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    Layout.bottomMargin: root.height * 0.03
+                    color: "#721c24"
+                    text: "Image captured."
+                    wrapMode: Text.WordWrap
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    font.pixelSize: root.height * 0.016
+                    maximumLineCount: 3
+                    elide: Text.ElideRight
+                }
+
+                Button {
+                    id: captureOkButton
+                    Layout.preferredWidth: parent.width * 0.4
+                    Layout.preferredHeight: parent.height * 0.3
+                    Layout.alignment: Qt.AlignHCenter | Qt.AlignBottom
+                    text: "OK"
+                    background: Rectangle {
+                        color: parent.hovered ? "#0069d9" : "#0277bd"
+                        radius: 4
+                    }
+                    contentItem: Text {
+                        text: parent.text
+                        color: "#ffffff"
+                        font.pixelSize: root.height * 0.013
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                    hoverEnabled: true
+                    scale: hovered ? 1.1 : 1.0
+                    Behavior on scale { NumberAnimation { duration: 200 } }
+                    onClicked: {
+                        if (!isTransitioning && lastCapturedImagePath !== "") {
+                            cameraManager.stopCamera()
+                            isCameraActive = false
+                            cameraPreview.source = ""
+                            isClosing = false
+                            isTransitioning = true
+                            isPlaying = true
+                            navPanel.visible = false
+                            frameProvider.playSingleFile(lastCapturedImagePath)
+                            updateImages()
+                            initialTimer.start()
+                            capturePopup.close()
+                        } else {
+                            console.log("Cannot start slideshow: isTransitioning =", isTransitioning, "or no captured image")
+                            capturePopup.close()
+                        }
+                    }
+                }
+            }
+        }
     }
 
     Popup {
@@ -762,3 +1035,4 @@ ApplicationWindow {
         }
     }
 }
+

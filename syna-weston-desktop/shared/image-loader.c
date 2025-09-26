@@ -1,7 +1,7 @@
 /*
  * Copyright © 2008-2012 Kristian Høgsberg
  * Copyright © 2012 Intel Corporation
- * Copyright © 2024 Synaptics Incorporated
+ * Copyright © 2025 Synaptics Incorporated
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the

@@ -5,6 +5,7 @@
 #include <QFile>
 #include <QProcess>
 #include <QDebug>
+#include <QTextStream>
 
 ProcessHelper::ProcessHelper(QObject *parent) : QObject(parent)
 {
@@ -39,3 +40,38 @@ void ProcessHelper::executeCommand(const QString &command)
     }
 }
 
+QString ProcessHelper::readFile(const QString &path)
+{
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qDebug() << "Failed to read file:" << path;
+        return "";
+    }
+    QTextStream in(&file);
+    QString contents = in.readAll();
+    file.close();
+    return contents;
+}
+
+bool ProcessHelper::writeFile(const QString &path, const QString &contents)
+{
+    QFile file(path);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        qDebug() << "Failed to write file:" << path;
+        return false;
+    }
+    QTextStream out(&file);
+    out << contents;
+    file.close();
+    return true;
+}
+
+QString ProcessHelper::findFile(const QStringList &paths)
+{
+    for (const QString &path : paths) {
+        if (fileExists(path)) {
+            return path;
+        }
+    }
+    return "";
+}

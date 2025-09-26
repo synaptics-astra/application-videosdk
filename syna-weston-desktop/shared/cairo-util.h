@@ -1,5 +1,6 @@
 /*
  * Copyright © 2008 Kristian Høgsberg
+ * Copyright © 2025 Synaptics Incorporated
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -28,6 +29,9 @@
 
 #include <cairo.h>
 #include <stdint.h>
+#ifdef HAVE_PANGO
+#include <pango/pangocairo.h>
+#endif
 
 #include <wayland-client.h>
 #include <wayland-util.h>
@@ -52,6 +56,9 @@ struct theme {
   int margin;
   int width;
   int titlebar_height;
+#ifdef HAVE_PANGO
+  PangoContext *pango_context;
+#endif
 };
 
 struct theme *theme_create(void);
@@ -139,6 +146,12 @@ int32_t frame_width(struct frame *frame);
 
 int32_t frame_height(struct frame *frame);
 
+void frame_border_sizes(struct frame *frame, int32_t *top, int32_t *bottom,
+                        int32_t *left, int32_t *right);
+
+void frame_decoration_sizes(struct frame *frame, int32_t *top, int32_t *bottom,
+                            int32_t *left, int32_t *right);
+
 void frame_interior(struct frame *frame, int32_t *x, int32_t *y, int32_t *width,
                     int32_t *height);
 void frame_input_rect(struct frame *frame, int32_t *x, int32_t *y,
@@ -195,6 +208,12 @@ void frame_double_touch_down(struct frame *frame, void *data, int32_t id, int x,
 
 void frame_double_touch_up(struct frame *frame, void *data, int32_t id);
 
+/* May set FRAME_STATUS_REPAINT */
+enum theme_location frame_tablet_tool_motion(struct frame *frame, void *pointer,
+                                             int x, int y);
+
 void frame_repaint(struct frame *frame, cairo_t *cr);
+
+void cleanup_after_cairo(void);
 
 #endif

@@ -2,10 +2,11 @@
 // Copyright 2024 Synaptics Incorporated
 
 #include "playbackcontrol.h"
+#include <QProcess>
 
-PlaybackControl::PlaybackControl()
+PlaybackControl::PlaybackControl(string machine) : machine(machine)
 {
-    windowManager = new WindowManager(nullptr, this->machine);
+    windowManager = new WindowManager(nullptr, this->machine, "Synaptics Explorer");
 }
 
 PlaybackControl::~PlaybackControl()
@@ -22,71 +23,53 @@ void PlaybackControl::doPlayback(int index, QString url1, QString url2,
 
 void PlaybackControl::launch(QString path)
 {
-    std::vector<std::string> arguments;
-    arguments.push_back(path.toStdString());
-
-    std::vector<std::string> environmentVariables;
+    QProcess* process = new QProcess();
+    QStringList arguments;
+    QStringList environmentVariables;
 
 #ifdef HAVE_WAYLAND
-    environmentVariables.push_back("XDG_RUNTIME_DIR=/var/run/user/0");
-    environmentVariables.push_back("WAYLAND_DISPLAY=wayland-1");
-    environmentVariables.push_back("QT_QPA_PLATFORM=wayland");
+    environmentVariables << "XDG_RUNTIME_DIR=/var/run/user/0";
+    environmentVariables << "WAYLAND_DISPLAY=wayland-1";
+    environmentVariables << "QT_QPA_PLATFORM=wayland";
 #endif
 
 #ifdef HAVE_X11
-    environmentVariables.push_back("DISPLAY=:0");
-    environmentVariables.push_back("QT_QPA_PLATFORM=xcb");
-    environmentVariables.push_back("GST_GL_API=gles2");
+    environmentVariables << "DISPLAY=:0";
+    environmentVariables << "QT_QPA_PLATFORM=xcb";
+    environmentVariables << "GST_GL_API=gles2";
 #endif
 
-    std::string scriptpath = path.toStdString();
-    std::vector<char*> args;
-
-    for (const auto& arg : arguments) {
-        args.push_back(const_cast<char*>(arg.c_str()));
-    }
+    process->setProgram(path);
+    arguments << path;
 
     if (path == "/usr/bin/syna-video-player") {
-        args.push_back("--mach");
-        args.push_back(const_cast<char*>(machine.c_str()));
-        args.push_back("--mode");
+        arguments << "--mach" << QString::fromStdString(machine);
+        arguments << "--mode";
         if (machine == "sl1620") {
-            args.push_back("ffmpeg");
+            arguments << "ffmpeg";
         } else {
-            args.push_back("v4l2");
+            arguments << "v4l2";
         }
     } else if (path == "/usr/bin/syna-ai-player"
             || path == "/usr/bin/syna-capability-demo") {
-        args.push_back("--mach");
-        args.push_back(const_cast<char*>(machine.c_str()));
-    }
-    args.push_back(nullptr);
-
-    std::vector<char*> envs;
-    for (const auto& envVar : environmentVariables) {
-        envs.push_back(const_cast<char*>(envVar.c_str()));
-    }
-    envs.push_back(nullptr);
-
-    char* const* argv = args.data();
-    char* const* env = envs.data();
-
-    pid_t pid;
-
-    pid = fork();
-    if (pid < 0) {
-        fprintf(stderr, "fork failed: %s\n", strerror(errno));
-        return;
+        arguments << "--mach" << QString::fromStdString(machine);
     }
 
-    if (pid)  {
-        return;
-    }
-    if (setsid() == -1)
-        exit(EXIT_FAILURE);
+    process->setArguments(arguments);
 
-    if (execve(scriptpath.c_str(), argv, env) < 0) {
-        fprintf(stderr, "execl '%s' failed\n", strerror(errno));
-        exit(1);
+    QProcessEnvironment env;
+    for (const QString& envVar : environmentVariables) {
+        QStringList envPair = envVar.split("=");
+        if (envPair.size() == 2) {
+            env.insert(envPair[0], envPair[1]);
+        }
     }
+    process->setProcessEnvironment(env);
+
+    bool started = process->startDetached();
+    if (!started) {
+        qWarning() << "Failed to start process:" << process->errorString();
+    }
+
+    delete process;
 }

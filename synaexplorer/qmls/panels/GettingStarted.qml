@@ -12,7 +12,16 @@ Rectangle {
     property real rootWidth: Window.window ? Window.window.width : Resource.width
     property real rootHeight: Window.window ? Window.window.height : Resource.height
 
-        Popup {
+    Component.onCompleted: {
+        synaDrmFilePath = processHelper.findFile(["/etc/modprobe.d/syna_drm.conf", "/usr/lib/modprobe.d/syna_drm.conf"])
+        if (!synaDrmFilePath) {
+            console.log("Error: syna_drm.conf not found in either location")
+        }
+    }
+
+    property string synaDrmFilePath: ""
+
+    Popup {
         id: resolutionSwitchBackPopup
         modal: true
         focus: true
@@ -32,7 +41,7 @@ Rectangle {
             anchors.margins: rootWidth / 120
 
             Text {
-                text: "To run this application, we need to switch to 2k UI. Press OK to continue."
+                text: "To run this application, we need to switch to 2K UI. Press OK to continue."
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true
                 horizontalAlignment: Text.AlignHCenter
@@ -53,8 +62,22 @@ Rectangle {
                         font.pixelSize: root.rootWidth / 110
                     }
                     onClicked: {
-                        var command = "mv /home/syna_drm.conf /etc/modprobe.d/syna_drm.conf && sync && reboot";
-                        processHelper.executeCommand(command);
+                        if (synaDrmFilePath) {
+                            var contents = processHelper.readFile(synaDrmFilePath)
+                            var updatedContents = contents
+                            if (contents.includes("hdmi_preferred_mode=")) {
+                                updatedContents = contents.replace("hdmi_preferred_mode=3840x2160", "hdmi_preferred_mode=1920x1080")
+                            } else {
+                                updatedContents = contents + (contents.endsWith("\n") ? "" : "\n") + "hdmi_preferred_mode=1920x1080"
+                            }
+                            if (processHelper.writeFile(synaDrmFilePath, updatedContents)) {
+                                processHelper.executeCommand("sync && reboot")
+                            } else {
+                                console.log("Error: Failed to write to syna_drm.conf")
+                            }
+                        } else {
+                            console.log("Error: Cannot switch to 2K, syna_drm.conf not found")
+                        }
                         resolutionSwitchBackPopup.close()
                     }
                 }
@@ -94,6 +117,16 @@ Rectangle {
             MouseArea{
                 anchors.fill: parent
                 onClicked: {
+                    var is2K = false
+                    if (synaDrmFilePath) {
+                        var contents = processHelper.readFile(synaDrmFilePath)
+                        if (contents.includes("hdmi_preferred_mode=1920x1080")) {
+                            is2K = true
+                        }
+                    } else {
+                        console.log("Error: syna_drm.conf not found, assuming 4K")
+                    }
+
                     var hwdevice;
                     var decoder;
                     var machine = playbackControl.getMachine();
@@ -109,11 +142,10 @@ Rectangle {
                         hwdevice = "hw:0,7";
                         decoder = "v4l2h264dec";
                     }
-                    if (!processHelper.fileExists("/etc/modprobe.d/syna_drm.conf")) {
-                        resolutionSwitchBackPopup.open()
-                    } else {
+                    if (is2K) {
                         playbackControl.doPlayback(1, "filesrc location=/home/root/demos/videos/mp4/astra_intro.mp4 ! qtdemux name=demux demux.audio_0 ! queue ! aacparse ! fdkaacdec ! audioconvert ! alsasink device=" + hwdevice + " demux.video_0 ! queue ! h264parse ! " + decoder + " ! placeholdersink", "", "", "")
-
+                    } else {
+                        resolutionSwitchBackPopup.open()
                     }
                 }
             }

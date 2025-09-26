@@ -12,12 +12,8 @@ Rectangle {
 
     property var rtspUrlsModel: null
     Component.onCompleted: {
-        var rtspUrls = settingsManager.getRtspUrls()
-        if (rtspUrls === null || rtspUrls.length === 0) {
-            rtspUrlsModel = ["", "", "", ""]
-        } else {
-            rtspUrlsModel = rtspUrls
-        }
+        var rtspData = settingsManager.getData(2)
+        rtspUrlsModel = rtspData["rtspUrls"] || ["", "", "", ""]
     }
 
     Popup {
@@ -104,8 +100,8 @@ Rectangle {
                     console.error("Row not found")
                 }
             }
-            settingsManager.setRtspUrls(urls)
-            settingsManager.saveConfig("/home/root/demos/configs/synaexplorer_config.txt")
+            var rtspData = { "rtspUrls": urls }
+            settingsManager.setData(2, rtspData)
         }
     }
 

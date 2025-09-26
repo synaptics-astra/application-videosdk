@@ -17,6 +17,7 @@ ApplicationWindow {
     property var cmdsModel: null
     property var rtspUrlsModel: null
     property string url1: ""
+    property int settingsIdRtspUrls: 2 // Corrected to 1 based on SettingsManager.cpp enum
 
     Component.onCompleted: {
         var cmdComponent
@@ -27,11 +28,13 @@ ApplicationWindow {
             cmdComponent = Qt.createComponent("file:///home/root/demos/qmls/v4l2commands.qml")
         }
         cmdsModel = cmdComponent.createObject()
-        var rtspUrls = settingsManager.getRtspUrls()
-        if (rtspUrls === null || rtspUrls.length === 0) {
+
+        try {
+            var rtspData = settingsManager.getData(settingsIdRtspUrls)
+            rtspUrlsModel = rtspData && rtspData["rtspUrls"] ? rtspData["rtspUrls"] : [""]
+        } catch (error) {
+            console.error("Error in settingsManager.getData:", error.message)
             rtspUrlsModel = [""]
-        } else {
-            rtspUrlsModel = rtspUrls
         }
     }
 
@@ -82,7 +85,7 @@ ApplicationWindow {
                     }
 
                     TextField {
-                        text: rtspUrlsModel[0]
+                        text: rtspUrlsModel && rtspUrlsModel.length > 0 ? rtspUrlsModel[0] : ""
                         placeholderText: "Enter URL"
                         background: Rectangle {
                             color: "white"
@@ -124,8 +127,15 @@ ApplicationWindow {
             } else {
                 console.error("Row not found")
             }
-            settingsManager.setRtspUrls(urls)
-            settingsManager.saveConfig("/home/root/demos/configs/synaexplorer_config.txt")
+            var rtspData = { "rtspUrls": urls }
+            try {
+                var success = settingsManager.setData(settingsIdRtspUrls, rtspData)
+                if (!success) {
+                    console.error("settingsManager.setData failed")
+                }
+            } catch (error) {
+                console.error("Error in settingsManager.setData:", error.message)
+            }
         }
     }
 

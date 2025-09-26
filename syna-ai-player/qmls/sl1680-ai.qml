@@ -67,17 +67,23 @@ ApplicationWindow {
 
     Component {
         id: superres
-        Superres {}
+        Superres {
+            visible: !isX11
+        }
     }
 
     Component {
         id: srslideshow
-        SRSlideshow {}
+        SRSlideshow {
+            visible: !isX11
+        }
     }
 
     Component {
         id: facerecognition
-        FaceRecognition {}
+        FaceRecognition {
+            visible: !isX11
+        }
     }
 
     function switchPage(index) {
@@ -98,13 +104,13 @@ ApplicationWindow {
             sidemenu.sourceComponent = aIEncoding
             break;
         case 5:
-            sidemenu.sourceComponent = superres
+            sidemenu.sourceComponent = isX11 ? null : superres
             break;
         case 6:
-            sidemenu.sourceComponent = srslideshow
+            sidemenu.sourceComponent = isX11 ? null : srslideshow
             break;
         case 7:
-            sidemenu.sourceComponent = facerecognition
+            sidemenu.sourceComponent = isX11 ? null : facerecognition
             break;
         }
     }
@@ -144,7 +150,17 @@ ApplicationWindow {
                 anchors.fill: parent
                 highlightFollowsCurrentItem: true
                 spacing: Resource.width/36
-                model: ["Object Detection", "Pose Estimation", "Face Detection", "Multi-AI", "AI + Encoding", "Super Resolution", "SR Slideshow", "Face Recognition"]
+                function updateModel() {
+                    if (!isX11) {
+                        var baseModel = ["Object Detection", "Pose Estimation", "Face Detection", "Multi-AI", "AI + Encoding", "Super Resolution", "SR Slideshow", "Face Recognition"]
+                    }
+                    else {
+                        var baseModel = ["Object Detection", "Pose Estimation", "Face Detection", "Multi-AI", "AI + Encoding"]
+                    }
+                    return baseModel;
+                }
+
+                model: updateModel()
                 delegate: ListItem {
                     spacing: Resource.width/36
                     title: modelData

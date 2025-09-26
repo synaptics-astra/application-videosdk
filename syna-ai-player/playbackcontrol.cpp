@@ -3,9 +3,9 @@
 
 #include "playbackcontrol.h"
 
-PlaybackControl::PlaybackControl()
+PlaybackControl::PlaybackControl(string machine) : machine(machine)
 {
-    windowManager = new WindowManager(nullptr, this->machine);
+    windowManager = new WindowManager(nullptr, this->machine, "Synaptics AI Player");
 }
 
 PlaybackControl::~PlaybackControl()

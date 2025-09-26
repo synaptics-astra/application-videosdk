@@ -1,7 +1,7 @@
 /*
  * Copyright © 2008 Kristian Høgsberg
  * Copyright © 2012 Intel Corporation
- * Copyright © 2024 Synaptics Incorporated
+ * Copyright © 2025 Synaptics Incorporated
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -36,9 +36,11 @@
 
 #include "image-loader.h"
 #include "shared/helpers.h"
+#include "shared/xalloc.h"
 #include <libweston/config-parser.h>
 
 #ifdef HAVE_PANGO
+#include <fontconfig/fontconfig.h>
 #include <pango/pangocairo.h>
 #endif
 
@@ -259,7 +261,6 @@ void tile_source(cairo_t *cr, cairo_surface_t *surface, int x, int y, int width,
   pattern = cairo_pattern_create_for_surface(surface);
   cairo_pattern_set_filter(pattern, CAIRO_FILTER_NEAREST);
   cairo_set_source(cr, pattern);
-  cairo_pattern_destroy(pattern);
 
   for (i = 0; i < 4; i++) {
     fx = i & 1;
@@ -308,6 +309,9 @@ void tile_source(cairo_t *cr, cairo_surface_t *surface, int x, int y, int width,
   cairo_rectangle(cr, x + width - margin, y + top_margin, margin,
                   height - margin - top_margin);
   cairo_fill(cr);
+
+  cairo_pattern_destroy(pattern);
+  cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
 }
 
 void rounded_rect(cairo_t *cr, int x0, int y0, int x1, int y1, int radius) {
@@ -385,9 +389,7 @@ struct theme *theme_create(void) {
   struct theme *t;
   cairo_t *cr;
 
-  t = malloc(sizeof *t);
-  if (t == NULL)
-    return NULL;
+  t = xzalloc(sizeof *t);
 
   t->margin = 32;
   t->width = 6;
@@ -443,6 +445,10 @@ err_shadow:
 }
 
 void theme_destroy(struct theme *t) {
+#ifdef HAVE_PANGO
+  if (t->pango_context)
+    g_object_unref(t->pango_context);
+#endif
   cairo_surface_destroy(t->active_frame);
   cairo_surface_destroy(t->inactive_frame);
   cairo_surface_destroy(t->shadow);
@@ -450,17 +456,28 @@ void theme_destroy(struct theme *t) {
 }
 
 #ifdef HAVE_PANGO
-static PangoLayout *create_layout(cairo_t *cr, const char *title) {
+static PangoLayout *create_layout(struct theme *t, cairo_t *cr,
+                                  const char *title) {
   PangoLayout *layout;
   PangoFontDescription *desc;
 
-  layout = pango_cairo_create_layout(cr);
+  if (!t->pango_context) {
+    PangoFontMap *fontmap;
+
+    fontmap = pango_cairo_font_map_new();
+    t->pango_context = pango_font_map_create_context(fontmap);
+    g_object_unref(fontmap);
+  }
+
+  pango_cairo_update_context(cr, t->pango_context);
+  layout = pango_layout_new(t->pango_context);
   if (title) {
     pango_layout_set_text(layout, title, -1);
     desc = pango_font_description_from_string("sans-serif Bold 10");
     pango_layout_set_font_description(layout, desc);
     pango_font_description_free(desc);
   }
+
   pango_layout_set_ellipsize(layout, PANGO_ELLIPSIZE_END);
   pango_layout_set_alignment(layout, PANGO_ALIGN_LEFT);
   pango_layout_set_auto_dir(layout, FALSE);
@@ -519,7 +536,7 @@ void theme_render_frame(struct theme *t, cairo_t *cr, int width, int height,
     PangoLayout *title_layout;
     PangoRectangle logical;
 
-    title_layout = create_layout(cr, title);
+    title_layout = create_layout(t, cr, title);
 
     pango_layout_get_pixel_extents(title_layout, NULL, &logical);
     text_width = MIN(title_rect->width, logical.width);
@@ -559,6 +576,10 @@ void theme_render_frame(struct theme *t, cairo_t *cr, int width, int height,
       cairo_set_source_rgb(cr, 0.4, 0.4, 0.4);
       SHOW_TEXT(cr);
     }
+
+#ifdef HAVE_PANGO
+    g_object_unref(title_layout);
+#endif
   }
 }
 
@@ -611,4 +632,22 @@ enum theme_location theme_get_location(struct theme *t, int x, int y, int width,
     location = THEME_LOCATION_CLIENT_AREA;
 
   return location;
+}
+
+/** Cleanup static Cairo/Pango data
+ *
+ * Using Cairo, Pango, PangoCairo, and fontconfig, ends up leaving a trail of
+ * thread-cached data behind us. Clean up what we can.
+ */
+void cleanup_after_cairo(void) {
+  /* some clients, particular weston-editor, still creates indirectly a
+   * new font map; this makes sure we untie that up and avoid an assert
+   * from cairo */
+#ifdef HAVE_PANGO
+  pango_cairo_font_map_set_default(NULL);
+#endif
+  cairo_debug_reset_static_data();
+#ifdef HAVE_PANGO
+  FcFini();
+#endif
 }

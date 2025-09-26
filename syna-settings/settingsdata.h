@@ -23,7 +23,15 @@ struct SampleModuleData {
 };
 #endif
 typedef struct {
-    char selectedPanel[256]; //fixed size to match storage format
+    char selectedPanel[256];
 } DisplaySettingsData;
+
+typedef struct {
+    char formatPriorities[4][16];
+} UsbFormatPrioritiesData;
+
+typedef struct {
+    char rtspUrls[4][256];
+} RtspSettingsData;
 
 #endif // SETTINGS_DATA_H

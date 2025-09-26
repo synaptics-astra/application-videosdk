@@ -1,6 +1,6 @@
 /*
  * Copyright © 2015 Collabora, Ltd.
- * Copyright © 2024 Synaptics Incorporated
+ * Copyright © 2025 Synaptics Incorporated
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -34,7 +34,7 @@
 
 #include "file-util.h"
 
-#define DATADIR "/usr/share"
+#define DATADIR "/usr/share/"
 
 static int current_time_str(char *str, size_t len, const char *fmt) {
   time_t t;

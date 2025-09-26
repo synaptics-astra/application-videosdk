@@ -6,7 +6,9 @@
 #include <QFileInfo>
 #include <QProcess>
 
+#ifdef HAVE_WAYLAND
 #define WESTON_CONFIG_PATH "/etc/xdg/weston/weston.ini"
+#endif
 
 DisplaySettings::DisplaySettings(QObject *parent) : QObject(parent) {}
 
@@ -64,12 +66,15 @@ void DisplaySettings::savePanel(const QString &panelFileName) {
 //apply panel to u-boot
     QString command = QString("fw_setenv dtbo %1").arg(dtboFile);
     executeCommand(command);
+#ifdef HAVE_WAYLAND
     modifyWestonConfig(panelFileName);
+#endif // HAVE_WAYLAND
     emit statusUpdated(QString("'%1' saved and applied.").arg(panelFileName));
 }
 
 //Reset to default settings (removes stored settings and resets U-boot panel)
 void DisplaySettings::resetToDefault() {
+#ifdef HAVE_WAYLAND
     QFile configFile(WESTON_CONFIG_PATH);
 
     if (!configFile.exists()) {
@@ -109,6 +114,7 @@ void DisplaySettings::resetToDefault() {
     }
 
     configFile.close();
+#endif // HAVE_WAYLAND
     executeCommand("fw_setenv dtbo");
     emit statusUpdated("Reset to default configuration. Reboot required.");
 }
@@ -189,7 +195,7 @@ void DisplaySettings::executeCommand(const QString &command, bool emitOutput) {
         }
     }
 }
-
+#ifdef HAVE_WAYLAND
 bool DisplaySettings::removeDpi2Section(QStringList &lines) {
     int dpi2StartIndex = -1;
     int dpi2EndIndex = -1;
@@ -299,7 +305,7 @@ void DisplaySettings::modifyWestonConfig(const QString &selectedPanel) {
             }
         }
 
-        if (insideOutputSection && trimmedLine.startsWith("transform=rotate-270")) {
+        if (insideOutputSection && trimmedLine.startsWith("transform=rotate-90")) {
             transformLineFound = true;
             transformLineIndex = i;
         }
@@ -317,7 +323,7 @@ void DisplaySettings::modifyWestonConfig(const QString &selectedPanel) {
             }
             lines.append("[output]");
             lines.append("name=DPI-2");
-            lines.append("transform=rotate-270");
+            lines.append("transform=rotate-90");
             lines.append("# Added by DisplaySettings");
         }
     }
@@ -327,7 +333,7 @@ void DisplaySettings::modifyWestonConfig(const QString &selectedPanel) {
     }
     // Case 3: If profile is NOT sl1620 but panel is Haier, add transform to existing [output]
     else if (!isSL1620 && isHaierPanel && !transformLineFound && outputSectionIndex != -1) {
-        lines.insert(outputSectionIndex + 1, "transform=rotate-270");
+        lines.insert(outputSectionIndex + 1, "transform=rotate-90");
     }
     // Case 4: If profile is NOT sl1620 and panel is NOT Haier, remove transform if found
     else if (!isSL1620 && !isHaierPanel && transformLineFound) {
@@ -348,3 +354,4 @@ void DisplaySettings::modifyWestonConfig(const QString &selectedPanel) {
 
     emit statusUpdated("Weston configuration updated successfully.");
 }
+#endif

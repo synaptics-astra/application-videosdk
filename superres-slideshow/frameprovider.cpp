@@ -13,7 +13,6 @@ FrameProvider::FrameProvider(QObject *parent) : QObject(parent), QQuickImageProv
 
 FrameProvider::~FrameProvider()
 {
-    gst_deinit();
     delete[] leftData;
     delete[] rightData;
 }
@@ -87,8 +86,6 @@ void FrameProvider::addUserFiles(const QVariantList& fileUrls)
 
         if (filePath.startsWith(userFilesDir)  && filePath.endsWith(".png") && !files.contains(filePath)) {
             files.append(filePath);
-        } else {
-            qDebug() << "Skipping file not in" << userFilesDir << "or invalid:" << filePath;
         }
     }
 }
@@ -103,9 +100,6 @@ void FrameProvider::removeUserFiles(const QVariantList& fileUrls)
 
          if(filePath.startsWith(userFilesDir) && files.contains(filePath)) {
             files.removeAll(filePath);
-            qDebug() << "Removed" << filePath << "from files list";
-         } else {
-            qDebug() << "Skipping file not it files list or invalid:" << filePath;
          }
     }
 }
@@ -137,6 +131,39 @@ void FrameProvider::playUserFiles()
     } else {
        qDebug() << "No .png files found in" << userFilesDir;
     }
+}
+
+void FrameProvider::playSingleFile(const QString &filePath)
+{
+    files.clear();
+    if (filePath.endsWith(".png") && QFile::exists(filePath)) {
+        files.append(filePath);
+    } else {
+        qDebug() << "Invalid or non-existent file:" << filePath;
+        return;
+    }
+    currentIndex = 0;
+    createPipeline();
+    emit imageChanged();
+}
+
+void FrameProvider::clear()
+{
+    if (pipeline && GST_IS_ELEMENT(pipeline)) {
+        gst_element_set_state(pipeline, GST_STATE_NULL);
+        gst_object_unref(pipeline);
+        pipeline = nullptr;
+    }
+    if (appsink_1 && GST_IS_OBJECT(appsink_1)) {
+        gst_object_unref(appsink_1);
+        appsink_1 = nullptr;
+    }
+    if (appsink_2 && GST_IS_OBJECT(appsink_2)) {
+        gst_object_unref(appsink_2);
+        appsink_2 = nullptr;
+    }
+    files.clear();
+    currentIndex = 0;
 }
 
 void FrameProvider::createPipeline()

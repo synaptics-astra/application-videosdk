@@ -1,7 +1,6 @@
 cc = meson.get_compiler('c')
 
-libweston_dep = dependency('libweston-10')
-libweston_desk_dep = dependency('libweston-desktop-10')
+libweston_dep = dependency('libweston-13')
 wl_client_dep = dependency('wayland-client')
 wl_server_dep = dependency('wayland-server')
 wl_cursor_dep = dependency('wayland-cursor')
@@ -21,11 +20,11 @@ exe_shell_desktop = executable(
   'desktop-shell.c',
   'window.c',
   '../shared/cairo-util.c',
-  '../shared/xalloc.c',
   '../shared/file-util.c',
   '../shared/frame.c',
   '../shared/os-compatibility.c',
   '../shared/image-loader.c',
+  '../shared/process-util.c',
   weston_desktop_shell_client_protocol_h,
   weston_desktop_shell_protocol_c,
   xdg_shell_client_protocol_h,
@@ -39,7 +38,7 @@ exe_shell_desktop = executable(
   viewporter_client_protocol_h,
   viewporter_protocol_c,
   include_directories: inc_dir_syna_desktop,
-  dependencies: [ libweston_dep, libweston_desk_dep, weston_dep, dep_pixman ,
+  dependencies: [ libweston_dep, weston_dep, dep_pixman ,
     dep_cairo, dep_libpng, wl_client_dep, dep_xkbcommon, wl_cursor_dep,
     dep_libm, dep_libutil ],
   install: true
