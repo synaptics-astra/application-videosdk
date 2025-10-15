@@ -3,7 +3,7 @@ QT += gui-private widgets
 
 CONFIG += c++17
 CONFIG += link_pkgconfig
-PKGCONFIG += "gstreamer-1.0 gstreamer-wayland-1.0 libudev syna-player-framework wayland-client"
+PKGCONFIG += "gstreamer-1.0 gstreamer-wayland-1.0 libudev syna-player-framework"
 
 SOURCES += \
     main.cpp \

@@ -79,32 +79,47 @@ ApplicationWindow {
     }
 
     function switchPage (index) {
-        switch (index) {
-        case 0:
-            sidemenu.sourceComponent = home
-            break
+        if (machine === "sl2619") {
+            switch (index) {
+            case 0:
+                sidemenu.sourceComponent = home
+                break
+            case 1:
+                sidemenu.sourceComponent = usbformatpriorities
+                break
+            case 2:
+                sidemenu.sourceComponent = rtspConfigComponent
+                break
+            }
+        }
+        else {
+            switch (index) {
+            case 0:
+                sidemenu.sourceComponent = home
+                break
 
-        case 1:
-            sidemenu.sourceComponent = panelSelection
-            break
-        /* Add new module before sample module*/
+            case 1:
+                sidemenu.sourceComponent = panelSelection
+                break
+            /* Add new module before sample module*/
 
-        case 1:
-            sidemenu.sourceComponent = sampleModule
-            break
-        /* Adding new module */
-        case 2:
-            sidemenu.sourceComponent = wifi
-            break
-        case 3:
-            sidemenu.sourceComponent = bluetooth
-            break
-        case 4:
-            sidemenu.sourceComponent = usbformatpriorities
-            break
-        case 5:
-            sidemenu.sourceComponent = rtspConfigComponent
-            break
+            case 1:
+                sidemenu.sourceComponent = sampleModule
+                break
+            /* Adding new module */
+            case 2:
+                sidemenu.sourceComponent = wifi
+                break
+            case 3:
+                sidemenu.sourceComponent = bluetooth
+                break
+            case 4:
+                sidemenu.sourceComponent = usbformatpriorities
+                break
+            case 5:
+                sidemenu.sourceComponent = rtspConfigComponent
+                break
+            }
         }
     }
 
@@ -146,11 +161,14 @@ ApplicationWindow {
                 highlight: null
                 spacing: Resource.width / 25
                 function updateModel() {
-                    var baseModel = ["Home", "Display", "Wi-Fi", "Bluetooth", "USB Camera", "RTSP Camera"]
-                    /* Adding new module */
-                    if (isSampleModuleEnabled)
-                        baseModel.push("Sample Module");
-
+                    if (machine === "sl2619") {
+                        var baseModel = ["Home", "USB Camera", "RTSP Camera"];
+                    } else {
+                        var baseModel = ["Home", "Display", "Wi-Fi", "Bluetooth", "USB Camera", "RTSP Camera"]
+                        /* Adding new module */
+                        if (isSampleModuleEnabled)
+                            baseModel.push("Sample Module");
+                    }
 
                     return baseModel;
                 }

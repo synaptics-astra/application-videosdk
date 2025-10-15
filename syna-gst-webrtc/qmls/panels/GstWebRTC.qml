@@ -22,6 +22,7 @@ Rectangle {
     property string cameraPath: ""
     property url currentFolder: StandardPaths.writableLocation(StandardPaths.HomeLocation)
     property bool isMachine1620: webrtcManager ? webrtcManager.getMachine().includes("1620") : false
+    property bool isMachine2619: webrtcManager ? webrtcManager.getMachine().includes("2619") : false
     property bool isFaceDetectionError: false
 
     Component.onCompleted: {
@@ -484,7 +485,7 @@ Rectangle {
                 id: sourceCombo
                 Layout.preferredWidth: Resource.width / 4
                 Layout.preferredHeight: 50
-                model: ["Camera", "FileSrc", "AI Demos"]
+                model: root.isMachine2619 ? ["Camera", "FileSrc"] : ["Camera", "FileSrc", "AI Demos"]
                 font.pixelSize: 18
                 currentIndex: 0
 

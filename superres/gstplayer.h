@@ -18,7 +18,6 @@
 #include <gst/video/videooverlay.h>
 #include <qpa/qplatformnativeinterface.h>
 #include <gst/wayland/wayland.h>
-#include <wayland-client.h>
 
 class Command;
 class GstPlayer : public QWidget {

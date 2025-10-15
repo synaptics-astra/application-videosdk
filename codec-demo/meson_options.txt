@@ -1,0 +1,5 @@
+option('curr_mach', type : 'string', value : 'unknown',
+       description : 'Current hardware platform')
+option('v4l2_enable', type : 'boolean', value : true,
+       description : 'Enable V4L2 support')
+

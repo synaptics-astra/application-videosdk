@@ -221,9 +221,9 @@ void WebrtcManager::streamFileSrc(const QString &filePath)
     fileSrc->setProcessEnvironment(env);
 
     QStringList args;
-    bool isMachine1620 = getMachine().contains("1620");
-    QString videoResolution = isMachine1620 ? "width=426,height=240" : "width=640,height=360";
-    QString videoDecoder = isMachine1620 ? "avdec_h264" : "v4l2h264dec";
+    bool isMachine1620Or2619 = getMachine().contains("1620") || getMachine().contains("2619");
+    QString videoResolution = isMachine1620Or2619 ? "width=426,height=240" : "width=640,height=360";
+    QString videoDecoder = isMachine1620Or2619 ? "avdec_h264" : "v4l2h264dec";
 
     QProcess discoverer;
     discoverer.start("gst-discoverer-1.0", QStringList() << ("file://" + cleanFilePath));

@@ -5,45 +5,13 @@
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QDebug>
+#include <QProcess>
 
 #include "playbackcontrol.h"
 #include "settingsmanager.h"
 #include "processhelper.h"
 
 using namespace std;
-
-static void displayUsage()
-{
-    qDebug() << "\nUsage: synaexplorer [options]\n"
-        "\n"
-        "Example: synaexplorer --mach sl1680\n"
-        "\n"
-        "Options:\n"
-        "         --mach (-M)    Your machine name [sl1620/sl1640/sl1680]\n"
-        "\n"
-        "Note: Push the video files to /home/root/demos/videos/ directory";
-}
-
-static void handleCommandLineOptions(QStringList args, string &mach)
-{
-    if (args.count() > 1) {
-        for (int i = 1; i < args.count(); i++) {
-            QString arg = args.at(i);
-            if (arg == "-M" || arg == "--mach") {
-                if (i + 1 < args.count() && args.at(i + 1) == "sl1620") {
-                    mach = SL1620_ASTRA_MACHINE;
-                } else if (i + 1 < args.count() && args.at(i + 1) == "sl1640") {
-                    mach = SL1640_ASTRA_MACHINE;
-                } else if (i + 1 < args.count() && args.at(i + 1) == "sl1680") {
-                    mach = SL1680_ASTRA_MACHINE;
-                }
-                i++;
-            } else if (arg == "-h" || arg == "--help") {
-                displayUsage();
-            }
-        }
-    }
-}
 
 int main(int argc, char *argv[])
 {
@@ -55,14 +23,19 @@ int main(int argc, char *argv[])
     app.setOrganizationDomain("synaptics.com");
 
     string machine;
-    QStringList args = app.arguments();
-    handleCommandLineOptions(args, machine);
-    PlaybackControl playbackControl(machine);
-
-    if (playbackControl.machine.empty()) {
-        displayUsage();
-        return 1;
+    QProcess process;
+    process.start("uname", QStringList() << "-n");
+    process.waitForFinished(-1);
+    if (process.exitCode() == 0) {
+        QString hwrevision = process.readAllStandardOutput().trimmed();
+        QStringList parts = hwrevision.split(" ", Qt::SkipEmptyParts);
+        if (!parts.isEmpty()) {
+            QString machName = parts.first();
+            machine = machName.toStdString();
+        }
     }
+
+    PlaybackControl playbackControl(machine);
 
     QQmlApplicationEngine engine;
 
@@ -83,6 +56,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("processHelper", &processHelper);
 
     qmlRegisterSingletonType(QStringLiteral("qrc:/qmls/res.qml"), "Resource", 1, 0, "Resource");
+    qmlRegisterSingletonType(QStringLiteral("qrc:/qmls/pageconfig.qml"), "PageConfig", 1, 0, "PageConfig");
     const QUrl url(QStringLiteral("qrc:/qmls/main.qml"));
 
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,

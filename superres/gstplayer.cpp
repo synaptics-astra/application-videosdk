@@ -61,14 +61,7 @@ void GstPlayer::startPlayback()
     if (ret == GST_STATE_CHANGE_FAILURE) {
         qCritical() << "Failed to set pipeline to PLAYING state";
         cleanupPipeline();
-        return;
     }
-
-    QTimer::singleShot(100, [this]() {
-        if (sink && GST_IS_VIDEO_OVERLAY(sink)) {
-            gst_video_overlay_set_render_rectangle(sink, x(), y(), width(), height());
-        }
-    });
 }
 
 void GstPlayer::stopPlayback()
@@ -106,7 +99,6 @@ void GstPlayer::resizeEvent(QResizeEvent* event)
     QWidget::resizeEvent(event);
     if (sink && GST_IS_VIDEO_OVERLAY(sink)) {
         gst_video_overlay_set_render_rectangle(sink, x(), y(), width(), height());
-        wl_surface_commit(surface);
     }
 }
 
@@ -125,7 +117,6 @@ GstBusSyncReply GstPlayer::gstBusCallback(GstBus* bus, GstMessage* message, gpoi
         if (self->surface) {
             gst_video_overlay_set_window_handle(GST_VIDEO_OVERLAY(GST_MESSAGE_SRC(message)), (guintptr)self->surface);
             gst_video_overlay_set_render_rectangle(GST_VIDEO_OVERLAY(GST_MESSAGE_SRC(message)), self->x(), self->y(), self->width(), self->height());
-            wl_surface_commit(self->surface);
         }
         goto drop;
     }

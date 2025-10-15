@@ -5,48 +5,12 @@
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QDebug>
+#include <QProcess>
 #include "settingscontrol.h"
 #include "DisplaySettings.h"
 #include "wifiapp.h"
 #include "bluetoothapp.h"
 #include "rtspconfig.h"
-
-using namespace std;
-string machine;
-
-#define SL1620_ASTRA_MACHINE "sl1620"
-#define SL1640_ASTRA_MACHINE "sl1640"
-#define SL1680_ASTRA_MACHINE "sl1680"
-
-static void displayUsage() {
-    qDebug() << "\nUsage: syna-settings [options]\n"
-        "\n"
-        "Example: syna-settings --mach sl1680\n"
-        "\n"
-        "Options:\n"
-        "         --mach (-M)    Your machine name [sl1620/sl1640/sl1680]\n"
-        "\n";
-}
-
-static void handleCommandLineOptions(QStringList args, string &mach) {
-    if (args.count() > 1) {
-        for (int i = 1; i < args.count(); i++) {
-            QString arg = args.at(i);
-            if (arg == "-M" || arg == "--mach") {
-                if (i + 1 < args.count() && args.at(i + 1) == "sl1620") {
-                    mach = SL1620_ASTRA_MACHINE;
-                } else if (i + 1 < args.count() && args.at(i + 1) == "sl1640") {
-                    mach = SL1640_ASTRA_MACHINE;
-                } else if (i + 1 < args.count() && args.at(i + 1) == "sl1680") {
-                    mach = SL1680_ASTRA_MACHINE;
-                }
-                i++;
-            } else if (arg == "-h" || arg == "--help") {
-                displayUsage();
-            }
-        }
-    }
-}
 
 int main(int argc, char *argv[]) {
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
@@ -55,13 +19,13 @@ int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
     app.setOrganizationName("synaptics");
     app.setOrganizationDomain("synaptics.com");
+    QString machine = "unknown";
 
-    QStringList args = app.arguments();
-    handleCommandLineOptions(args, machine);
-
-    if (machine.empty()) {
-        displayUsage();
-        return 1;
+    QProcess process;
+    process.start("uname", QStringList() << "-n");
+    process.waitForFinished(-1);
+    if (process.exitCode() == 0) {
+        machine = process.readAllStandardOutput().trimmed();
     }
 
     QQmlApplicationEngine engine;
@@ -76,6 +40,8 @@ int main(int argc, char *argv[]) {
 
     RtspConfig rtspConfig;
     engine.rootContext()->setContextProperty("cppRtspConfig", &rtspConfig);
+
+    engine.rootContext()->setContextProperty("machine", machine);
 
     bool isSampleModuleEnabled = false;
 #ifdef SAMPLE_MODULE

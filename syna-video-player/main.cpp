@@ -4,53 +4,11 @@
 #include <QApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
-#include <QDebug>
+#include <QProcess>
 
 #include "playbackcontrol.h"
 
 using namespace std;
-
-static void displayUsage()
-{
-   qDebug() << "\nUsage: syna-video-player [options]\n"
-           "\n"
-           "Example: syna-video-player --mach sl1680 --mode ffmpeg\n"
-           "\n"
-           "Options:\n"
-           "         --mode (-m)    Whether to go for ffmpeg or HW decoding\n"
-           "                          [ffmpeg/v4l2]\n"
-           "         --mach (-M)    Your machine name [sl1620/sl1640/sl1680]\n"
-           "\n"
-           "Note: Push the video files to /home/root/demos/videos/ directory";
-}
-
-static void handleCommandLineOptions(QStringList args, string &mach, string &mode)
-{
-    if (args.count() > 1) {
-        for (int i = 1; i < args.count(); i++) {
-            QString arg = args.at(i);
-            if (arg == "-M" || arg == "--mach") {
-                if (i + 1 < args.count() && args.at(i + 1) == SL1620_ASTRA_MACHINE) {
-                    mach = SL1620_ASTRA_MACHINE;
-                } else if (i + 1 < args.count() && args.at(i + 1) == SL1640_ASTRA_MACHINE) {
-                    mach = SL1640_ASTRA_MACHINE;
-                } else if (i + 1 < args.count() && args.at(i + 1) == SL1680_ASTRA_MACHINE) {
-                    mach = SL1680_ASTRA_MACHINE;
-                }
-                i++;
-            } else if (arg == "-m" || arg == "--mode") {
-                if (i + 1 < args.count() && args.at(i + 1) == USE_SOFTWARE_DECODER) {
-                    mode = USE_SOFTWARE_DECODER;
-                } else if (i + 1 < args.count() && args.at(i + 1) == USE_HARDWARE_DECODER) {
-                    mode = USE_HARDWARE_DECODER;
-                }
-                i++;
-            } else if (arg == "-h" || arg == "--help") {
-                displayUsage();
-            }
-        }
-    }
-}
 
 int main(int argc, char *argv[])
 {
@@ -63,8 +21,11 @@ int main(int argc, char *argv[])
     app.setOrganizationDomain("synaptics.com");
 
     string machine, mode;
-    QStringList args = app.arguments();
-    handleCommandLineOptions(args, machine, mode);
+    QProcess process;
+    process.start("uname", QStringList() << "-n");
+    process.waitForFinished();
+    machine = process.readAllStandardOutput().trimmed().toStdString();
+
     PlaybackControl playbackControl(machine, mode);
     SettingsManager settingsManager;
 
@@ -72,16 +33,19 @@ int main(int argc, char *argv[])
     if (playbackControl.machine == SL1620_ASTRA_MACHINE) {
         playbackControl.mode = USE_SOFTWARE_DECODER;
         qmlStr = "qrc:/qmls/sl1620.qml";
+    } else if (playbackControl.machine == SL2619_ASTRA_MACHINE) {
+        playbackControl.mode = USE_SOFTWARE_DECODER;
+        qmlStr = "qrc:/qmls/sl2619.qml";
     } else if (playbackControl.machine == SL1640_ASTRA_MACHINE) {
+        playbackControl.mode = USE_HARDWARE_DECODER;
         qmlStr = "qrc:/qmls/sl1640.qml";
     } else if (playbackControl.machine == SL1680_ASTRA_MACHINE) {
+        playbackControl.mode = USE_HARDWARE_DECODER;
         qmlStr = "qrc:/qmls/sl1680.qml";
-    }
-
-    if (qmlStr.isEmpty()) {
-        displayUsage();
+    } else {
         return 1;
     }
+
     const QUrl url = QUrl(qmlStr);
 
     QQmlApplicationEngine engine;

@@ -23,7 +23,7 @@ signals:
     void wifiStateChanged();
 
 private:
-    void setWifiState(bool state);
+    void setWifiState(bool state, bool emitSignal = true);
     QProcess *process;
     QSettings settings;
 };

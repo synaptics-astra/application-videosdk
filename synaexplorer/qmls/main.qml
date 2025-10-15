@@ -7,6 +7,7 @@ import Resource 1.0
 
 import "./custom_views"
 import "./panels"
+import PageConfig 1.0
 
 ApplicationWindow {
     id: root
@@ -73,6 +74,11 @@ ApplicationWindow {
     }
 
     Component {
+        id: videoDemos2619
+        VideoDemos2619 {}
+    }
+
+    Component {
         id: capabilityDemos
         CapabilityDemos {
             visible: !isX11
@@ -90,65 +96,10 @@ ApplicationWindow {
     }
 
     function switchPage(index) {
-        var machine = playbackControl.getMachine();
-        if (isX11) {
-            // In X11 mode, skip Capability Demo
-            switch (index) {
-            case 0:
-                sidemenu.sourceComponent = gettingStarted
-                break
-            case 1:
-                if (machine === "sl1620") {
-                    sidemenu.sourceComponent = videoDemos1620
-                } else if (machine === "sl1640") {
-                    sidemenu.sourceComponent = videoDemos1640
-                } else if (machine === "sl1680") {
-                    sidemenu.sourceComponent = videoDemos1680
-                }
-                break
-            case 2:
-                sidemenu.sourceComponent = gfxDemos
-                break
-            case 3:
-                sidemenu.sourceComponent = aiDemos
-                break
-            case 4:
-                sidemenu.sourceComponent = realTimeStreaming
-                break
-            }
-        } else {
-            // In non-X11 mode, include Capability Demo
-            switch (index) {
-            case 0:
-                sidemenu.sourceComponent = gettingStarted
-                break
-            case 1:
-                if (machine === "sl1620") {
-                    sidemenu.sourceComponent = videoDemos1620
-                } else if (machine === "sl1640") {
-                    sidemenu.sourceComponent = videoDemos1640
-                } else if (machine === "sl1680") {
-                    sidemenu.sourceComponent = videoDemos1680
-                }
-                break
-            case 2:
-                sidemenu.sourceComponent = gfxDemos
-                break
-            case 3:
-                sidemenu.sourceComponent = aiDemos
-                break
-            case 4:
-                sidemenu.sourceComponent = capabilityDemos
-                break
-            case 5:
-                sidemenu.sourceComponent = realTimeStreaming
-                break
-            case 6:
-                if (machine === "sl1680") {
-                    sidemenu.sourceComponent = cameraApp
-                }
-                break
-            }
+        var machine = playbackControl.getMachine()
+        var componentName = PageConfig.getComponent(machine, index, isX11)
+        if (componentName) {
+            sidemenu.sourceComponent = eval(componentName)
         }
     }
 
@@ -192,14 +143,7 @@ ApplicationWindow {
                 spacing: Resource.width / 25
                 property string machine: playbackControl.getMachine()
                 function updateModel() {
-                    var baseModel = ["Getting Started", "Video", "Graphics", "AI","Real Time Streaming"];
-                    if (!isX11) { // Temporary till HDMI RX issue is resolved
-                        baseModel.splice(4, 0, "Capability Demo");  // Insert at index 4
-                    }
-                    if (machine === "sl1680" && !isX11) {
-                        baseModel.push("ISP Camera");
-                    }
-                    return baseModel;
+                    return PageConfig.getMenuModel(machine, isX11)
                 }
 
                 model: updateModel()
@@ -211,15 +155,15 @@ ApplicationWindow {
                     onClicked: {
                         ListView.view.currentIndex = index
                         root.switchPage(index)
-                        }
                     }
+                }
 
                 Component.onCompleted: {
-                    machine = playbackControl.getMachine();
+                    machine = playbackControl.getMachine()
                 }
 
                 onMachineChanged: {
-                    listItemView.model = updateModel();
+                    listItemView.model = updateModel()
                 }
             }
         }
@@ -228,7 +172,7 @@ ApplicationWindow {
     Item {
         width: Resource.rightPanelWidth
         height: Resource.rightPanelHeight
-        anchors.top: header.bottom
+        anchors.top: headerView.bottom
         anchors.left: sidePanel.right
         StackView {
             id: pageStackView
@@ -259,4 +203,3 @@ ApplicationWindow {
         }
     }
 }
-

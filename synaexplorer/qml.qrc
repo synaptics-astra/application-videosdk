@@ -1,6 +1,7 @@
 <RCC>
     <qresource prefix="/">
         <file>qmls/main.qml</file>
+        <file>qmls/pageconfig.qml</file>
         <file>qmls/res.qml</file>
         <file>qmls/custom_views/GridItem.qml</file>
         <file>qmls/custom_views/Header.qml</file>
@@ -13,6 +14,7 @@
         <file>qmls/panels/VideoDemos1680.qml</file>
         <file>qmls/panels/VideoDemos1620.qml</file>
         <file>qmls/panels/VideoDemos1640.qml</file>
+        <file>qmls/panels/VideoDemos2619.qml</file>
         <file>qmls/panels/CapabilityDemos.qml</file>
         <file>qmls/panels/RealTimeStreaming.qml</file>
         <file>res/images/astra_icon.png</file>
