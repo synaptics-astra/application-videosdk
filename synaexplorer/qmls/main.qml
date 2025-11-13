@@ -64,6 +64,11 @@ ApplicationWindow {
     }
 
     Component {
+        id: aiDemos2619
+        AIDemos2619 {}
+    }
+
+    Component {
         id: videoDemos1620
         VideoDemos1620 {}
     }

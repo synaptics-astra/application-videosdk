@@ -559,6 +559,14 @@ void WindowManager::cleanUp()
         delete settingsManager;
         settingsManager = nullptr;
     }
+
+    if(machine == SL2619_ASTRA_MACHINE && appName == "Torq Demo") {
+        QDir tmpDir("/tmp");
+        QStringList hostCodeFiles = tmpDir.entryList(QStringList() << "host_code.so.*", QDir::Files);
+        for (const QString &file : hostCodeFiles) {
+            tmpDir.remove(file);
+        }
+    }
 }
 
 void WindowManager::requestStatsClose() {

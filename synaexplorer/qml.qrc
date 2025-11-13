@@ -8,6 +8,7 @@
         <file>qmls/custom_views/ListItem.qml</file>
         <file>qmls/custom_views/TextView.qml</file>
         <file>qmls/panels/AIDemos.qml</file>
+        <file>qmls/panels/AIDemos2619.qml</file>
         <file>qmls/panels/CameraApp.qml</file>
         <file>qmls/panels/GettingStarted.qml</file>
         <file>qmls/panels/GfxDemos.qml</file>

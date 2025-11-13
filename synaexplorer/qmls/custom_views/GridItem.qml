@@ -171,6 +171,9 @@ Pane {
                         case 11:
                             playbackControl.launch("/usr/bin/syna-dash-player")
                             break;
+                        case 12:
+                            playbackControl.launch("/usr/bin/torq-demo")
+                            break;
                         default:
                             break;
                     }
