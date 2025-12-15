@@ -9,6 +9,10 @@ import "../custom_views"
 Rectangle {
     id:root
     color: Resource.background
+    property var machine: ""
+    Component.onCompleted: {
+        machine = playbackControl.getMachine();
+    }
 
     Item {
         id: spacer_0
@@ -48,6 +52,7 @@ Rectangle {
             type: 11
             image: "qrc:/res/images/astra_icon.png"
             title:  qsTr("Syna Dash Player")
+            visible: machine !== "sl2619" && machine !== "sl2615"
         }
     }
 }

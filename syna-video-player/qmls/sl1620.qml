@@ -24,8 +24,6 @@ ApplicationWindow {
         var mode = playbackControl.getMode()
         if (mode === "ffmpeg") {
             cmdComponent = Qt.createComponent("file:///home/root/demos/qmls/ffmpegcommands.qml")
-        } else if (mode === "v4l2") {
-            cmdComponent = Qt.createComponent("file:///home/root/demos/qmls/v4l2commands.qml")
         }
         cmdsModel = cmdComponent.createObject()
 

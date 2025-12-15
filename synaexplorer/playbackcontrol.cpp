@@ -43,16 +43,14 @@ void PlaybackControl::launch(QString path)
     arguments << path;
 
     if (path == "/usr/bin/syna-video-player") {
-        arguments << "--mach" << QString::fromStdString(machine);
-        arguments << "--mode";
-        if (machine == "sl1620") {
-            arguments << "ffmpeg";
-        } else {
-            arguments << "v4l2";
-        }
-    } else if (path == "/usr/bin/syna-ai-player"
-            || path == "/usr/bin/syna-capability-demo") {
-        arguments << "--mach" << QString::fromStdString(machine);
+    arguments << "--mode";
+    if (machine == "sl1620" || machine == "sl2619" || machine == "sl2615") {
+        arguments << "ffmpeg";
+    } else {
+        arguments << "v4l2";
+    }
+    } else if (path == "/usr/bin/syna-ai-player" ||
+            path == "/usr/bin/syna-capability-demo") {
     }
 
     process->setArguments(arguments);

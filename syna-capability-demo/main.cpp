@@ -4,45 +4,12 @@
 #include <QApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
-#include <QDebug>
+#include <QProcess>
 
 #include "playbackcontrol.h"
 #include "filedialoghelper.h"
 
 using namespace std;
-
-static void displayUsage()
-{
-    qDebug() << "\nUsage: syna-capability-demo [options]\n"
-        "\n"
-        "Example: syna-capability-demo --mach sl1680\n"
-        "\n"
-        "Options:\n"
-        "         --mach (-M)    Your machine name [sl1620/sl1640/sl1680]\n"
-        "\n"
-        "Note: Push the video files to /home/root/demos/videos/ directory";
-}
-
-static void handleCommandLineOptions(QStringList args, string &mach)
-{
-    if (args.count() > 1) {
-        for (int i = 1; i < args.count(); i++) {
-            QString arg = args.at(i);
-            if (arg == "-M" || arg == "--mach") {
-                if (i + 1 < args.count() && args.at(i + 1) == SL1620_ASTRA_MACHINE) {
-                    mach = SL1620_ASTRA_MACHINE;
-                } else if (i + 1 < args.count() && args.at(i + 1) == SL1640_ASTRA_MACHINE) {
-                    mach = SL1640_ASTRA_MACHINE;
-                } else if (i + 1 < args.count() && args.at(i + 1) == SL1680_ASTRA_MACHINE) {
-                    mach = SL1680_ASTRA_MACHINE;
-                }
-                i++;
-            } else if (arg == "-h" || arg == "--help") {
-                displayUsage();
-            }
-        }
-    }
-}
 
 int main(int argc, char *argv[])
 {
@@ -55,8 +22,11 @@ int main(int argc, char *argv[])
     app.setOrganizationDomain("synaptics.com");
 
     string machine;
-    QStringList args = app.arguments();
-    handleCommandLineOptions(args, machine);
+    QProcess process;
+    process.start("uname", QStringList() << "-n");
+    process.waitForFinished();
+    machine = process.readAllStandardOutput().trimmed().toStdString();
+
     PlaybackControl playbackControl(machine);
     FileControl fileControl;
     FileDialogHelper fileDialogHelper;
@@ -64,14 +34,17 @@ int main(int argc, char *argv[])
     QString qmlStr;
     if (playbackControl.machine == SL1620_ASTRA_MACHINE) {
         qmlStr = "/home/root/demos/qmls/sl1620-capability-demo.qml";
-    } else if (playbackControl.machine == SL1640_ASTRA_MACHINE) {
-        qmlStr = "/home/root/demos/qmls/sl1640-capability-demo.qml";
+    } else if (playbackControl.machine == SL2619_ASTRA_MACHINE) {
+        qmlStr = "/home/root/demos/qmls/sl2619-capability-demo.qml";
+    } else if (playbackControl.machine == SL2615_ASTRA_MACHINE) {
+        qmlStr = "/home/root/demos/qmls/sl2615-capability-demo.qml";
     } else if (playbackControl.machine == SL1680_ASTRA_MACHINE) {
         qmlStr = "/home/root/demos/qmls/sl1680-capability-demo.qml";
+    } else if (playbackControl.machine == SL1640_ASTRA_MACHINE) {
+        qmlStr = "/home/root/demos/qmls/sl1640-capability-demo.qml";
     }
 
     if (qmlStr.isEmpty()) {
-        displayUsage();
         return 1;
     }
     const QUrl url = QUrl(qmlStr);

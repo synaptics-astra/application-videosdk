@@ -18,6 +18,11 @@ x11 {
     DEFINES += HAVE_X11
 }
 
+npu {
+    message("Configuring for NPU support")
+    DEFINES += HAS_NPU
+}
+
 SOURCES += \
     main.cpp \
     playbackcontrol.cpp \

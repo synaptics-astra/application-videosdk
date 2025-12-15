@@ -134,6 +134,14 @@ Rectangle {
                         hwdevice = "hw:0,1";
                         decoder = "avdec_h264";
                     }
+                    if (machine == "sl2619") {
+                        hwdevice = "hw:0,0";
+                        decoder = "avdec_h264";
+                    }
+                    if (machine == "sl2615") {
+                        hwdevice = "hw:0,0";
+                        decoder = "avdec_h264";
+                    }
                     if (machine == "sl1640") {
                         hwdevice = "hw:0,8";
                         decoder = "v4l2h264dec";

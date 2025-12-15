@@ -1,0 +1,10 @@
+<RCC>
+    <qresource>
+        <file>qmls/torq.qml</file>
+        <file>images/syna_icon.png</file>
+        <file>images/astra_icon.png</file>
+        <file>images/menu.png</file>
+        <file>images/play.png</file>
+        <file>images/exit.png</file>
+    </qresource>
+</RCC>

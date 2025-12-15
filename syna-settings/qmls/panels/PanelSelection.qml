@@ -143,8 +143,8 @@ Rectangle {
         id: confirmDialog
         modal: true
         focus: true
-        width: 400
-        height: 200
+        width: 450
+        height: 250
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
         background: Rectangle {
@@ -159,6 +159,20 @@ Rectangle {
             anchors.centerIn: parent
 
             Text {
+                visible: machine === "sl2619" || machine === "sl2615"
+                text: qsTr("You need to follow below steps for the changes to take effect:\n" +
+                          "1. Power OFF the board.\n" +
+                          "2. Remove current panel.\n" +
+                          "3. Connect target panel.\n" +
+                          "4. Power ON board")
+                wrapMode: Text.Wrap
+                font.pixelSize: 15
+                horizontalAlignment: Text.AlignHCenter
+                Layout.fillWidth: true
+            }
+
+            Text {
+                visible: machine !== "sl2619" && machine !== "sl2615"
                 text: qsTr("You need to reboot for the changes to take effect.\nWould you like to reboot now?")
                 wrapMode: Text.Wrap
                 font.pixelSize: 14
@@ -172,7 +186,16 @@ Rectangle {
                 Layout.topMargin: 20
                 Layout.fillWidth: true
 
+                 SynaButton {
+                    visible: machine === "sl2619" || machine === "sl2615"
+                    text: qsTr("OK")
+                    Layout.preferredWidth: 140
+                    height: 44
+                    onClicked: confirmDialog.close()
+                }
+
                 SynaButton {
+                    visible: machine !== "sl2619" && machine !== "sl2615"
                     text: qsTr("Reboot")
                     Layout.preferredWidth: 120
                     height: 40
@@ -182,7 +205,8 @@ Rectangle {
                     }
                 }
 
-                SynaButton {
+                 SynaButton {
+                    visible: machine !== "sl2619" && machine !== "sl2615"
                     text: qsTr("Cancel")
                     Layout.preferredWidth: 120
                     height: 40

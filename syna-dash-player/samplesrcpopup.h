@@ -11,7 +11,6 @@
 #include <QPushButton>
 #include <QLineEdit>
 #include <QListWidget>
-#include <QDebug>
 #include <QUrl>
 #include "validationpopup.h"
 
@@ -46,20 +45,13 @@ public:
 
         QHBoxLayout *buttonLayout = new QHBoxLayout;
         QPushButton *selectButton = new QPushButton("Select", this);
-        selectButton->setFont(QFont("Arial", 14));
+        QPushButton *cancelButton = new QPushButton("Cancel", this);
         selectButton->setFixedSize(120, 40);
+        cancelButton->setFixedSize(120, 40);
         selectButton->setStyleSheet(
             "QPushButton { background-color: #003366; color: white; border: none; padding: 10px; border-radius: 8px; }"
-            "QPushButton:hover { background-color: #005999; }"
-            "QPushButton:pressed { background-color: #003366; }");
-
-        QPushButton *cancelButton = new QPushButton("Cancel", this);
-        cancelButton->setFont(QFont("Arial", 14));
-        cancelButton->setFixedSize(120, 40);
-        cancelButton->setStyleSheet(
-            "QPushButton { background-color: #003366; color: white; border: none; padding: 10px; border-radius: 8px; }"
-            "QPushButton:hover { background-color: #005999; }"
-            "QPushButton:pressed { background-color: #003366; }");
+            "QPushButton:hover { background-color: #005999; }");
+        cancelButton->setStyleSheet(selectButton->styleSheet());
 
         buttonLayout->addStretch();
         buttonLayout->addWidget(selectButton);
@@ -83,6 +75,8 @@ public slots:
     void showPopup(const QPoint &pos) {
         move(pos);
         urlField->clear();
+        sampleList->clearSelection();
+        sampleList->setCurrentRow(-1);
         show();
     }
 
@@ -90,7 +84,7 @@ private slots:
     void onItemClicked(QListWidgetItem *item) {
         QString text = item->text();
         QString url = text.mid(text.indexOf(": ") + 2);
-        validateAndProcessUrl(url);
+        urlField->setText(url);
     }
 
     void onSelectClicked() {
@@ -100,19 +94,27 @@ private slots:
 
 private:
     void validateAndProcessUrl(const QString &url) {
-        QUrl qUrl(url);
-        bool isValid = !url.isEmpty() &&
-                       (qUrl.scheme() == "http" || qUrl.scheme() == "https") &&
-                       qUrl.isValid() &&
-                       url.toLower().endsWith(".mpd");
+        if (url.isEmpty()) {
+            ValidationPopup *p = new ValidationPopup(
+                "Please enter a valid HTTP/HTTPS URL ending with .mpd or select a sample.", this);
+            p->setAttribute(Qt::WA_DeleteOnClose);
+            p->showPopup(QCursor::pos());
+            return;
+        }
 
-        if (isValid) {
+        QUrl qurl(url);
+        bool valid = (qurl.scheme() == "http" || qurl.scheme() == "https")
+                    && qurl.isValid()
+                    && url.toLower().endsWith(".mpd");
+
+        if (valid) {
             emit urlSelected(url);
             hide();
         } else {
-            QString errorMessage = "Invalid URL. Please enter a valid HTTP/HTTPS URL ending with .mpd.";
-            ValidationPopup *validationPopup = new ValidationPopup(errorMessage, this);
-            validationPopup->showPopup(QCursor::pos());
+            ValidationPopup *p = new ValidationPopup(
+                "Invalid URL. Please enter a valid HTTP/HTTPS URL ending with .mpd.", this);
+            p->setAttribute(Qt::WA_DeleteOnClose);
+            p->showPopup(QCursor::pos());
         }
     }
 

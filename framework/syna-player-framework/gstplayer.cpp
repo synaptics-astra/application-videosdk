@@ -129,6 +129,11 @@ GstBusSyncReply GstPlayer::gstBusCallback(GstBus* bus, GstMessage* message,
         goto drop;
     }
 
+    if (GST_MESSAGE_TYPE(message) == GST_MESSAGE_EOS) {
+        player->quit();
+        goto drop;
+    }
+
     return GST_BUS_PASS;
 
 drop:

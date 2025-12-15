@@ -24,6 +24,7 @@
 #include <iterator>
 #include <QThread>
 #include <QSemaphore>
+#include <QDir>
 
 #include <string.h>
 #include <cstdlib>

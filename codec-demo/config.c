@@ -223,7 +223,7 @@ int parseConfigFile(codec_config_t *codec_config, char *config_file)
                 //HWENC CAM_NV12 /dev/video0 1920x1080 30 4096 1000 172.28.5.9 8001 0 0
                 sscanf(line, "HWENC %s %s %dx%d %d %d %d %s %d %d %s %s %d", src, path, &width, &height, &fps, &bitrate, &slice_size_bytes, ip, &port, &display, profile, level, &InitQP);
 
-#ifdef CURR_MACH_MYNA2
+#if (defined(CURR_MACH_MYNA2) || defined(CURR_MACH_KLAMATH))
 				LOG_ERR("HWENC is not supported\n");
 				continue;
 #endif
@@ -302,7 +302,7 @@ int parseConfigFile(codec_config_t *codec_config, char *config_file)
 				//HWDEC NW_H264 172.28.5.9 8006 1280x720 30 0 0
 				sscanf(line, "HWDEC %s %s %d %dx%d %d %d", src, path, &port, &width, &height, &fps, &display);
 
-#ifdef CURR_MACH_MYNA2
+#if (defined(CURR_MACH_MYNA2) || defined(CURR_MACH_KLAMATH))
 				LOG_ERR("HWDEC is not supported\n");
 				continue;
 #endif

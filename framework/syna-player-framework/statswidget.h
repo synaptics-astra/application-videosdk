@@ -54,6 +54,10 @@ private:
     QLabel *npuValue;
     QLabel *memoryValue;
 
+    bool hasCPU;
+    bool hasGPU;
+    bool hasNPU;
+
     QTimer *updateTimer;
 
     void addStatRow(QVBoxLayout *layout, const QString &label, QProgressBar *&bar, QLabel *&valueLabel);

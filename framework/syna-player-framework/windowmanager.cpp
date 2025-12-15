@@ -68,7 +68,7 @@ void WindowManager::updateCAMSRC(QVector<QString>::iterator iter)
     QString videoTestSrcPipeline = "videotestsrc ! video/x-raw, framerate=30/1,format=NV12,width=640,height=480 !"
     " textoverlay text='No camera source detected..!'";
     /* Predefine pipelines for each camera format */
-    if(machine == SL1620_ASTRA_MACHINE) {
+    if(machine == SL1620_ASTRA_MACHINE || machine == SL2615_ASTRA_MACHINE || machine == SL2619_ASTRA_MACHINE) {
         camSrcPipelineH264 = "v4l2src device=CAM ! video/x-h264,framerate=15/1,format=H264,width=640,height=480 ! h264parse ! avdec_h264";
         camSrcPipelineMJPEG = "v4l2src device=CAM ! image/jpeg,framerate=15/1,format=MJPEG,width=640,height=480 ! jpegdec";
         camSrcPipelineYUY2 = "v4l2src device=CAM io-mode=2 ! video/x-raw,framerate=15/1,format=YUY2,width=640,height=480";
@@ -558,6 +558,14 @@ void WindowManager::cleanUp()
     if (settingsManager) {
         delete settingsManager;
         settingsManager = nullptr;
+    }
+
+    if((machine == SL2619_ASTRA_MACHINE || machine == SL2615_ASTRA_MACHINE) && appName == "Torq Demo") {
+        QDir tmpDir("/tmp");
+        QStringList hostCodeFiles = tmpDir.entryList(QStringList() << "host_code.so.*", QDir::Files);
+        for (const QString &file : hostCodeFiles) {
+            tmpDir.remove(file);
+        }
     }
 }
 

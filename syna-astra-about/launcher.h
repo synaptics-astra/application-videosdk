@@ -25,6 +25,10 @@ public:
             command = "XDG_RUNTIME_DIR=/var/run/user/0 WAYLAND_DISPLAY=wayland-1 QT_QPA_PLATFORM=wayland CHROME_USER_DATA_DIR=/home/root/chromium_data/ /usr/bin/chromium --no-sandbox --alsa-output-device=hw:0,8 --restore-last-session " + url + " &";
         } else if (detectedMachine == "sl1680") {
             command = "XDG_RUNTIME_DIR=/var/run/user/0 WAYLAND_DISPLAY=wayland-1 QT_QPA_PLATFORM=wayland CHROME_USER_DATA_DIR=/home/root/chromium_data/ /usr/bin/chromium --no-sandbox --alsa-output-device=hw:0,7 --restore-last-session " + url + " &";
+        } else if (detectedMachine == "sl2619") {
+            command = "XDG_RUNTIME_DIR=/var/run/user/0 WAYLAND_DISPLAY=wayland-1 QT_QPA_PLATFORM=wayland CHROME_USER_DATA_DIR=/home/root/chromium_data/ /usr/bin/chromium --no-sandbox --alsa-output-device=hw:0,1 --restore-last-session " + url + " &";
+        } else if (detectedMachine == "sl2615") {
+            command = "XDG_RUNTIME_DIR=/var/run/user/0 WAYLAND_DISPLAY=wayland-1 QT_QPA_PLATFORM=wayland CHROME_USER_DATA_DIR=/home/root/chromium_data/ /usr/bin/chromium --no-sandbox --alsa-output-device=hw:0,1 --restore-last-session " + url + " &";
         }
 #endif
 
@@ -49,8 +53,8 @@ class SynaexplorerLauncher : public QObject {
 public:
     explicit SynaexplorerLauncher(QObject *parent = nullptr) : QObject(parent) {}
 
-    Q_INVOKABLE void openSynaexplorer(const QString &mach) {
-        QString command = "synaexplorer --mach " + mach + " &";
+    Q_INVOKABLE void openSynaexplorer() {
+        QString command = "synaexplorer &";
         if (!QProcess::startDetached("/bin/sh", QStringList() << "-c" << command)) {
             qWarning() << "Failed to launch Synaexplorer.";
         }

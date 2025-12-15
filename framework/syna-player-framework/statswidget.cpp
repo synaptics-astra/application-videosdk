@@ -4,7 +4,7 @@
 #include "statswidget.h"
 
 StatsWidget::StatsWidget(QWidget *parent, QString appName, std::string mach)
-    : QWidget(parent), machine(mach)
+    : QWidget(parent), machine(mach), hasCPU(true), hasGPU(machine != SL2619_ASTRA_MACHINE && machine != SL2615_ASTRA_MACHINE), hasNPU(machine != SL1620_ASTRA_MACHINE && machine != SL2619_ASTRA_MACHINE && machine != SL2615_ASTRA_MACHINE)
 {
     this->setStyleSheet("background-color: rgb(0, 0, 0); color: white;");
 
@@ -40,10 +40,19 @@ StatsWidget::StatsWidget(QWidget *parent, QString appName, std::string mach)
     titleLabel->setAlignment(Qt::AlignCenter);
     titleLabel->setStyleSheet("color: white; font-weight: bold; font-size: 12px;");
     leftLayout->addWidget(titleLabel);
-    addStatRow(leftLayout, "CPU", cpuBar, cpuValue);
-    addStatRow(leftLayout, "GPU", gpuBar, gpuValue);
-    if (machine != SL1620_ASTRA_MACHINE)
+
+    if (hasCPU) {
+        addStatRow(leftLayout, "CPU", cpuBar, cpuValue);
+    }
+
+    if (hasGPU) {
+        addStatRow(leftLayout, "GPU", gpuBar, gpuValue);
+    }
+
+    if (hasNPU) {
         addStatRow(leftLayout, "NPU", npuBar, npuValue);
+    }
+
     addStatRow(leftLayout, "MEM", memoryBar, memoryValue);
     leftLayout->addStretch();
 
@@ -95,7 +104,6 @@ StatsWidget::StatsWidget(QWidget *parent, QString appName, std::string mach)
     updateTimer->start(2000);
 }
 
-
 StatsWidget::~StatsWidget() {}
 
 void StatsWidget::handleClose()
@@ -140,30 +148,33 @@ void StatsWidget::addStatRow(QVBoxLayout *layout, const QString &label, QProgres
 
 void StatsWidget::updateStats()
 {
-    int cpu, gpu, npu, memory;
-    cpu = getCpuLoad().toInt();
-    gpu = getGpuLoad().toInt();
+    int cpu, gpu = 0, npu = 0, memory;
+
+    if (hasCPU) {
+        cpu = getCpuLoad().toInt();
+        cpuBar->setValue(cpu);
+        cpuValue->setText(QString::number(cpu) + "%");
+        setBarColor(cpuBar, cpu);
+    }
+
     memory = getMemoryUsage().toInt();
-    if (machine != SL1620_ASTRA_MACHINE)
-        npu = getNpuLoad().toInt();
-
-    cpuBar->setValue(cpu);
-    gpuBar->setValue(gpu);
     memoryBar->setValue(memory);
-    if (machine != SL1620_ASTRA_MACHINE)
-        npuBar->setValue(npu);
-
-    cpuValue->setText(QString::number(cpu) + "%");
-    gpuValue->setText(QString::number(gpu) + "%");
     memoryValue->setText(QString::number(memory) + "%");
-    if (machine != SL1620_ASTRA_MACHINE)
-        npuValue->setText(QString::number(npu) + "%");
-
-    setBarColor(cpuBar, cpu);
-    setBarColor(gpuBar, gpu);
     setBarColor(memoryBar, memory);
-    if (machine != SL1620_ASTRA_MACHINE)
+
+    if (hasGPU && gpuBar && gpuValue) {
+        gpu = getGpuLoad().toInt();
+        gpuBar->setValue(gpu);
+        gpuValue->setText(QString::number(gpu) + "%");
+        setBarColor(gpuBar, gpu);
+    }
+
+    if (hasNPU && npuBar && npuValue) {
+        npu = getNpuLoad().toInt();
+        npuBar->setValue(npu);
+        npuValue->setText(QString::number(npu) + "%");
         setBarColor(npuBar, npu);
+    }
 }
 
 void StatsWidget::setBarColor(QProgressBar *bar, int value)
@@ -256,4 +267,3 @@ QString StatsWidget::getMemoryUsage()
 
     return QString::number(usage);
 }
-

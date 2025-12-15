@@ -4,5 +4,7 @@
         <file>qmls/sl1620.qml</file>
         <file>qmls/sl1640.qml</file>
         <file>qmls/sl1680.qml</file>
+        <file>qmls/sl2619.qml</file>
+        <file>qmls/sl2615.qml</file>
     </qresource>
 </RCC>

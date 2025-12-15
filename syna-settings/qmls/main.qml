@@ -146,12 +146,10 @@ ApplicationWindow {
                 highlight: null
                 spacing: Resource.width / 25
                 function updateModel() {
-                    var baseModel = ["Home", "Display", "Wi-Fi", "Bluetooth", "USB Camera", "RTSP Camera"]
-                    /* Adding new module */
-                    if (isSampleModuleEnabled)
-                        baseModel.push("Sample Module");
-
-
+                        var baseModel = ["Home", "Display", "Wi-Fi", "Bluetooth", "USB Camera", "RTSP Camera"]
+                        /* Adding new module */
+                        if (isSampleModuleEnabled)
+                            baseModel.push("Sample Module");
                     return baseModel;
                 }
 

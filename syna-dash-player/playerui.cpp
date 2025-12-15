@@ -49,24 +49,32 @@ PlayerUI::PlayerUI(QWidget* parent) : QWidget(parent), resolutionLabel(nullptr),
 
     videoInfoBox = new QWidget(this);
     videoInfoBox->setStyleSheet("background-color: #ffffff; border-radius: 4px; padding: 5px;");
-    videoInfoBox->setFixedSize(150, 60);
+    videoInfoBox->setFixedSize(150, 80);
     QVBoxLayout *videoInfoLayout = new QVBoxLayout(videoInfoBox);
     videoInfoLayout->setContentsMargins(3, 3, 3, 3);
     videoInfoLayout->setSpacing(2);
 
-    resolutionLabel = new QLabel("Resolution: N/A", videoInfoBox);
-    fpsLabel = new QLabel("FPS: N/A", videoInfoBox);
     QFont labelFont;
     labelFont.setPixelSize(12);
+
+    QLabel *statsHeading = new QLabel("Video Stats", videoInfoBox);
+    QFont headingFont = labelFont;
+    headingFont.setPixelSize(14);
+    headingFont.setBold(true);
+    statsHeading->setFont(headingFont);
+    statsHeading->setStyleSheet("color: #000000;");
+    statsHeading->setAlignment(Qt::AlignCenter);
+
+    resolutionLabel = new QLabel("Resolution: N/A", videoInfoBox);
+    fpsLabel = new QLabel("FPS: N/A", videoInfoBox);
     resolutionLabel->setFont(labelFont);
     fpsLabel->setFont(labelFont);
     resolutionLabel->setStyleSheet("color: #000000;");
     fpsLabel->setStyleSheet("color: #000000;");
 
+    videoInfoLayout->addWidget(statsHeading);
     videoInfoLayout->addWidget(resolutionLabel);
     videoInfoLayout->addWidget(fpsLabel);
-
-    videoInfoBox->hide();
 
     player = new GstPlayer(this);
 
@@ -112,7 +120,6 @@ PlayerUI::PlayerUI(QWidget* parent) : QWidget(parent), resolutionLabel(nullptr),
 
     headerWidget->raise();
     settingsButton->raise();
-    videoInfoBox->raise();
     resolutionChangeBox->raise();
     panel->raise();
 
@@ -170,7 +177,6 @@ void PlayerUI::startPlayback()
 
         player->command->setInputSource("");
         player->startPlayback();
-        videoInfoBox->hide();
         return;
     }
 
@@ -184,7 +190,6 @@ void PlayerUI::startPlayback()
         validationPopup->raise();
         validationPopup->activateWindow();
         player->startPlayback();
-        videoInfoBox->hide();
         return;
     }
 
@@ -199,7 +204,6 @@ void PlayerUI::startPlayback()
         validationPopup->showPopup(popupPos);
         validationPopup->raise();
         validationPopup->activateWindow();
-        videoInfoBox->hide();
         return;
     }
     player->init(surface);
