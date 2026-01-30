@@ -6,6 +6,7 @@
 
 #include "command.h"
 #include "embedding.h"
+#include "settingsmanager.h"
 
 #include <glib.h>
 #include <gst/gst.h>
@@ -22,6 +23,7 @@
 #include <QFile>
 #include <QImage>
 #include <QPainter>
+#include <QVariantMap>
 
 typedef struct _GstSynapMeta GstSynapMeta;
 
@@ -77,8 +79,12 @@ class GstPlayer: public QWidget {
         ~GstPlayer();
 
         static bool playerflag;
+        QVariantMap rtspData;
+        QStringList rtspUrlsModel;
         bool startPlayback();
         void stopPlayback();
+        void changeRtspUrl(const QString &text);
+        void changeInputType();
         void setFaceName(std::vector<QString> name, std::vector<cv::Mat> m);
         void updateImage(const QImage& image);
 
@@ -91,11 +97,12 @@ class GstPlayer: public QWidget {
         static std::vector<cv::Point> myPointCollection;
         static std::vector<std::string> namePastCollection;
 
-        GstElement* pipeline;
+        GstElement* pipeline = nullptr;
         GstAppSink *appsink;
         QImage videoFrame;
         Command *command;
         Embedding *embedding;
+        SettingsManager *settingsManager;
 
     protected:
         void resizeEvent(QResizeEvent* event) override;

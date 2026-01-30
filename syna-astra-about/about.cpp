@@ -44,3 +44,16 @@ QString AboutManager::getMachine() {
     QString machine = process.readAllStandardOutput().trimmed();
     return machine.isEmpty() ? "Unknown Machine" : machine;
 }
+
+QString AboutManager::fetchIpAddress()
+{
+    QProcess process;
+    process.start("sh", QStringList() << "-c"
+        << "ifconfig 2>/dev/null | grep -E 'inet[^6]' | grep -v 127.0.0.1 | awk '{print $2}' | cut -d: -f2 | head -n1");
+
+    if (!process.waitForFinished(3000) || process.exitCode() != 0)
+        return "Unknown IP";
+
+    QString ip = process.readAllStandardOutput().trimmed();
+    return ip.isEmpty() ? "Unknown IP" : ip;
+}

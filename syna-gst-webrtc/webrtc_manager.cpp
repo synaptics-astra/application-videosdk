@@ -6,8 +6,7 @@
 #include <QStringList>
 #include <QRegularExpression>
 #include <QFile>
-#include <QNetworkInterface>
-#include <QNetworkConfigurationManager>
+#include <QTcpSocket>
 
 #include "webrtc_manager.h"
 
@@ -31,8 +30,23 @@ WebrtcManager::~WebrtcManager() {
 
 bool WebrtcManager::hasInternetConnection()
 {
-    QNetworkConfigurationManager mgr;
-    return mgr.isOnline();
+    QTcpSocket socket;
+
+    socket.connectToHost("8.8.8.8", 53);
+    if (socket.waitForConnected(4000)) {
+        socket.close();
+        return true;
+    }
+
+    socket.abort();
+
+    socket.connectToHost("8.8.4.4", 53);
+    if (socket.waitForConnected(3000)) {
+        socket.close();
+        return true;
+    }
+
+    return false;
 }
 
 QString WebrtcManager::getMachine() {

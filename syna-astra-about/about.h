@@ -18,6 +18,7 @@ public:
     Q_INVOKABLE QString fetchHwVersion();
     Q_INVOKABLE QString fetchLinuxVersion();
     Q_INVOKABLE QString getMachine();
+    Q_INVOKABLE QString fetchIpAddress();
 };
 
 #endif // ABOUT_H

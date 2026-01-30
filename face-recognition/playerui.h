@@ -37,9 +37,11 @@ class PlayerUI: public QWidget {
     public slots:
         void startPlayback();
         void stopPlayback();
+        void changeInputType();
         void exitApplication();
         void showPreview(std::vector<QImage>* image, std::vector<cv::Mat>* m);
         void stopPreview();
+        void rtspUrlchange(const QString &text);
 
     protected:
         void resizeEvent(QResizeEvent* event) override;

@@ -202,8 +202,10 @@ void GstPlayer::run()
 
     exec();
 
-    gst_element_set_state (pipeline, GST_STATE_READY);
-    gst_element_set_state(pipeline, GST_STATE_NULL);
+    if (pipeline) {
+        gst_element_set_state(pipeline, GST_STATE_NULL);
+        gst_element_get_state(pipeline, nullptr, nullptr, 2 * GST_SECOND);
+    }
 
     if (sink) {
         gst_object_unref(sink);
@@ -218,6 +220,9 @@ void GstPlayer::run()
 
 void GstPlayer::stopThread()
 {
+    if (pipeline) {
+        gst_element_set_state(pipeline, GST_STATE_NULL);
+    }
     quit();
     check_and_close_fds();
 }

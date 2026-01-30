@@ -11,6 +11,7 @@ GstPlayer::GstPlayer(QWidget* parent) : QWidget(parent)
 {
     command = new Command();
     embedding = new Embedding();
+    settingsManager = new SettingsManager();
     connect(this, &GstPlayer::pushFrame, this, &GstPlayer::updateImage);
 }
 
@@ -18,6 +19,7 @@ GstPlayer::~GstPlayer()
 {
     delete embedding;
     delete command;
+    delete settingsManager;
 }
 
 void GstPlayer::updateImage(const QImage &image)
@@ -86,6 +88,52 @@ void GstPlayer::stopPlayback()
         gst_object_unref (pipeline);
         pipeline = nullptr;
     }
+}
+
+void GstPlayer::changeInputType() {
+    if (command->inputType == "cam") {
+        command->inputType = "rtsp";
+        rtspData = settingsManager->getData(2);
+        command->urlemptyflag = false;
+        if (!rtspData.isEmpty() && rtspData.contains("rtspUrls")) {
+            rtspUrlsModel = rtspData.value("rtspUrls").toStringList();
+            command->url = rtspUrlsModel[0];
+            if (command->url == "") {
+                command->urlemptyflag = true;
+            }
+        }
+        if (rtspUrlsModel.isEmpty()) {
+            qWarning() << "Error in settingsManager.getData or rtspUrls missing";
+            rtspUrlsModel << "";
+        }
+    }
+    else {
+        command->inputType = "cam";
+    }
+}
+
+void GstPlayer::changeRtspUrl(const QString &text) {
+    if (text == "") {
+        command->urlemptyflag = true;
+        command->inputType = "rtsp";
+        return;
+    }
+    command->url = text;
+    rtspData = settingsManager->getData(2);
+    QStringList urls = rtspData.value("rtspUrls").toStringList();
+    if (urls.isEmpty()) {
+        urls << "";
+        command->urlemptyflag = true;
+        command->inputType = "rtsp";
+        return;
+    }
+    urls[0] = text;
+    rtspData.insert("rtspUrls", urls);
+    if (!settingsManager->setData(2, rtspData)) {
+        qWarning() << "Failed to set default RTSP URLs";
+    }
+    command->urlemptyflag = false;
+    command->inputType = "rtsp";
 }
 
 void GstPlayer::setFaceName(std::vector<QString> nameCollection, std::vector<cv::Mat> mCollection)

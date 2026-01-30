@@ -4,7 +4,7 @@ QT += gui-private widgets
 CONFIG += c++17
 CONFIG += debug
 CONFIG += link_pkgconfig
-PKGCONFIG += "gstreamer-1.0 gstreamer-wayland-1.0 gstreamer-app-1.0 libudev opencv4"
+PKGCONFIG += "gstreamer-1.0 syna-player-framework gstreamer-wayland-1.0 gstreamer-app-1.0 libudev opencv4"
 
 SOURCES += \
     main.cpp \

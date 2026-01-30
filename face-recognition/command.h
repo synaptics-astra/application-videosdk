@@ -20,6 +20,8 @@ class Command {
         QString width;
         QString height;
         QString v4l2src;
+        QString inputType;
+        bool urlemptyflag = true;
 
         QString pipeline;
         QtDevice *qtDevice;

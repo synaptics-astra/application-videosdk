@@ -6,13 +6,13 @@
 #include <QtGlobal>
 Wifiapp::Wifiapp(QObject *parent) : QObject(parent), process(new QProcess(this)), settings("STATE", "WIFI") {
     bool lastState = settings.value("wifiState", false).toBool();
-    setWifiState(lastState);
+    setWifiState(lastState, false);
 }
 
 void Wifiapp::togglePythonScript(bool state) {
     setWifiState(state);
     if (state) {
-        int exitCode = QProcess::execute("systemctl start wpa_supplicant@wlan0.service");
+        int exitCode = QProcess::execute("systemctl restart wpa_supplicant@wlan0.service");
         if (exitCode == 0) {
             qDebug() << "wpa_supplicant@wlan0.service started successfully";
         } else {
@@ -20,7 +20,7 @@ void Wifiapp::togglePythonScript(bool state) {
         }
         emit wifiStateChanged();
     } else {
-        int exitCode = QProcess::execute("systemctl stop wpa_supplicant@wlan0.service");
+        int exitCode = QProcess::execute("ifconfig", QStringList() << "wlan0" << "down");
         if (exitCode == 0) {
             qDebug() << "wpa_supplicant@wlan0.service stopped successfully";
         } else {
@@ -33,10 +33,11 @@ bool Wifiapp::wifiState() const {
     return settings.value("wifiState", false).toBool();
 }
 
-void Wifiapp::setWifiState(bool state) {
+void Wifiapp::setWifiState(bool state, bool emitSignal) {
     if (wifiState() != state) {
         settings.setValue("wifiState", state);
-        emit wifiStateChanged();
+        if (emitSignal)
+            emit wifiStateChanged();
     }
 }
 

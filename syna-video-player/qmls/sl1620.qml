@@ -168,7 +168,7 @@ ApplicationWindow {
             spacing: 10
             Layout.leftMargin: player.height / 25
             Layout.rightMargin: player.height / 25
-            Layout.topMargin: player.height / 35
+            Layout.topMargin: player.height / 13
             Layout.bottomMargin: 0
             Layout.fillWidth: true
             Layout.alignment: Qt.AlignLeft

@@ -12,9 +12,10 @@ QtObject {
                     { index: 2, component: "gfxDemos" },
                     { index: 3, component: "aiDemos2619" },
                     { index: 4, component: "capabilityDemos" },
-                    { index: 5, component: "realTimeStreaming" }
+                    { index: 5, component: "realTimeStreaming" },
+                    { index: 6, component: "cameraApp" }
                 ],
-                menu: ["Getting Started", "Video", "Graphics", "AI", "Capability Demo", "Real Time Streaming"]
+                menu: ["Getting Started", "Video", "Graphics", "AI", "Capability Demo", "Real Time Streaming", "ISP Camera"]
             }
         },
         "sl2615": {

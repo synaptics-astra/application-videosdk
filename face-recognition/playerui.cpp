@@ -38,8 +38,10 @@ PlayerUI::PlayerUI(QWidget* parent) : QWidget(parent)
     panel->setFocusPolicy(Qt::StrongFocus);
     connect(panel, &ControlPanel::startPlayback, this, &PlayerUI::startPlayback);
     connect(panel, &ControlPanel::stopPlayback, this, &PlayerUI::stopPlayback);
+    connect(panel, &ControlPanel::changeInputType, this, &PlayerUI::changeInputType);
     connect(panel, &ControlPanel::exitApplication, this, &PlayerUI::exitApplication);
     connect(panel, &ControlPanel::stopPreview, this, &PlayerUI::stopPreview);
+    connect(panel, &ControlPanel::rtspUrlchange, this, &PlayerUI::rtspUrlchange);
     panel->activateWindow();
     panel->raise();
     preview = new Preview(this);
@@ -111,6 +113,16 @@ void PlayerUI::stopPlayback()
 {
     stackedLayout->setCurrentIndex(0);
     player->stopPlayback();
+}
+
+void PlayerUI::changeInputType()
+{
+    player->changeInputType();
+}
+
+void PlayerUI::rtspUrlchange(const QString &text)
+{
+    player->changeRtspUrl(text);
 }
 
 void PlayerUI::exitApplication()

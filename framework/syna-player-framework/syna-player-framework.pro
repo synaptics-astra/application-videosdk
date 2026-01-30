@@ -16,6 +16,7 @@ x11 {
     DEFINES += HAVE_X11
 }
 
+LIBS += -lasound
 
 SOURCES += gstplayer.cpp \
            windowmanager.cpp \
@@ -24,6 +25,7 @@ SOURCES += gstplayer.cpp \
            videoprober.cpp \
            processhelper.cpp \
            statswidget.cpp \
+           audiohelper.cpp \
 
 HEADERS += syna-player-common.h \
            gstplayer.h \
@@ -33,6 +35,7 @@ HEADERS += syna-player-common.h \
            videoprober.h \
            processhelper.h \
            statswidget.h \
+           audiohelper.h \
 
 RESOURCES += synaplayerframework.qrc
 

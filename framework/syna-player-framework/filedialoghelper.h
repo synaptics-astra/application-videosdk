@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2025 Synaptics Incorporated
+
 #ifndef FILEDIALOGHELPER_H
 #define FILEDIALOGHELPER_H
 

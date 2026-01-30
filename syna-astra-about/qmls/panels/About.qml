@@ -18,6 +18,7 @@ Rectangle {
         astraVersionText.text = aboutManager.fetchAstraVersion();
         hwVersionText.text = aboutManager.fetchHwVersion();
         linuxVersionText.text = aboutManager.fetchLinuxVersion();
+        ipAddress.text = aboutManager.fetchIpAddress();
     }
 
     ColumnLayout {
@@ -108,6 +109,30 @@ Rectangle {
         TextView {
             id: linuxVersionText
             text: about.linuxVersion
+            font.pixelSize: Resource.paragraphLarge
+            font.capitalization: Font.MixedCase
+            font.family: "Sans Serif"
+        }
+
+        TextView {
+            visible: ipAddress.text !== "Unknown IP" && ipAddress.text !== ""
+            text: qsTr("IP Address")
+            font.pixelSize: Resource.paragraphLarge
+            isBold: true
+            font.family: "Sans Serif"
+        }
+
+        TextView {
+            visible: ipAddress.text !== "Unknown IP" && ipAddress.text !== ""
+            text: ":"
+            font.pixelSize: Resource.paragraphLarge
+            font.family: "Sans Serif"
+        }
+
+        TextView {
+            visible: ipAddress.text !== "Unknown IP" && ipAddress.text !== ""
+            id: ipAddress
+            text: about.ipAddress
             font.pixelSize: Resource.paragraphLarge
             font.capitalization: Font.MixedCase
             font.family: "Sans Serif"

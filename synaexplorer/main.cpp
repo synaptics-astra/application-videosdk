@@ -10,6 +10,7 @@
 #include "playbackcontrol.h"
 #include "settingsmanager.h"
 #include "processhelper.h"
+#include "audiohelper.h"
 
 using namespace std;
 
@@ -60,6 +61,9 @@ int main(int argc, char *argv[])
 
     ProcessHelper processHelper;
     engine.rootContext()->setContextProperty("processHelper", &processHelper);
+
+    AudioHelper audioHelper;
+    engine.rootContext()->setContextProperty("AudioHelper", &audioHelper);
 
     qmlRegisterSingletonType(QStringLiteral("qrc:/qmls/res.qml"), "Resource", 1, 0, "Resource");
     qmlRegisterSingletonType(QStringLiteral("qrc:/qmls/pageconfig.qml"), "PageConfig", 1, 0, "PageConfig");

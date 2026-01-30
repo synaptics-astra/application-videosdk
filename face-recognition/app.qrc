@@ -7,5 +7,7 @@
         <file>images/user.png</file>
         <file>images/preview.png</file>
         <file>images/image.jpg</file>
+        <file>images/rtsp.png</file>
+        <file>images/rtspok.png</file>
     </qresource>
 </RCC>

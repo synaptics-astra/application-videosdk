@@ -4,7 +4,7 @@
 #include "statswidget.h"
 
 StatsWidget::StatsWidget(QWidget *parent, QString appName, std::string mach)
-    : QWidget(parent), machine(mach), hasCPU(true), hasGPU(machine != SL2619_ASTRA_MACHINE && machine != SL2615_ASTRA_MACHINE), hasNPU(machine != SL1620_ASTRA_MACHINE && machine != SL2619_ASTRA_MACHINE && machine != SL2615_ASTRA_MACHINE)
+    : QWidget(parent), machine(mach), hasCPU(true), hasGPU(true), hasNPU(machine != SL1620_ASTRA_MACHINE && machine != SL2619_ASTRA_MACHINE && machine != SL2615_ASTRA_MACHINE)
 {
     this->setStyleSheet("background-color: rgb(0, 0, 0); color: white;");
 
@@ -207,19 +207,30 @@ QString StatsWidget::getCpuLoad()
 QString StatsWidget::getGpuLoad()
 {
     QProcess process;
-    process.start("cat", {"/sys/kernel/debug/pvr/status"});
     QString output = "0";
 
-    if (process.waitForFinished()) {
-        QString data = process.readAllStandardOutput();
-        QStringList lines = data.split("\n");
+    if (machine == SL2619_ASTRA_MACHINE || machine == SL2615_ASTRA_MACHINE) {
+        process.start("cat", {"/sys/devices/platform/soc/f7980000.gpu/gpu_util"});
+        if (process.waitForFinished()) {
+            output = process.readAllStandardOutput().trimmed();
+        } else {
+            qWarning() << "Process failed:" << process.errorString();
+        }
+    }
+    else
+    {
+        process.start("cat", {"/sys/kernel/debug/pvr/status"});
+        if (process.waitForFinished()) {
+            QString data = process.readAllStandardOutput();
+            QStringList lines = data.split("\n");
 
-        auto it = std::find_if(lines.begin(), lines.end(), [](const QString &line) {
-            return line.contains("GPU Utilisation");
-        });
+            auto it = std::find_if(lines.begin(), lines.end(), [](const QString &line) {
+                return line.contains("GPU Utilisation");
+            });
 
-        if (it != lines.end()) {
-            output = it->split(":")[1].trimmed().remove("%");
+            if (it != lines.end()) {
+                output = it->split(":")[1].trimmed().remove("%");
+            }
         }
     }
 

@@ -49,9 +49,14 @@ Rectangle {
             ToggleButton {
                 id: wifiToggleButton
                 checked: wifiapp.wifiState
+                property bool initialized: false
+
+                Component.onCompleted: initialized = true
 
                 onToggleStateChanged: {
-                    wifiapp.togglePythonScript(checked)
+                    if (initialized) {
+                        wifiapp.togglePythonScript(checked)
+                    }
                 }
             }
         }
@@ -59,7 +64,7 @@ Rectangle {
 
     RowBar {
         id: availableNetworks
-        opacity: wifiToggle.checked ? 1 : 0
+        opacity: wifiToggleButton.checked ? 1 : 0
         visible: true
         anchors.top: wifiBar.bottom
         anchors.left: parent.left
@@ -112,7 +117,7 @@ Rectangle {
 
     RowBar {
         id: manageNetworks
-        opacity: wifiToggle.checked ? 1 : 0
+        opacity: wifiToggleButton.checked ? 1 : 0
         visible: true
         anchors.top: availableNetworks.bottom
         anchors.left: parent.left
@@ -147,12 +152,6 @@ Rectangle {
 
     signal toggleButtonClicked(bool state)
 
-    property alias wifiState: wifiToggle.checked
+    property alias wifiState: wifiToggleButton.checked
 
-    Switch {
-        id: wifiToggle
-        checked: wifiapp.wifiState
-        visible: false
-        onCheckedChanged: wifiapp.togglePythonScript(checked)
-    }
 }
