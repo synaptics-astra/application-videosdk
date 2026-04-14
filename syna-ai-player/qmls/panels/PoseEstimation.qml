@@ -10,6 +10,8 @@ Rectangle {
     id: pe
     color: Resource.background
 
+    property bool is1680: false
+
     Item {
         id: spacer_0
         height: Screen.width/50
@@ -34,6 +36,10 @@ Rectangle {
     }
 
     GridLayout {
+        id: gridLayout
+        columns: 4
+        columnSpacing: pe.width * 0.05
+        rowSpacing: pe.width * 0.05
         width: pe.width * 0.9
         anchors.top: header.bottom
         anchors.centerIn: parent
@@ -43,6 +49,9 @@ Rectangle {
             mode: "file"
             image: "qrc:/res/images/file_icon.png"
             title:  qsTr("File")
+            Layout.preferredWidth: gridLayout.width / 6
+            Layout.preferredHeight: gridLayout.width / 6
+            Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
             modelPipeline: "tee name=t_data t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=640,height=352,format=RGB ! synapinfer model=/usr/share/synap/models/object_detection/body_pose/model/yolov8s-pose/model.synap mode=detector frameinterval=3 ! overlay.inference_sink t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=1920,height=1080,format=BGRA ! synapoverlay name=overlay ! placeholdersink"
         }
 
@@ -50,8 +59,24 @@ Rectangle {
             type: 1
             mode: "camera"
             image: "qrc:/res/images/camera_icon.png"
-            title:  qsTr("Camera")
+            title:  qsTr("USB Camera")
+            Layout.preferredWidth: gridLayout.width / 6
+            Layout.preferredHeight: gridLayout.width / 6
+            Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
             command1: "CAMSRC ! tee name=t_data t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=640,height=352,format=RGB  ! synapinfer model=/usr/share/synap/models/object_detection/body_pose/model/yolov8s-pose/model.synap mode=detector frameinterval=3 ! overlay.inference_sink t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=640,height=480,format=BGRA  ! synapoverlay name=overlay ! placeholdersink"
+        }
+
+        GridItem {
+            id: cameraIsp1680
+            type: 1
+            mode: "camera"
+            image: "qrc:/res/images/camera_icon.png"
+            title: qsTr("ISP Camera")
+            visible: is1680
+            Layout.preferredWidth: gridLayout.width / 6
+            Layout.preferredHeight: gridLayout.width / 6
+            Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+            command1: "CAMSRC name=ISP ! tee name=t_data t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=640,height=352,format=RGB  ! synapinfer model=/usr/share/synap/models/object_detection/body_pose/model/yolov8s-pose/model.synap mode=detector frameinterval=3 ! overlay.inference_sink t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=640,height=480,format=BGRA  ! synapoverlay name=overlay ! placeholdersink"
         }
     }
 }

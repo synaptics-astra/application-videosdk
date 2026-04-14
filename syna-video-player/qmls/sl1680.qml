@@ -30,7 +30,12 @@ ApplicationWindow {
         } else if (mode === "v4l2") {
             cmdComponent = Qt.createComponent("file:///home/root/demos/qmls/v4l2commands.qml")
         }
-        cmdsModel = cmdComponent.createObject()
+        if (cmdComponent.status === Component.Ready) {
+            cmdsModel = cmdComponent.createObject()
+            cmdsModel.append({"text": "ISP Source", "value": " CAMSRC name=ISP ! placeholdersink"})
+        } else {
+            console.log("Component load failed:", cmdComponent.errorString())
+        }
         var rtspData = settingsManager.getData(settingsIdRtspUrls)
         rtspUrlsModel = rtspData["rtspUrls"] || ["", "", "", ""]
     }

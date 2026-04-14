@@ -6,6 +6,7 @@
 #include <QQmlContext>
 #include <QDebug>
 #include <QProcess>
+#include <cstdlib>
 
 #include "playbackcontrol.h"
 
@@ -36,6 +37,9 @@ static void setDefaultMode(PlaybackControl &playbackControl)
         playbackControl.mode = USE_HARDWARE_DECODER;
     } else if (playbackControl.machine == SL1680_ASTRA_MACHINE) {
         playbackControl.mode = USE_HARDWARE_DECODER;
+        system(R"(echo "mode=1" > /proc/vsi/isp_subdev0)");
+        system(R"(echo "sensor=ov5647 xml=/usr/share/OV5647_2k.xml manu_json=/usr/share/ISP_Manual_OV5647_2k.json auto_json=/usr/share/ISP_Auto_OV5647_2k.json" > /proc/vsi/isp_subdev0)");
+        system(R"(echo "csi_clock_rate=300000000" > /proc/vsi/isp_subdev0)");
     }
 }
 

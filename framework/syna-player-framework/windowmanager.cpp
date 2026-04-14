@@ -23,34 +23,59 @@ int WindowManager::findScaleFactor(int width, int height)
     return findScaleFactor(height, width % height);
 }
 
-static int detectCameraFormat(v4l2dev_t *pV4l2Cam, SettingsManager* settingsManager)
+static int detectCameraFormat(v4l2dev_t *pV4l2Cam, SettingsManager* settingsManager, const QString &deviceName)
 {
-    struct v4l2_fmtdesc fmt;
-    fmt.index = 0;
-    fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    QVariantMap formatData = settingsManager->getData(SETTINGS_ID_USB_FORMAT_PRIORITIES);
-    QStringList formatPriority = formatData["formatPriorities"].toStringList();
-    QMap<QString, uint32_t> supportedFormats;
-
-    while (ioctl(pV4l2Cam->dev_fd, VIDIOC_ENUM_FMT, &fmt) == 0)
-    {
-        if (fmt.pixelformat == V4L2_PIX_FMT_YUYV) {
-            supportedFormats["YUY2"] = V4L2_PIX_FMT_YUYV;
-        }
-        else if (fmt.pixelformat == V4L2_PIX_FMT_NV12) {
-            supportedFormats["NV12"] = V4L2_PIX_FMT_NV12;
-        }
-        else if (fmt.pixelformat == V4L2_PIX_FMT_H264) {
-            supportedFormats["H264"] = V4L2_PIX_FMT_H264;
-        }
-        else if (fmt.pixelformat == V4L2_PIX_FMT_MJPEG) {
-            supportedFormats["MJPEG"] = V4L2_PIX_FMT_MJPEG;
-        }
-        fmt.index++;
+    if (!pV4l2Cam || pV4l2Cam->dev_fd < 0 || !settingsManager) {
+        qWarning() << "detectCameraFormat: invalid input";
+        return -1;
     }
 
-    for (const QString &priorityFormat : formatPriority)
-    {
+    QVariantMap formatData = settingsManager->getData(SETTINGS_ID_USB_FORMAT_PRIORITIES);
+    QStringList formatPriority = formatData["formatPriorities"].toStringList();
+    if (formatPriority.isEmpty()) {
+        formatPriority << "YUY2" << "NV12" << "H264" << "MJPEG";
+    }
+
+    // Hardcode priority for this specific device
+    if (deviceName == "vvcam-video.0.0") {
+        formatPriority = QStringList{"NV12", "YUY2", "H264", "MJPEG"};
+    }
+
+    QMap<QString, uint32_t> supportedFormats;
+
+    auto scanType = [&](int typeVal) {
+        struct v4l2_fmtdesc fmt;
+        memset(&fmt, 0, sizeof(fmt));
+        fmt.type = typeVal;
+        fmt.index = 0;
+
+        while (ioctl(pV4l2Cam->dev_fd, VIDIOC_ENUM_FMT, &fmt) == 0)
+        {
+            if (fmt.pixelformat == V4L2_PIX_FMT_YUYV) {
+                supportedFormats["YUY2"] = V4L2_PIX_FMT_YUYV;
+            }
+            else if (fmt.pixelformat == V4L2_PIX_FMT_NV12 || fmt.pixelformat == V4L2_PIX_FMT_NV12M) {
+                supportedFormats["NV12"] = V4L2_PIX_FMT_NV12;
+            }
+            else if (fmt.pixelformat == V4L2_PIX_FMT_H264) {
+                supportedFormats["H264"] = V4L2_PIX_FMT_H264;
+            }
+            else if (fmt.pixelformat == V4L2_PIX_FMT_MJPEG) {
+                supportedFormats["MJPEG"] = V4L2_PIX_FMT_MJPEG;
+            }
+
+            fmt.index++;
+        }
+    };
+    // Keep both scan types
+    if (deviceName == "vvcam-video.0.0") {
+        scanType(V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE);
+    }
+    else {
+        scanType(V4L2_BUF_TYPE_VIDEO_CAPTURE);
+    }
+
+    for (const QString &priorityFormat : formatPriority) {
         if (supportedFormats.contains(priorityFormat)) {
             pV4l2Cam->dev_v4l2_fmt = supportedFormats[priorityFormat];
             return 0;
@@ -67,6 +92,7 @@ void WindowManager::updateCAMSRC(QVector<QString>::iterator iter)
     QString camSrcPipelineH264, camSrcPipelineMJPEG, camSrcPipelineYUY2, camSrcPipelineNV12;
     QString videoTestSrcPipeline = "videotestsrc ! video/x-raw, framerate=30/1,format=NV12,width=640,height=480 !"
     " textoverlay text='No camera source detected..!'";
+    int isVvcam = (*iter).indexOf("name=ISP", 0, Qt::CaseInsensitive);
     /* Predefine pipelines for each camera format */
     if(machine == SL1620_ASTRA_MACHINE || machine == SL2615_ASTRA_MACHINE || machine == SL2619_ASTRA_MACHINE) {
         camSrcPipelineH264 = "v4l2src device=CAM ! video/x-h264,framerate=15/1,format=H264,width=640,height=480 ! h264parse ! avdec_h264";
@@ -81,56 +107,47 @@ void WindowManager::updateCAMSRC(QVector<QString>::iterator iter)
         camSrcPipelineNV12 = "v4l2src device=CAM io-mode=2 ! video/x-raw,framerate=30/1,format=NV12,width=640,height=480";
     }
 
-    if (camIter == cams.end()) {
-        camIter = cams.begin();
-    }
-    if (camsfmtIter == camsfmt.end()) {
-        camsfmtIter = camsfmt.begin();
-    }
-
     int camSrcIndex = (*iter).indexOf(camSrcReplaceWord, 0, Qt::CaseInsensitive);
     int count = camCount;
     while (camSrcIndex != -1) {
-
-        if (count) {
-            QString currentFormat = QString::fromStdString(*camsfmtIter);
-
-            if (currentFormat == "YUY2") {
-                camSrcPipeline = camSrcPipelineYUY2;
-            } else if (currentFormat == "NV12") {
-                camSrcPipeline = camSrcPipelineNV12;
-            } else if (currentFormat == "H264") {
-                camSrcPipeline = camSrcPipelineH264;
-            } else if (currentFormat == "MJPEG") {
-                camSrcPipeline = camSrcPipelineMJPEG;
+        bool wantVvcam = (isVvcam != -1);
+        if (wantVvcam) (*iter).replace(isVvcam, QString("name=ISP").length(), "");
+        auto chosen = camInfoList.end();
+        for (auto it = camInfoList.begin(); it != camInfoList.end(); ++it) {
+            if (!(*it).isUsed) {
+                if (wantVvcam && (*it).type == "vvcam") {
+                    chosen = it;
+                    break;
+                }
+                else if (!wantVvcam && (*it).type == "usb") {
+                    chosen = it;
+                    break;
+                }
+            }
+        }
+        if (chosen != camInfoList.end() && camCount > 0) {
+            QString currentPipeline;
+            if (wantVvcam) {
+                currentPipeline = camSrcPipelineNV12;
+            } else if ((*chosen).fmt == "H264") {
+                currentPipeline = camSrcPipelineH264;
+            } else if ((*chosen).fmt == "MJPEG") {
+                currentPipeline = camSrcPipelineMJPEG;
+            } else if ((*chosen).fmt == "YUY2") {
+                currentPipeline = camSrcPipelineYUY2;
+            } else if ((*chosen).fmt == "NV12") {
+                currentPipeline = camSrcPipelineNV12;
             } else {
-                qWarning() << "Unsupported camera format: " << currentFormat;
-                camSrcPipeline = videoTestSrcPipeline;
+                currentPipeline = videoTestSrcPipeline;
             }
-            (*iter).replace(camSrcIndex, camSrcReplaceWord.length(), camSrcPipeline);
-
-            camSrcIndex = (*iter).indexOf(camSrcReplaceWord, camSrcIndex + 1, Qt::CaseInsensitive);
-
-            if (camsfmtIter != camsfmt.end()) {
-                camsfmtIter++;
-            }
-            count--;
-
-        } else {
-            /* In a case where we don't find sufficient number of camera source use videotestsrc */
-            (*iter).replace(camSrcIndex, camSrcReplaceWord.length(), videoTestSrcPipeline);
-            camSrcIndex = (*iter).indexOf(camSrcReplaceWord, camSrcIndex + 1, Qt::CaseInsensitive);
-        }
-    }
-    int camIndex = (*iter).indexOf(replaceWord, 0, Qt::CaseInsensitive);
-
-    while (camIndex != -1) {
-        if (camCount) {
-            (*iter).replace(camIndex, replaceWord.length(), QString::fromUtf8((*camIter).c_str()));
-            camIter++;
+            (*iter).replace(camSrcIndex, camSrcReplaceWord.length(), currentPipeline.replace("CAM", QString::fromUtf8((*chosen).cam.c_str())));
+            (*chosen).isUsed = true;
             camCount--;
+        } else {
+            // no available devices
+            (*iter).replace(camSrcIndex, camSrcReplaceWord.length(), videoTestSrcPipeline);
         }
-        camIndex = (*iter).indexOf(replaceWord, camIndex + 1, Qt::CaseInsensitive);
+        camSrcIndex = (*iter).indexOf(camSrcReplaceWord, 0, Qt::CaseInsensitive);
     }
 }
 
@@ -252,7 +269,7 @@ void WindowManager::getDevicePath()
     struct udev_enumerate *enumerate;
     struct udev_list_entry *devices, *dev_list_entry;
     FILE *fp;
-    char sysName[255];
+    char sysName[512];
     unsigned int index;
 
     udev = udev_new();
@@ -261,65 +278,99 @@ void WindowManager::getDevicePath()
     }
 
     enumerate = udev_enumerate_new(udev);
+    if (!enumerate) {
+        udev_unref(udev);
+        return;
+    }
+
+    // Include all video4linux devices (USB + platform)
     udev_enumerate_add_match_subsystem(enumerate, "video4linux");
-    udev_enumerate_add_match_property(enumerate, "ID_BUS", "usb");
     udev_enumerate_scan_devices(enumerate);
     devices = udev_enumerate_get_list_entry(enumerate);
 
     udev_list_entry_foreach(dev_list_entry, devices) {
-        const char *path;
-        struct udev_device *dev;
+        const char *path = udev_list_entry_get_name(dev_list_entry);
+        if (!path) {
+            continue;
+        }
 
-        path = udev_list_entry_get_name(dev_list_entry);
-        dev = udev_device_new_from_syspath(udev, path);
+        struct udev_device *dev = udev_device_new_from_syspath(udev, path);
+        if (!dev) {
+            continue;
+        }
 
         const char *sysPath = udev_device_get_syspath(dev);
-        if (sysPath != nullptr) {
-            std::string video4linuxPath = std::string(sysPath);
-            sprintf(sysName, "%s%s%s", "cat ", video4linuxPath.c_str(), "/index");
+        const char *devNode = udev_device_get_devnode(dev);
+        camInfo currentCamInfo;
+
+        if (sysPath != nullptr && devNode != nullptr) {
+
+            bool isUsb = isUsbDevice(dev);
+            currentCamInfo.type = isUsb ? "usb" : "platform";
+
+            // if not USB, check for the explicit platform device name
+            QString deviceName = getVideoDeviceNameFromSysPath(sysPath);
+            bool isVvcam = (deviceName == "vvcam-video.0.0");
+            if (isVvcam) {
+                currentCamInfo.type = "vvcam";
+            }
+
+            if (!(isUsb || isVvcam)) {
+                udev_device_unref(dev);
+                continue; // skip other platform devices
+            }
+
+            string video4linuxPath = string(sysPath);
+
+            snprintf(sysName, sizeof(sysName), "%s%s%s", "cat ", video4linuxPath.c_str(), "/index");
 
             fp = popen(sysName, "r");
             if (fp != nullptr) {
-                fscanf(fp, "%u", &index);
-                pclose(fp);
-                if (index == 0) {
-                    std::string deviceNode = udev_device_get_devnode(dev);
-                    cams.push_back(deviceNode);
-
-                    v4l2dev_t camDetails;
-                    camDetails.dev_fd = open(deviceNode.c_str(), O_RDWR);
+                if (fscanf(fp, "%u", &index) == 1 && index == 0) {
+                    v4l2dev_t camDetails{};
+                    camDetails.dev_fd = open(devNode, O_RDWR);
 
                     if (camDetails.dev_fd < 0) {
-                        qWarning() << "Failed to open the Camera Device: "
-                                   << QString::fromStdString(deviceNode);
+                        qWarning() << "Failed to open the Camera Device:"
+                                   << QString::fromUtf8(devNode);
+                        pclose(fp);
+                        udev_device_unref(dev);
                         continue;
                     }
-                    if (detectCameraFormat(&camDetails, settingsManager) == 0) {
+                    QString deviceName = getVideoDeviceNameFromSysPath(sysPath);
+                    if (detectCameraFormat(&camDetails, settingsManager, deviceName) == 0) {
+                        std::string fmtStr;
                         if (camDetails.dev_v4l2_fmt == V4L2_PIX_FMT_YUYV) {
-                            camsfmt.push_back("YUY2");
+                            fmtStr = "YUY2";
+                        } else if (camDetails.dev_v4l2_fmt == V4L2_PIX_FMT_NV12) {
+                            fmtStr = "NV12";
+                        } else if (camDetails.dev_v4l2_fmt == V4L2_PIX_FMT_H264) {
+                            fmtStr = "H264";
+                        } else if (camDetails.dev_v4l2_fmt == V4L2_PIX_FMT_MJPEG) {
+                            fmtStr = "MJPEG";
                         }
-                        else if (camDetails.dev_v4l2_fmt == V4L2_PIX_FMT_NV12) {
-                            camsfmt.push_back("NV12");
+
+                        if (!fmtStr.empty()) {
+                            currentCamInfo.cam = std::string(devNode);
+                            currentCamInfo.fmt = fmtStr;
+                            camInfoList.push_back(currentCamInfo);
+                            emit cameraFormatChanged();
+                        } else {
+                            qWarning() << "Unsupported selected format for device:"
+                                       << QString::fromUtf8(devNode);
                         }
-                        else if (camDetails.dev_v4l2_fmt == V4L2_PIX_FMT_H264) {
-                            camsfmt.push_back("H264");
-                        }
-                        else if (camDetails.dev_v4l2_fmt == V4L2_PIX_FMT_MJPEG) {
-                            camsfmt.push_back("MJPEG");
-                        }
-                        emit cameraFormatChanged();
+                    } else {
+                        qWarning() << "Failed to detect suitable format for device:"
+                                   << QString::fromUtf8(devNode);
                     }
-                    else {
-                    qWarning() << "Failed to detect suitable format for device: "
-                               << QString::fromStdString(deviceNode);
-                    }
+
                     ::close(camDetails.dev_fd);
                 }
+                pclose(fp);
             }
         }
         udev_device_unref(dev);
     }
-
     udev_enumerate_unref(enumerate);
     udev_unref(udev);
 }
@@ -385,16 +436,44 @@ machine(mach), rtspIndex(0), appName(appName)
 #endif
 
     players.clear();
-    cams.clear();
-    camsfmt.clear();
+    camInfoList.clear();
     getDevicePath();
-    camIter = cams.begin();
-    camsfmtIter = camsfmt.begin();
-    camCount = cams.count();
+    camCount = camInfoList.count();
     hrxs.clear();
     getHRXDevicePath();
     hrxIter = hrxs.begin();
     hrxCount = hrxs.count();
+}
+
+QString WindowManager::getVideoDeviceNameFromSysPath(const char* syspath)
+{
+    if (!syspath) return QString();
+
+    char cmd[1024];
+    int n = snprintf(cmd, sizeof(cmd), "cat %s/name", syspath);
+    if (n <= 0 || n >= (int)sizeof(cmd)) return QString();
+
+    FILE* fp = popen(cmd, "r");
+    if (!fp) return QString();
+
+    char buf[256] = {0};
+    QString out;
+    if (fgets(buf, sizeof(buf), fp)) {
+        out = QString::fromLatin1(buf).trimmed();
+    }
+    pclose(fp);
+    return out;
+}
+
+// Determine if 'dev' is USB-backed
+bool WindowManager::isUsbDevice(struct udev_device *dev)
+{
+    if (!dev) return false;
+    const char *id_bus = udev_device_get_property_value(dev, "ID_BUS");
+    if (id_bus && strcmp(id_bus, "usb") == 0) {
+        return true;
+    }
+    return false;
 }
 
 void WindowManager::play(QString url1, QString url2)
@@ -433,9 +512,8 @@ void WindowManager::play(QString url1, QString url2)
     urls.push_back(url2);
 
     iter = urls.begin();
-    camIter = cams.begin();
-    camsfmtIter = camsfmt.begin();
-    camCount = cams.count();
+    camCount = camInfoList.count();
+    for (auto &c : camInfoList) c.isUsed = false;
     hrxIter = hrxs.begin();
     hrxCount = hrxs.count();
 
@@ -513,9 +591,8 @@ void WindowManager::play(int index, QString url1, QString url2,
     urls.push_back(url4);
 
     iter = urls.begin();
-    camIter = cams.begin();
-    camsfmtIter = camsfmt.begin();
-    camCount = cams.count();
+    camCount = camInfoList.count();
+    for (auto &c : camInfoList) c.isUsed = false;
 
     for (int i = 0; i < index; i++)
     {

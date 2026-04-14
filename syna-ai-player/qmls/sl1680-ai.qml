@@ -186,9 +186,16 @@ ApplicationWindow {
             id: pageStackView
             anchors.fill: parent
             initialItem: Loader {
-                id: sidemenu
-                sourceComponent: objectDetection
-            }
+                    id: sidemenu
+                    sourceComponent: objectDetection
+                    onLoaded: {
+                        if (item) {
+                            if (item.hasOwnProperty("is1680")) {
+                                item.is1680 = true
+                            }
+                        }
+                    }
+                }
         }
     }
 

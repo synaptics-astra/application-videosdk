@@ -47,6 +47,13 @@ struct v4l2dev_t
     uint32_t dev_v4l2_fmt;
 };
 
+struct camInfo {
+    string cam;
+    string fmt;
+    string type;
+    bool isUsed = false;
+};
+
 class WindowManager : public QWidget {
     Q_OBJECT
     Q_PROPERTY(QString cameraFormat READ cameraFormat NOTIFY cameraFormatChanged)
@@ -82,13 +89,12 @@ private:
     int rtspIndex = 0;
     QMutex mutex;
     QVector<QString> urls;
+    QString getVideoDeviceNameFromSysPath(const char* syspath);
+    bool isUsbDevice(struct udev_device *dev);
     QVector<QString>::iterator iter;
     QVector<GstPlayer*> players;
-    QVector<string> cams;
-    QVector<string>camsfmt;
+    QVector<camInfo> camInfoList;
     QVector<string> hrxs;
-    QVector<string>::iterator camIter;
-    QVector<string>::iterator camsfmtIter;
     QVector<string>::iterator hrxIter;
     QString cameraFormatList = "YUY2";
     QString hrxFormatList = "NV12";

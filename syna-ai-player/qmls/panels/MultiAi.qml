@@ -10,6 +10,8 @@ Rectangle {
     id: ma
     color: Resource.background
 
+    property bool is1680: false
+
     property var rtspUrlsModel: null
     Component.onCompleted: {
         var rtspData = settingsManager.getData(2)
@@ -129,6 +131,9 @@ Rectangle {
 
     GridLayout {
         id: gridLayout
+        columns: 4
+        columnSpacing: ma.width * 0.05
+        rowSpacing: ma.width * 0.05
         width: ma.width * 0.9
         anchors.top: header.bottom
         anchors.centerIn: parent
@@ -138,7 +143,25 @@ Rectangle {
             type: 2
             image: "qrc:/res/images/multi_icon.png"
             title:  qsTr("USB Camera")
+            Layout.preferredWidth: gridLayout.width / 6
+            Layout.preferredHeight: gridLayout.width / 6
+            Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
             command1: "CAMSRC ! tee name=t_data t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=640,height=384,format=RGB ! synapinfer model=/usr/share/synap/models/object_detection/coco/model/yolov8s-640x384/model.synap mode=detector frameinterval=3 ! overlay.inference_sink t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=640,height=480,format=BGRA ! synapoverlay name=overlay label=/usr/share/synap/models/object_detection/coco/info.json ! placeholdersink"
+            command2: "CAMSRC ! tee name=t_data t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=640,height=480,format=RGB ! synapinfer model=/usr/share/synap/models/object_detection/face/model/yolov5s_face_640x480_onnx_mq/model.synap mode=detector frameinterval=3 ! overlay.inference_sink t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=640,height=480,format=BGRA ! synapoverlay name=overlay ! placeholdersink"
+            command3: "CAMSRC ! tee name=t_data t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=640,height=352,format=RGB ! synapinfer model=/usr/share/synap/models/object_detection/body_pose/model/yolov8s-pose/model.synap mode=detector frameinterval=3 ! overlay.inference_sink t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=640,height=480,format=BGRA ! synapoverlay name=overlay ! placeholdersink"
+            command4: "CAMSRC ! tee name=t_data t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=640,height=384,format=RGB ! synapinfer model=/usr/share/synap/models/object_detection/coco/model/yolov8s-640x384/model.synap mode=detector frameinterval=3 ! overlay.inference_sink t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=640,height=480,format=BGRA ! synapoverlay name=overlay label=/usr/share/synap/models/object_detection/coco/info.json ! placeholdersink"
+        }
+
+        GridItem {
+            id: multiaiispcam
+            type: 2
+            image: "qrc:/res/images/multi_icon.png"
+            title:  qsTr("ISP Camera")
+            visible: is1680
+            Layout.preferredWidth: gridLayout.width / 6
+            Layout.preferredHeight: gridLayout.width / 6
+            Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+            command1: "CAMSRC name=ISP ! tee name=t_data t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=640,height=384,format=RGB ! synapinfer model=/usr/share/synap/models/object_detection/coco/model/yolov8s-640x384/model.synap mode=detector frameinterval=3 ! overlay.inference_sink t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=640,height=480,format=BGRA ! synapoverlay name=overlay label=/usr/share/synap/models/object_detection/coco/info.json ! placeholdersink"
             command2: "CAMSRC ! tee name=t_data t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=640,height=480,format=RGB ! synapinfer model=/usr/share/synap/models/object_detection/face/model/yolov5s_face_640x480_onnx_mq/model.synap mode=detector frameinterval=3 ! overlay.inference_sink t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=640,height=480,format=BGRA ! synapoverlay name=overlay ! placeholdersink"
             command3: "CAMSRC ! tee name=t_data t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=640,height=352,format=RGB ! synapinfer model=/usr/share/synap/models/object_detection/body_pose/model/yolov8s-pose/model.synap mode=detector frameinterval=3 ! overlay.inference_sink t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=640,height=480,format=BGRA ! synapoverlay name=overlay ! placeholdersink"
             command4: "CAMSRC ! tee name=t_data t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=640,height=384,format=RGB ! synapinfer model=/usr/share/synap/models/object_detection/coco/model/yolov8s-640x384/model.synap mode=detector frameinterval=3 ! overlay.inference_sink t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=640,height=480,format=BGRA ! synapoverlay name=overlay label=/usr/share/synap/models/object_detection/coco/info.json ! placeholdersink"
@@ -150,6 +173,9 @@ Rectangle {
             mode: "camera"
             image: "qrc:/res/images/multi_icon.png"
             title:  qsTr("AI on muxed 9x480p")
+            Layout.preferredWidth: gridLayout.width / 6
+            Layout.preferredHeight: gridLayout.width / 6
+            Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
                 command1: "glvideomixerelement background=1 name=comp
                 sink_0::xpos=0 sink_0::ypos=0 sink_0::width=640 sink_0::height=480
                 sink_1::xpos=0 sink_1::ypos=500 sink_1::width=640 sink_1::height=480
@@ -188,6 +214,9 @@ Rectangle {
             type: 2
             image: "qrc:/res/images/multi_icon.png"
             title:  qsTr("RTSP Camera")
+            Layout.preferredWidth: gridLayout.width / 6
+            Layout.preferredHeight: gridLayout.width / 6
+            Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
             command1: "rtspsrc location=RTSPURL latency=500 ! rtpjitterbuffer ! rtph264depay wait-for-keyframe=true ! video/x-h264, width=1920, height=1080 ! h264parse ! v4l2h264dec ! synavideoconvertscale ! video/x-raw, width=640, height=384, format=BGRA ! tee name=t_data t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=640,height=384,format=RGB ! synapinfer model=/usr/share/synap/models/object_detection/coco/model/yolov8s-640x384/model.synap mode=detector frameinterval=4 threshold=0.3 ! overlay.inference_sink t_data. ! queue ! textoverlay name=title text=\"Object Detection\" valignment=top halignment=center font-desc=\"Sans, 14\" shaded-background=yes ! synapoverlay name=overlay label=/usr/share/synap/models/object_detection/coco/info.json ! placeholdersink"
             command2: "rtspsrc location=RTSPURL latency=500 ! rtpjitterbuffer ! rtph264depay wait-for-keyframe=true ! video/x-h264, width=1920, height=1080 ! h264parse ! v4l2h264dec ! synavideoconvertscale ! video/x-raw, width=640, height=384, format=BGRA ! tee name=t_data t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=640,height=384,format=RGB ! synapinfer model=/usr/share/synap/models/object_detection/coco/model/yolov8s-640x384/model.synap mode=detector frameinterval=4 threshold=0.3 ! overlay.inference_sink t_data. ! queue ! textoverlay name=title text=\"Object Detection\" valignment=top halignment=center font-desc=\"Sans, 14\" shaded-background=yes ! synapoverlay name=overlay label=/usr/share/synap/models/object_detection/coco/info.json ! placeholdersink"
             command3: "rtspsrc location=RTSPURL latency=500 ! rtpjitterbuffer ! rtph264depay wait-for-keyframe=true ! video/x-h264, width=1920, height=1080 ! h264parse ! v4l2h264dec ! synavideoconvertscale ! video/x-raw, width=640, height=384, format=BGRA ! tee name=t_data t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=640,height=384,format=RGB ! synapinfer model=/usr/share/synap/models/object_detection/coco/model/yolov8s-640x384/model.synap mode=detector frameinterval=4 threshold=0.3 ! overlay.inference_sink t_data. ! queue ! textoverlay name=title text=\"Object Detection\" valignment=top halignment=center font-desc=\"Sans, 14\" shaded-background=yes ! synapoverlay name=overlay label=/usr/share/synap/models/object_detection/coco/info.json ! placeholdersink"

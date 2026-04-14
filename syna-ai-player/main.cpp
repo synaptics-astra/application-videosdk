@@ -5,6 +5,7 @@
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QProcess>
+#include <cstdlib>
 
 #include "playbackcontrol.h"
 #include "videoprober.h"
@@ -46,6 +47,9 @@ int main(int argc, char *argv[])
         qmlStr = "/home/root/demos/qmls/sl1640-ai.qml";
     } else if (playbackControl.machine == SL1680_ASTRA_MACHINE) {
         qmlStr = "/home/root/demos/qmls/sl1680-ai.qml";
+        system(R"(echo "mode=1" > /proc/vsi/isp_subdev0)");
+        system(R"(echo "sensor=ov5647 xml=/usr/share/OV5647_2k.xml manu_json=/usr/share/ISP_Manual_OV5647_2k.json auto_json=/usr/share/ISP_Auto_OV5647_2k.json" > /proc/vsi/isp_subdev0)");
+        system(R"(echo "csi_clock_rate=300000000" > /proc/vsi/isp_subdev0)");
     }
 
     if (qmlStr.isEmpty()) {
