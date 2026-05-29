@@ -6,6 +6,9 @@
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <unistd.h>
+#ifdef HAVE_WAYLAND
+#include <wayland-client.h>
+#endif
 #include <QFile>
 #include <QTextStream>
 #include <QStringList>
@@ -37,7 +40,7 @@ static int detectCameraFormat(v4l2dev_t *pV4l2Cam, SettingsManager* settingsMana
     }
 
     // Hardcode priority for this specific device
-    if (deviceName == "vvcam-video.0.0") {
+    if (deviceName == "vvcam-video.0.0" || deviceName == "camera-video.0.0") {
         formatPriority = QStringList{"NV12", "YUY2", "H264", "MJPEG"};
     }
 
@@ -68,7 +71,7 @@ static int detectCameraFormat(v4l2dev_t *pV4l2Cam, SettingsManager* settingsMana
         }
     };
     // Keep both scan types
-    if (deviceName == "vvcam-video.0.0") {
+    if (deviceName == "vvcam-video.0.0" || deviceName == "camera-video.0.0") {
         scanType(V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE);
     }
     else {
@@ -94,7 +97,7 @@ void WindowManager::updateCAMSRC(QVector<QString>::iterator iter)
     " textoverlay text='No camera source detected..!'";
     int isVvcam = (*iter).indexOf("name=ISP", 0, Qt::CaseInsensitive);
     /* Predefine pipelines for each camera format */
-    if(machine == SL1620_ASTRA_MACHINE || machine == SL2615_ASTRA_MACHINE || machine == SL2619_ASTRA_MACHINE) {
+    if (machine == SL1620_ASTRA_MACHINE || machine == SL2615_ASTRA_MACHINE || machine == SL2619_ASTRA_MACHINE) {
         camSrcPipelineH264 = "v4l2src device=CAM ! video/x-h264,framerate=15/1,format=H264,width=640,height=480 ! h264parse ! avdec_h264";
         camSrcPipelineMJPEG = "v4l2src device=CAM ! image/jpeg,framerate=15/1,format=MJPEG,width=640,height=480 ! jpegdec";
         camSrcPipelineYUY2 = "v4l2src device=CAM io-mode=2 ! video/x-raw,framerate=15/1,format=YUY2,width=640,height=480";
@@ -302,7 +305,6 @@ void WindowManager::getDevicePath()
         const char *sysPath = udev_device_get_syspath(dev);
         const char *devNode = udev_device_get_devnode(dev);
         camInfo currentCamInfo;
-
         if (sysPath != nullptr && devNode != nullptr) {
 
             bool isUsb = isUsbDevice(dev);
@@ -310,9 +312,13 @@ void WindowManager::getDevicePath()
 
             // if not USB, check for the explicit platform device name
             QString deviceName = getVideoDeviceNameFromSysPath(sysPath);
-            bool isVvcam = (deviceName == "vvcam-video.0.0");
+            bool isVvcam = (deviceName == "vvcam-video.0.0") || (deviceName == "camera-video.0.0");
             if (isVvcam) {
                 currentCamInfo.type = "vvcam";
+            }
+
+            if (deviceName == "camera-video.0.0") {
+                system(("v4l2-ctl -d " + std::string(devNode) + " --set-ctrl wb_enable=0").c_str());
             }
 
             if (!(isUsb || isVvcam)) {
@@ -393,7 +399,7 @@ void WindowManager::playPipelines()
     }
 }
 
-WindowManager::WindowManager(QWidget *parent, string mach, QString appName) : QWidget(parent), mutex(QMutex::Recursive),
+WindowManager::WindowManager(QWidget *parent, string mach, QString appName) : QWidget(parent),
 machine(mach), rtspIndex(0), appName(appName)
 {
     settingsManager = new SettingsManager();
@@ -424,7 +430,7 @@ machine(mach), rtspIndex(0), appName(appName)
     setMinimumSize(640, 480);
 
     QPalette pal = this->palette();
-    pal.setColor(QPalette::Background, Qt::black);
+    pal.setColor(QPalette::Window, Qt::black);
     this->setAutoFillBackground(true);
     this->setPalette(pal);
 
@@ -433,6 +439,24 @@ machine(mach), rtspIndex(0), appName(appName)
     struct wl_display* display_handle =
         (struct wl_display*)native->nativeResourceForWindow("display", nullptr);
     context = gst_wl_display_handle_context_new(display_handle);
+    // Detect if the compositor advertises zwp_linux_dmabuf_v1 so we can avoid forced conversion
+    linuxDmabufAvailable = false;
+    if (display_handle) {
+        struct wl_registry *registry = wl_display_get_registry(display_handle);
+        static const struct wl_registry_listener registry_listener = {
+            [](void *data, struct wl_registry *registry, uint32_t id, const char *interface, uint32_t version) {
+                bool *have = static_cast<bool*>(data);
+                if (interface && strcmp(interface, "zwp_linux_dmabuf_v1") == 0) {
+                    *have = true;
+                }
+            },
+            [](void *data, struct wl_registry *registry, uint32_t id) {
+                (void)data; (void)registry; (void)id;
+            }
+        };
+        wl_registry_add_listener(registry, &registry_listener, &linuxDmabufAvailable);
+        wl_display_roundtrip(display_handle);
+    }
 #endif
 
     players.clear();

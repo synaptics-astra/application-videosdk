@@ -92,13 +92,7 @@ PlayerUI::PlayerUI(QWidget* parent) : QWidget(parent)
     popup = new SettingsPopup(this);
     popup->hide();
 
-    connect(popup, &SettingsPopup::settingsChanged, this, [this](const QString &inputType, const QString &inputSource, const QString &upscalingType, const QString &modelType) {
-        player->command->setInputType(inputType);
-        player->command->setInputSource(inputSource);
-        player->command->setUpscalingType(upscalingType);
-        player->command->setModelType(modelType);
-        player->command->createPipeline(); // Apply settings
-    }, Qt::UniqueConnection);
+    connect(popup, &SettingsPopup::settingsChanged, this, &PlayerUI::onSettingsChanged, Qt::UniqueConnection);
 
     // Launch in fullscreen mode
     setFullScreen();
@@ -165,4 +159,19 @@ void PlayerUI::exitApplication()
 {
     player->stopPlayback();
     QApplication::exit();
+}
+
+void PlayerUI::onSettingsChanged(const QString &inputType,
+        const QString &inputSource,
+        const QString &upscalingType,
+        const QString &modelType)
+{
+    player->command->setInputType(inputType);
+    player->command->setInputSource(inputSource);
+    player->command->setUpscalingType(upscalingType);
+    player->command->setModelType(modelType);
+    player->command->createPipeline();
+
+    player->stopPlayback();
+    player->startPlayback();
 }

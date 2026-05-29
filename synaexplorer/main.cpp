@@ -22,6 +22,7 @@ int main(int argc, char *argv[])
     QApplication app(argc, argv);
     app.setOrganizationName("synaptics");
     app.setOrganizationDomain("synaptics.com");
+    qputenv("QT_DISABLE_SHADER_DISK_CACHE", "1");
 
     string machine;
     QProcess process;

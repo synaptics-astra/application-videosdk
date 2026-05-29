@@ -1,0 +1,5 @@
+project('weston-syna-desktop', 'c')
+subdir ('protocols')
+subdir ('client')
+subdir ('server')
+subdir ('data')

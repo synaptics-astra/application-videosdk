@@ -70,7 +70,7 @@ void showBlur(int show) {
 void updateStatus(int inst,char *type,char *res,char *fps) {
 	QObject*  root = stat_view->rootObject();
 	QQuickItem* item = root->findChild<QQuickItem *>("statistics");
-	QMetaObject::invokeMethod(item, "updateStatistics", Qt::AutoConnection,Q_ARG(QVariant,inst),Q_ARG(QVariant,type),Q_ARG(QVariant,res),Q_ARG(QVariant,fps));
+	QMetaObject::invokeMethod(item, "updateStatistics", Qt::AutoConnection,Q_ARG(int,inst),Q_ARG(QString, QString::fromUtf8(type)),Q_ARG(QString,QString::fromUtf8(res)),Q_ARG(QString,QString::fromUtf8(fps)));
 }
 void initStatus(int total_sessions)
 {

@@ -12,6 +12,9 @@
 #include <QtQuick/QSGMaterialShader>
 #include <QQuickItem>
 
+#include <QtQuick/QSGRenderNode>
+#include <QtGui/QOpenGLFunctions>
+
 #ifdef DEMO_COMPILE
 #include "demo_mock.h"
 #else
@@ -19,8 +22,11 @@
 #include "EGL/eglext.h"
 #endif
 
+#define DISABLE_OLD_QSG 1
 
 class QSGTextureProvider;
+
+#if !DISABLE_OLD_QSG
 
 //------------------OpenGL shader program---------------------------
 class QSGVideoMaterialShader : public QSGMaterialShader
@@ -101,7 +107,6 @@ public:
     void setMaskTextureProvider(QSGTextureProvider* tp);
 
 protected:
-    QSGVideoMaterial *m_material;
     QRectF m_rect;
     QRectF m_textureRect;
     QSGTextureProvider* m_maskTextureProvider;
@@ -113,6 +118,27 @@ private:
     VideoItem* m_videoItem;
     TexturedMaskedPoint2D* m_textureVec;
 };
+
+#endif
+
+
+class VideoRenderNode : public QSGRenderNode
+{
+public:
+    VideoRenderNode();
+    ~VideoRenderNode() override {}
+
+    void render(const QSGRenderNode::RenderState *state) override;
+    StateFlags changedStates() const override { return {}; }
+    RenderingFlags flags() const override { return BoundedRectRendering; }
+
+    QRectF rect;
+    int textureId = 0;
+
+private:
+    QOpenGLFunctions *gl = nullptr;
+};
+
 
 #include "qvideoimage.h"
 //------------------QML item---------------------------
@@ -146,7 +172,7 @@ public:
     QSGNode* updatePaintNode( QSGNode *node, UpdatePaintNodeData * );
 
     void itemChange(ItemChange change, const ItemChangeData & value);
-    bool hasMaterial() { return m_material != NULL; }
+    bool hasMaterial() { return true; }
 
 private:
     void updateVideoStream();
@@ -167,7 +193,6 @@ private:
     float m_maskBorder;
     QRectF m_textureRect;
     QQuickItem* m_maskImage;
-    QSGVideoMaterial *m_material;
 
     VideoStream* m_videoStream;
 
@@ -175,5 +200,4 @@ private Q_SLOTS:
     void videoImageUpdated();
 };
 QML_DECLARE_TYPE( VideoItem )
-
 #endif // DEMO_VIDEOITEM_H

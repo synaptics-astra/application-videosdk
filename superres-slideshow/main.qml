@@ -2,7 +2,6 @@ import QtQuick 2.15
 import QtQuick.Layouts 1.3
 import QtQuick.Controls 2.5
 import QtQuick.Window 2.1
-import QtQuick.Dialogs 1.3
 import Qt.labs.folderlistmodel 2.15
 
 ApplicationWindow {
@@ -43,7 +42,7 @@ ApplicationWindow {
             return
         }
         var timestamp = new Date().getTime()
-        leftImage.source = "image://frameProvider/normalFrame?t=" + timestamp
+        leftImage.source  = "image://frameProvider/normalFrame?t=" + timestamp
         rightImage.source = "image://frameProvider/srFrame?t=" + timestamp
     }
 
@@ -250,12 +249,11 @@ ApplicationWindow {
                             isTransitioning = true
                             isPlaying = true
                             navPanel.visible = false
-                            frameProvider.startWithDefaultFiles()
+                            frameController.startWithDefaultFiles()
                             updateImages()
                             initialTimer.start()
                         } else {
                             console.log("Play blocked: isTransitioning =", isTransitioning)
-                            mouse.accepted = true
                         }
                     }
                 }
@@ -335,7 +333,7 @@ ApplicationWindow {
                         isTransitioning = true
                         isPlaying = true
                         navPanel.visible = false
-                        frameProvider.startWithDefaultFiles()
+                        frameController.startWithDefaultFiles()
                         updateImages()
                         initialTimer.start()
                     } else {
@@ -384,7 +382,7 @@ ApplicationWindow {
                     isTransitioning = true
                     isPlaying = true
                     navPanel.visible = false
-                    frameProvider.playUserFiles()
+                    frameController.playUserFiles()
                     updateImages()
                     initialTimer.start()
                 }
@@ -418,7 +416,7 @@ ApplicationWindow {
                 Behavior on scale { NumberAnimation { duration: 200 } }
                 onClicked: {
                     if (!isTransitioning) {
-                        fileDialog.open()
+                        openAddFileExplorer()
                     } else {
                         console.log("Add files blocked: isTransitioning =", isTransitioning)
                     }
@@ -453,7 +451,7 @@ ApplicationWindow {
                 Behavior on scale { NumberAnimation { duration: 200 } }
                 onClicked: {
                     if (!isTransitioning) {
-                        removeFileDialog.open()
+                        openRemoveFileExplorer()
                     } else {
                         console.log("Remove files blocked: isTransitioning =", isTransitioning)
                     }
@@ -563,7 +561,7 @@ ApplicationWindow {
                     regularTimer.stop()
                     leftImage.source = ""
                     rightImage.source = ""
-                    frameProvider.clear()
+                    frameController.clear()
                     closeDelayTimer.start()
                 }
 
@@ -643,7 +641,7 @@ ApplicationWindow {
         }
 
         onClicked: {
-            frameProvider.clear()
+            frameController.clear()
             Qt.quit()
         }
     }
@@ -693,82 +691,94 @@ ApplicationWindow {
         running: false
         repeat: true
         onTriggered: {
+        frameController.nextFrame()
             updateImages()
         }
     }
 
-    FileDialog {
-        id: fileDialog
-        title: "Select PNG Files"
-        nameFilters: ["PNG files (*.png)"]
-        selectMultiple: true
-        onAccepted: {
-            var validFiles = []
-            var validFilePaths = []
-            var invalidFiles = []
+    function openAddFileExplorer() {
+        if (!fileDialogHelper) {
+            return
+        }
 
-            for (var i = 0; i < fileUrls.length; i++) {
-                var url = fileUrls[i]
-                var localPath = url.toString().replace("file://", "")
-                var info = videoProber.probeFile(localPath)
+        var selectedFiles = fileDialogHelper.selectMultipleFiles(
+                                "Select PNG Files",
+                                ["*.png", "*.PNG"],
+                                "/home/root")
+        handleAddedFiles(selectedFiles)
+    }
 
-                if (info.width === 1280 && info.height === 720 && info.depth === 24) {
-                    validFiles.push(localPath)
-                    validFilePaths.push(localPath)
-                } else {
-                    var fileName = localPath.split("/").pop()
-                    invalidFiles.push(fileName)
-                }
-            }
+    function openRemoveFileExplorer() {
+        if (!fileDialogHelper) {
+            return
+        }
 
-            if (invalidFiles.length > 0) {
-                invalidFilesText = "Unsupported file(s):\n" + invalidFiles.join(", ")
-                resolutionPopup.open()
-            }
+        var selectedFiles = fileDialogHelper.selectMultipleFiles(
+                                "Select Files to Remove",
+                                ["*.png", "*.PNG"],
+                                userFilesDir)
+        handleRemovedFiles(selectedFiles)
+    }
 
-            if (validFiles.length > 0) {
-                var destDir = userFilesDir.replace("file://", "")
-                if (fileManager.copyFiles(validFilePaths, destDir)) {
-                    var copiedUrls = []
-                    for (var j = 0; j < validFiles.length; j++) {
-                        var fileName = validFiles[j].split("/").pop()
-                        copiedUrls.push(userFilesDir + "/" + fileName)
-                    }
-                    frameProvider.addUserFiles(copiedUrls)
-                }
+    function handleAddedFiles(filePaths) {
+        var validFiles = []
+        var validFilePaths = []
+        var invalidFiles = []
+
+        for (var i = 0; i < filePaths.length; i++) {
+            var localPath = filePaths[i].toString()
+            var info = videoProber.probeFile(localPath)
+
+            if (info.width === 1280 && info.height === 720 && info.depth === 24) {
+                validFiles.push(localPath)
+                validFilePaths.push(localPath)
             } else {
-                console.log("No valid files to copy")
+                var fileName = localPath.split("/").pop()
+                invalidFiles.push(fileName)
             }
+        }
+
+        if (invalidFiles.length > 0) {
+            invalidFilesText = "Unsupported file(s):\n" + invalidFiles.join(", ")
+            resolutionPopup.open()
+        }
+
+        if (validFiles.length > 0) {
+            var destDir = userFilesDir.replace("file://", "")
+            if (fileManager.copyFiles(validFilePaths, destDir)) {
+                var copiedUrls = []
+                for (var j = 0; j < validFiles.length; j++) {
+                    var fileNameOut = validFiles[j].split("/").pop()
+                    copiedUrls.push(userFilesDir + "/" + fileNameOut)
+                }
+                frameController.addUserFiles(copiedUrls)
+            }
+        } else {
+            console.log("No valid files to copy")
         }
     }
 
-    FileDialog {
-        id: removeFileDialog
-        title: "Select Files to Remove"
-        folder: userFilesDir
-        nameFilters: ["PNG files (*.png)"]
-        selectMultiple: true
-        onAccepted: {
-            if (fileUrls.length > 0) {
-                var filePaths = []
-                for (var i = 0; i < fileUrls.length; i++) {
-                    var filePath = fileUrls[i].toString().replace("file://", "")
-                    filePaths.push(filePath)
-                }
-                if (fileManager.deleteFiles(filePaths)) {
-                    frameProvider.removeUserFiles(fileUrls)
-                } else {
-                    invalidFilesText = "Failed to delete some files"
-                    resolutionPopup.open()
-                }
-            } else {
-                console.log("No files selected for removal")
+    function handleRemovedFiles(filePaths) {
+        if (filePaths.length > 0) {
+            var fileUrls = []
+            for (var i = 0; i < filePaths.length; i++) {
+                var path = filePaths[i].toString()
+                fileUrls.push("file://" + path)
             }
+
+            if (fileManager.deleteFiles(filePaths)) {
+                frameController.removeUserFiles(fileUrls)
+            } else {
+                invalidFilesText = "Failed to delete some files"
+                resolutionPopup.open()
+            }
+        } else {
+            console.log("No files selected for removal")
         }
     }
 
     Connections {
-        target: frameProvider
+        target: frameController
         function onImageChanged() {
             if (!isClosing) {
                 updateImages()
@@ -970,7 +980,7 @@ ApplicationWindow {
                             isTransitioning = true
                             isPlaying = true
                             navPanel.visible = false
-                            frameProvider.playSingleFile(lastCapturedImagePath)
+                            frameController.playSingleFile(lastCapturedImagePath)
                             updateImages()
                             initialTimer.start()
                             capturePopup.close()

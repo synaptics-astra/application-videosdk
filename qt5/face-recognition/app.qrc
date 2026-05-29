@@ -1,0 +1,13 @@
+<RCC>
+    <qresource>
+        <file>images/astra_icon.png</file>
+        <file>images/exit.png</file>
+        <file>images/play.png</file>
+        <file>images/stop.png</file>
+        <file>images/user.png</file>
+        <file>images/preview.png</file>
+        <file>images/image.jpg</file>
+        <file>images/rtsp.png</file>
+        <file>images/rtspok.png</file>
+    </qresource>
+</RCC>

@@ -6,6 +6,7 @@
 
 #include "qtdevice.h"
 #include "videoprober.h"
+#include "filedialoghelper.h"
 #include <QWidget>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -15,7 +16,6 @@
 #include <QRadioButton>
 #include <QButtonGroup>
 #include <QPropertyAnimation>
-#include <QFileDialog>
 #include <QDebug>
 #include <QMessageBox>
 #include <QTimer>
@@ -156,7 +156,10 @@ public:
 
             if (node == "File Source") {
                 inputType = "File Source";
-                inputSource = QFileDialog::getOpenFileName(this, "Select Video File", "", "Videos (*.mp4 *.avi *.mkv)");
+                FileDialogHelper dialogHelper;
+                QVariantList filters;
+                filters << "*.mp4" << "*.avi" << "*.mkv";
+                inputSource = dialogHelper.selectSingleFile("Select Video File", filters, "/home/root");
                 if (inputSource.isEmpty()) {
                     return;
                 }

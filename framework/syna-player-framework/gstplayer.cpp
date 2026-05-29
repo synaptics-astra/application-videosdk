@@ -12,6 +12,14 @@
 #include <sys/resource.h>
 #include <wayland-client.h>
 
+static bool isPipelineDebugEnabled()
+{
+    const QByteArray envValue = qgetenv("SYNA_DEBUG");
+    const QByteArray normalized = envValue.trimmed().toLower();
+    return normalized == "1" || normalized == "true" ||
+           normalized == "yes" || normalized == "on";
+}
+
 #ifndef FALSE
 #define FALSE (0)
 #endif
@@ -161,7 +169,13 @@ void GstPlayer::run()
     size_t index = 0;
 
 #ifdef HAVE_WAYLAND
-    string keyword("placeholdersink"), updatedKeyword("waylandsink name=sink");
+    string keyword("placeholdersink");
+    string updatedKeyword;
+    if (windowManager && windowManager->hasLinuxDmabuf()) {
+        updatedKeyword = "waylandsink name=sink";
+    } else {
+        updatedKeyword = "videoconvert ! video/x-raw,format=BGRA ! waylandsink name=sink";
+    }
 #endif
 
 #ifdef HAVE_X11
@@ -177,6 +191,11 @@ void GstPlayer::run()
     }
     url = QString::fromStdString(gstURL);
     pipelineStr = url.toUtf8().constData();
+
+    if (isPipelineDebugEnabled()) {
+        qDebug() << "GStreamer pipeline:" << QString::fromStdString(pipelineStr);
+    }
+
     pipeline = gst_parse_launch(pipelineStr.c_str(), &err);
     if (pipeline == nullptr) {
         qWarning() << "Error: Pipeline could not be created.";

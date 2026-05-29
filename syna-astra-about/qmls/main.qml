@@ -90,6 +90,12 @@ ApplicationWindow {
                     id: scrollBar
                     width: Resource.width / 80
                     policy: ScrollBar.AlwaysOn
+
+                    //Force overlay positioning
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+
                     background: Rectangle {
                         color: "#d6e9ff" // background color
                         border.color: "#cccccc" // border color
@@ -148,7 +154,6 @@ ApplicationWindow {
             }
         }
     }
-
     Button {
         id: exitButton
         anchors.bottom: parent.bottom

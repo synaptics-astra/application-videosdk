@@ -7,7 +7,7 @@ AboutManager::AboutManager(QObject *parent) : QObject(parent) {}
 
 QString AboutManager::fetchAstraVersion() {
     QProcess process;
-    process.start("cat /etc/astra_version");
+    process.start("cat",QStringList{"/etc/astra_version"});
     if (!process.waitForFinished() || process.exitCode() != 0)
         return "Unknown Version";
 
@@ -17,7 +17,7 @@ QString AboutManager::fetchAstraVersion() {
 
 QString AboutManager::fetchHwVersion() {
     QProcess process;
-    process.start("cat /etc/hwrevision");
+    process.start("cat",QStringList{"/etc/hwrevision"});
     if (!process.waitForFinished() || process.exitCode() != 0)
         return "Unknown Version";
 
@@ -27,7 +27,7 @@ QString AboutManager::fetchHwVersion() {
 
 QString AboutManager::fetchLinuxVersion() {
     QProcess process;
-    process.start("uname -a");
+    process.start("uname",QStringList() << "-a");
     if (!process.waitForFinished() || process.exitCode() != 0)
         return "Unknown Version";
 
@@ -37,7 +37,7 @@ QString AboutManager::fetchLinuxVersion() {
 
 QString AboutManager::getMachine() {
     QProcess process;
-    process.start("uname -n");
+    process.start("uname", QStringList() << "-n");
     if (!process.waitForFinished() || process.exitCode() != 0)
         return "Unknown Machine";
 

@@ -3,7 +3,7 @@ import QtQuick.Window 2.1
 import QtQuick.Controls 2.2
 import QtQuick.Controls.Material 2.12
 import QtQuick.Layouts 1.1
-import QtQuick.Dialogs 1.3
+import QtQuick.Dialogs
 
 ApplicationWindow {
     id: player
@@ -18,6 +18,63 @@ ApplicationWindow {
     property string url1: ""
     property string selectedCategory: ""
     property string selectedSource: ""
+    property string selectedInput: ""
+
+    function getPipeline() {
+        if (!contentLoader.item) {
+            return ""
+        }
+
+        if (selectedCategory === "Image Classification") {
+            if (selectedSource === "NPU") {
+                return contentLoader.item.imageClassificationNPU
+            }
+            if (selectedSource === "CPU") {
+                return contentLoader.item.imageClassificationCPU
+            }
+            return ""
+        }
+
+        if (selectedCategory === "Object Detection") {
+            if (selectedInput === "ISP") {
+                if (selectedSource === "NPU") {
+                    return contentLoader.item.objectDetectionISPNPU
+                }
+                if (selectedSource === "CPU") {
+                    return contentLoader.item.objectDetectionISPCPU
+                }
+                return ""
+            }
+            if (selectedSource === "NPU") {
+                return contentLoader.item.objectDetectionUSBNPU
+            }
+            if (selectedSource === "CPU") {
+                return contentLoader.item.objectDetectionUSBCPU
+            }
+            return ""
+        }
+
+        if (selectedCategory === "Pose Estimation") {
+            if (selectedInput === "ISP") {
+                if (selectedSource === "NPU") {
+                    return contentLoader.item.poseEstimationISPNPU
+                }
+                if (selectedSource === "CPU") {
+                    return contentLoader.item.poseEstimationISPCPU
+                }
+                return ""
+            }
+            if (selectedSource === "NPU") {
+                return contentLoader.item.poseEstimationUSBNPU
+            }
+            if (selectedSource === "CPU") {
+                return contentLoader.item.poseEstimationUSBCPU
+            }
+            return ""
+        }
+
+        return ""
+    }
 
     onVisibleChanged: {
         var wid = -1
@@ -97,6 +154,7 @@ ApplicationWindow {
             model: ListModel {
                 ListElement { name: "Image Classification" }
                 ListElement { name: "Object Detection" }
+                ListElement { name: "Pose Estimation" }
             }
             property int expandedIndex: -1
             delegate: Item {
@@ -119,7 +177,7 @@ ApplicationWindow {
                             anchors.verticalCenter: parent.verticalCenter
                         }
                         onClicked: {
-                            if (name === "Image Classification" || name === "Object Detection") {
+                            if (name === "Image Classification" || name === "Object Detection" || name === "Pose Estimation") {
                                 drawerListView.expandedIndex = drawerListView.expandedIndex === index ? -1 : index;
                             }
                         }
@@ -128,7 +186,7 @@ ApplicationWindow {
                     // Sub menu for IC, OD
                     Repeater {
                         id: subOptions
-                        model: drawerListView.expandedIndex === index && (name === "Image Classification" || name === "Object Detection") ? ["NPU", "CPU"] : []
+                        model: drawerListView.expandedIndex === index && (name === "Image Classification" || name === "Object Detection" || name === "Pose Estimation") ? ["NPU"] : []
                         delegate: ItemDelegate {
                             width: parent.width
                             background: Rectangle {
@@ -147,10 +205,13 @@ ApplicationWindow {
                             onClicked: {
                                 selectedCategory = name;
                                 selectedSource = modelData;
-                                if (name === "Image Classification" || name === "Object Detection") {
-                                    contentLoader.source = "file:///home/root/demos/qmls/source_selector.qml";
-                                    navDrawer.close();
+                                if (name === "Object Detection" || name === "Pose Estimation") {
+                                    selectedInput = "USB";
+                                } else {
+                                    selectedInput = "";
                                 }
+                                contentLoader.source = "file:///home/root/demos/qmls/source_selector.qml";
+                                navDrawer.close();
                             }
                         }
                     }
@@ -181,18 +242,9 @@ ApplicationWindow {
             hoverEnabled: true
             onClicked: {
                 if (contentLoader.item) {
-                    if (selectedCategory === "Object Detection") {
-                        if (selectedSource === "NPU") {
-                            playbackControl.doPlayback(1, contentLoader.item.objectDetectionNPU, "", "", "")
-                        } else if (selectedSource === "CPU") {
-                            playbackControl.doPlayback(1, contentLoader.item.objectDetectionCPU, "", "", "")
-                        }
-                    } else if (selectedCategory === "Image Classification") {
-                        if (selectedSource === "NPU") {
-                            playbackControl.doPlayback(1, contentLoader.item.imageClassificationNPU, "", "", "")
-                        } else if (selectedSource === "CPU") {
-                            playbackControl.doPlayback(1, contentLoader.item.imageClassificationCPU, "", "", "")
-                        }
+                    var selectedPipeline = getPipeline()
+                    if (selectedPipeline !== "") {
+                        playbackControl.doPlayback(1, selectedPipeline, "", "", "")
                     }
                 }
             }
@@ -206,9 +258,67 @@ ApplicationWindow {
         width: 300
         fillMode: Image.PreserveAspectFit
         anchors.right: parent.right
-        anchors.bottom: playbackPanel.top
+        anchors.bottom: inputPanel.visible ? inputPanel.top : playbackPanel.top
         anchors.rightMargin: 16
         anchors.bottomMargin: 16
+    }
+
+    Rectangle {
+        id: inputPanel
+        width: parent.width - 32
+        height: 60
+        color: "#313131"
+        visible: selectedCategory === "Object Detection" || selectedCategory === "Pose Estimation"
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: playbackPanel.top
+        anchors.leftMargin: 16
+        anchors.rightMargin: 16
+        anchors.bottomMargin: 8
+        radius: 12
+        border.color: "#222"
+        border.width: 2
+
+        Row {
+            anchors.centerIn: parent
+            spacing: 24
+
+            ItemDelegate {
+                width: 120
+                height: 40
+                background: Rectangle {
+                    color: selectedInput === "USB" ? "#3faae7" : "#0c3046"
+                    radius: 8
+                }
+                contentItem: Text {
+                    text: "USB"
+                    color: "white"
+                    font.pixelSize: 18
+                    font.bold: true
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+                onClicked: selectedInput = "USB"
+            }
+
+            ItemDelegate {
+                width: 120
+                height: 40
+                background: Rectangle {
+                    color: selectedInput === "ISP" ? "#3faae7" : "#0c3046"
+                    radius: 8
+                }
+                contentItem: Text {
+                    text: "ISP"
+                    color: "white"
+                    font.pixelSize: 18
+                    font.bold: true
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+                onClicked: selectedInput = "ISP"
+            }
+        }
     }
 
     Rectangle {
@@ -262,3 +372,4 @@ ApplicationWindow {
         }
     }
 }
+

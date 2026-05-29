@@ -219,7 +219,7 @@ QString StatsWidget::getGpuLoad()
     }
     else
     {
-        process.start("cat", {"/sys/kernel/debug/pvr/status"});
+        process.start("cat", {"/sys/kernel/debug/pvr/gpu00/utilisation_stats"});
         if (process.waitForFinished()) {
             QString data = process.readAllStandardOutput();
             QStringList lines = data.split("\n");

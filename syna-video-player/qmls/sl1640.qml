@@ -3,7 +3,7 @@ import QtQuick.Window 2.1
 import QtQuick.Controls 2.2
 import QtQuick.Controls.Material 2.12
 import QtQuick.Layouts 1.1
-import QtQuick.Dialogs 1.3
+import QtQuick.Dialogs
 
 ApplicationWindow {
     id: player
@@ -60,6 +60,7 @@ ApplicationWindow {
 
         contentItem: Item {
             ColumnLayout {
+                id: column
                 spacing: 10
                 Layout.alignment: Qt.AlignCenter
 
@@ -114,6 +115,8 @@ ApplicationWindow {
                     }
                 }
             }
+            implicitWidth: column.implicitWidth
+            implicitHeight: column.implicitHeight
         }
 
         onClosed: {

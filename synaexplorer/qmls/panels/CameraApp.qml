@@ -40,7 +40,8 @@ Rectangle {
 
         GridItem {
             type: 8
-            image: "qrc:/res/images/camera_icon.png"
+            title:  qsTr("ISP Camera")
+            image: "qrc:/res/images/astra_icon.png"
         }
     }
 }

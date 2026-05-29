@@ -25,6 +25,7 @@
 #include <QThread>
 #include <QSemaphore>
 #include <QDir>
+#include <QRecursiveMutex>
 
 #include <string.h>
 #include <cstdlib>
@@ -72,6 +73,7 @@ public:
     Q_INVOKABLE void play(int index, QString url1, QString url2,
             QString url3, QString url4);
     GstContext* context;
+    bool hasLinuxDmabuf() const { return linuxDmabufAvailable; }
 
 public slots:
     void threadFinished();
@@ -87,7 +89,7 @@ private:
     int camCount;
     int hrxCount;
     int rtspIndex = 0;
-    QMutex mutex;
+    QRecursiveMutex mutex;
     QVector<QString> urls;
     QString getVideoDeviceNameFromSysPath(const char* syspath);
     bool isUsbDevice(struct udev_device *dev);
@@ -98,6 +100,7 @@ private:
     QVector<string>::iterator hrxIter;
     QString cameraFormatList = "YUY2";
     QString hrxFormatList = "NV12";
+    bool linuxDmabufAvailable = false;
     bool isPipelinePlaying = false;
     QSemaphore playPipelineSem;
     QThread* playPipelineThread = nullptr;

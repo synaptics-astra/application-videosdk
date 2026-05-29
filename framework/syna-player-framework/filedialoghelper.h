@@ -9,6 +9,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QFile>
+#include <QVariantList>
 
 class FileDialogHelper : public QObject
 {
@@ -20,6 +21,12 @@ public:
     Q_INVOKABLE QString getParentDirectory(const QString &dirPath);
     Q_INVOKABLE bool openFile(const QString &filePath);
     Q_INVOKABLE bool isDirectory(const QString &path);
+    Q_INVOKABLE QString selectSingleFile(const QString &title,
+                                         const QVariantList &filters,
+                                         const QString &startDirectory = QString());
+    Q_INVOKABLE QStringList selectMultipleFiles(const QString &title,
+                                                const QVariantList &filters,
+                                                const QString &startDirectory = QString());
 
 signals:
     void fileOpened(const QString &filePath);

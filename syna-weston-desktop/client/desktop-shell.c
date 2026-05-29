@@ -640,14 +640,19 @@ static void panel_configure(void *data,
   switch (desktop->panel_position) {
   case WESTON_DESKTOP_SHELL_PANEL_POSITION_TOP:
   case WESTON_DESKTOP_SHELL_PANEL_POSITION_BOTTOM:
-    if (width == 3840) {
+    if (width >= 3840) {
       height = 100;
-    } else if (width == 1920) {
+    } else if (width >= 2560) {
+      height = 80;
+    } else if (width >= 1920) {
       height = 70;
-    } else if (width == 1280) {
+    } else if (width >= 1280) {
       height = 40;
-    } else if (width == 800) {
+    } else if (width >= 800) {
       height = 30;
+    } else {
+      /* proportional fallback: ~2.6% of width */
+      height = MAX(24, width * 26 / 1000);
     }
     break;
   case WESTON_DESKTOP_SHELL_PANEL_POSITION_LEFT:
@@ -1257,20 +1262,16 @@ static void customimage_destroy(struct customimage *customimage) {
 
 static void customimage_resize(struct widget *widget, int32_t width,
                                int32_t height, void *data) {
-  struct customimage *customimage = data;
-
-  widget_set_allocation(customimage->widget, 200, 200, 200, 200);
+  /* Keep the widget at full screen size; QR position is
+   * computed proportionally inside customimage_draw. */
+  widget_set_allocation(widget, 0, 0, width, height);
 }
 
 static void customimage_draw(struct widget *widget, void *data) {
   struct customimage *customimage = data;
   cairo_surface_t *surface, *image;
-  cairo_pattern_t *pattern;
-  cairo_matrix_t matrix;
   cairo_t *cr;
   double im_w, im_h;
-  double sx, sy, s;
-  double tx, ty;
   struct rectangle allocation;
 
   surface = window_get_surface(customimage->window);
@@ -1281,33 +1282,29 @@ static void customimage_draw(struct widget *widget, void *data) {
   cairo_paint(cr);
 
   widget_get_allocation(widget, &allocation);
-  image = NULL;
 
-  if (customimage->image)
+  if (customimage->image && allocation.width > 0 && allocation.height > 0) {
     image = load_cairo_surface(customimage->image);
+    if (image) {
+      int qr_size = (allocation.width < allocation.height
+                     ? allocation.width : allocation.height) * 16 / 100;
+      int qr_x = allocation.width  - qr_size - allocation.width  * 7 / 100;
+      int qr_y = allocation.height - qr_size - allocation.height * 18 / 100;
 
-  if (image) {
-    im_w = cairo_image_surface_get_width(image);
-    im_h = cairo_image_surface_get_height(image);
-    sx = im_w / allocation.width;
-    sy = im_h / allocation.height;
+      im_w = cairo_image_surface_get_width(image);
+      im_h = cairo_image_surface_get_height(image);
+      fprintf(stderr, "[customimage] draw: img=%gx%g qr_size=%d qr_x=%d qr_y=%d\n",
+              im_w, im_h, qr_size, qr_x, qr_y);
 
-    pattern = cairo_pattern_create_for_surface(image);
-    s = (sx < sy) ? sx : sy;
-    s = s * 10;
+      cairo_save(cr);
+      cairo_translate(cr, qr_x, qr_y);
+      cairo_scale(cr, (double)qr_size / im_w, (double)qr_size / im_h);
+      cairo_set_source_surface(cr, image, 0, 0);
+      cairo_paint(cr);
+      cairo_restore(cr);
 
-    /* align center */
-    tx = (im_w - s * allocation.width) * 0.8;
-    ty = (im_h - s * allocation.height) * 0.8;
-
-    cairo_matrix_init_translate(&matrix, tx, ty);
-    cairo_matrix_scale(&matrix, s, s);
-    cairo_pattern_set_matrix(pattern, &matrix);
-
-    cairo_set_source(cr, pattern);
-    cairo_pattern_destroy(pattern);
-    cairo_surface_destroy(image);
-    cairo_mask(cr, pattern);
+      cairo_surface_destroy(image);
+    }
   }
   cairo_destroy(cr);
   cairo_surface_destroy(surface);
@@ -1336,7 +1333,7 @@ static struct customimage *customimage_create(struct desktop *desktop,
   customimage->widget = window_add_widget(customimage->window, customimage);
   window_set_user_data(customimage->window, customimage);
   widget_set_redraw_handler(customimage->widget, customimage_draw);
-  // widget_set_resize_handler(customimage->widget, customimage_resize);
+  widget_set_resize_handler(customimage->widget, customimage_resize);
   widget_set_transparent(customimage->widget, 1);
 
   s = weston_config_get_section(desktop->config, "shell", NULL, NULL);

@@ -13,7 +13,7 @@ int main(int argc, char *argv[])
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 #endif
     QGuiApplication app(argc, argv);
-
+    qputenv("QT_DISABLE_SHADER_DISK_CACHE", "1");
     QQmlApplicationEngine engine;
     const QUrl url(QStringLiteral("qrc:/qmls/main.qml"));
 

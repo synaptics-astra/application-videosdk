@@ -41,17 +41,17 @@ Rectangle {
         GridItem {
             type: 2
             image: "qrc:/res/images/astra_icon.png"
-            title:  qsTr("Textures")
+            title:  qsTr("Cube")
         }
         GridItem {
             type: 3
             image: "qrc:/res/images/astra_icon.png"
-            title:  qsTr("Animated Tiles")
+            title:  qsTr("Elastic Nodes")
         }
         GridItem {
             type: 4
             image: "qrc:/res/images/astra_icon.png"
-            title:  qsTr("FingerPaint")
+            title:  qsTr("Scribble")
         }
     }
 }

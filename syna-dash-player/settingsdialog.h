@@ -13,7 +13,7 @@
 #include <QPushButton>
 #include <QComboBox>
 #include <QDebug>
-#include <QNetworkConfigurationManager>
+#include <QNetworkInformation>
 
 class FilePopup;
 class SampleSrcPopup;
@@ -96,8 +96,12 @@ public:
             if (inputType == "File Source") {
                 filePopup->showPopup(QCursor::pos());
             } else if (inputType == "URL") {
-                QNetworkConfigurationManager mgr;
-                bool isOnline = mgr.isOnline();
+                QNetworkInformation *networkInfo = QNetworkInformation::instance();
+                bool isOnline = true;
+                if (networkInfo) {
+                    isOnline = (networkInfo->reachability() == QNetworkInformation::Reachability::Online);
+                }
+
                 if (!isOnline) {
                     ValidationPopup *validationPopup = new ValidationPopup("Please check your internet connection and try again.", this);
                     validationPopup->setAttribute(Qt::WA_DeleteOnClose);

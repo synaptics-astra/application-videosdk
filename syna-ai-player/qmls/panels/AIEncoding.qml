@@ -50,7 +50,7 @@ Rectangle {
             title:  qsTr("USB Camera")
             Layout.preferredWidth: gridLayout.width / 6
             Layout.preferredHeight: gridLayout.width / 6
-            Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+            Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
             command1: "CAMSRC ! tee name=t_data t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=640,height=384,format=RGB ! synapinfer model=/usr/share/synap/models/object_detection/coco/model/yolov8s-640x384/model.synap mode=detector frameinterval=3 ! overlay.inference_sink t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=640,height=480,format=BGRA ! synapoverlay name=overlay label=/usr/share/synap/models/object_detection/coco/info.json ! tee name=t_out t_out. ! queue ! synavideoconvertscale ! video/x-raw,format=NV12 ! x264enc speed-preset=1 ! rtph264pay ! udpsink host=HOST_IP port=8003 t_out. ! queue ! placeholdersink"
         }
 
@@ -62,7 +62,7 @@ Rectangle {
             visible: is1680
             Layout.preferredWidth: gridLayout.width / 6
             Layout.preferredHeight: gridLayout.width / 6
-            Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+            Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
             command1: "CAMSRC name=ISP ! tee name=t_data t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=640,height=384,format=RGB ! synapinfer model=/usr/share/synap/models/object_detection/coco/model/yolov8s-640x384/model.synap mode=detector frameinterval=3 ! overlay.inference_sink t_data. ! queue ! synavideoconvertscale ! video/x-raw,width=640,height=480,format=BGRA ! synapoverlay name=overlay label=/usr/share/synap/models/object_detection/coco/info.json ! tee name=t_out t_out. ! queue ! synavideoconvertscale ! video/x-raw,format=NV12 ! x264enc speed-preset=1 ! rtph264pay ! udpsink host=HOST_IP port=8003 t_out. ! queue ! placeholdersink"
         }
     }

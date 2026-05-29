@@ -47,10 +47,10 @@ RowLayout {
     }
 
     onValueChanged: {
-        comboBox.currentIndex = root.value
+    comboBox.currentIndex = comboBox.indexOfValue(root.value)
     }
 
     Component.onCompleted: {
-        comboBox.currentIndex = root.value
+    comboBox.currentIndex = comboBox.indexOfValue(root.value)
     }
 }

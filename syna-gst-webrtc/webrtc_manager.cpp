@@ -53,7 +53,7 @@ QString WebrtcManager::getMachine() {
     static QString cachedMachine = "Unknown Machine";
     if (cachedMachine == "Unknown Machine") {
         QProcess process;
-        process.start("uname -n");
+        process.start("uname", QStringList() << "-n");
         if (process.waitForFinished() && process.exitCode() == 0) {
             cachedMachine = process.readAllStandardOutput().trimmed();
             if (cachedMachine.isEmpty()) {

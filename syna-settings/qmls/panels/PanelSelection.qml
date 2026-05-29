@@ -3,7 +3,7 @@ import QtQuick.Controls 2.5
 import QtQuick.Layouts 1.3
 import QtQuick.Window 2.1
 import Resource 1.0
-import QtQuick.Dialogs 1.3
+import QtQuick.Dialogs
 
 import "../custom_views"
 import "../panels"

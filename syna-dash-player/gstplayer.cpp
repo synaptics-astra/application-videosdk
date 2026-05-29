@@ -2,290 +2,135 @@
 // Copyright 2025 Synaptics Incorporated
 
 #include "gstplayer.h"
-#include <QScreen>
+#include <gst/app/gstappsink.h>
+#include <QPainter>
 
-GstPlayer::GstPlayer(QWidget* parent) : QWidget(parent), pipeline(nullptr), sink(nullptr), surface(nullptr), videoInfoTimer(nullptr), lastWidth(-1), lastHeight(-1), lastFps(-1.0)
+GstPlayer::GstPlayer(QWidget* parent)
+    : QWidget(parent)
+    , command(new Command())
 {
-    QLabel* label = new QLabel("Video Will Play Here", this);
-    label->setAlignment(Qt::AlignCenter);
-    label->setStyleSheet("font-size: 24px; font-weight: bold;");
-    QVBoxLayout* layout = new QVBoxLayout;
-    layout->addWidget(label);
-    layout->setContentsMargins(0, 0, 0, 0);
-    setLayout(layout);
-
-    command = new Command();
-    setAttribute(Qt::WA_TransparentForMouseEvents);
-    gst_init(NULL, NULL);
-
-    videoInfoTimer = new QTimer(this);
-    connect(videoInfoTimer, &QTimer::timeout, this, &GstPlayer::updateVideoInfo);
+    setAttribute(Qt::WA_OpaquePaintEvent);
+    setAttribute(Qt::WA_NoSystemBackground);
+    setStyleSheet("background: black;");
+    connect(this, &GstPlayer::pushFrame, this, &GstPlayer::updateImage);
 }
 
 GstPlayer::~GstPlayer()
 {
-    cleanupPipeline();
+    stopPlayback();
     delete command;
-    delete videoInfoTimer;
-}
-
-bool GstPlayer::configurePlatformSpecificOverlay()
-{
-    if (!sink || !GST_IS_VIDEO_OVERLAY(sink)) {
-        qWarning() << "Invalid sink for platform-specific overlay configuration";
-        return false;
-    }
-
-    int renderWidth = width();
-    int renderHeight = height();
-    QString machine = command->machine;
-    QList<QScreen*> screens = QGuiApplication::screens();
-    QScreen* targetScreen = (machine == "sl1620" && screens.size() > 1) ? screens[1] : screens[0];
-
-    int rect_x = 0;
-    int rect_y = 0;
-#if defined(HAVE_WAYLAND)
-    rect_x = x();
-    rect_y = y();
-#endif
-
-#if defined(HAVE_X11)
-    WId xwinid = winId();
-    gst_video_overlay_set_window_handle(GST_VIDEO_OVERLAY(sink), xwinid);
-#elif defined(HAVE_WAYLAND)
-    if (surface) {
-        gst_video_overlay_set_window_handle(GST_VIDEO_OVERLAY(sink), (guintptr)surface);
-    } else {
-        qWarning() << "Wayland surface not initialized for screen:" << targetScreen->name();
-        return false;
-    }
-#else
-    qWarning() << "No supported platform (X11 or Wayland) defined";
-    return false;
-#endif
-
-    // Set rendering rectangle to the widget's geometry
-    gst_video_overlay_set_render_rectangle(GST_VIDEO_OVERLAY(sink), rect_x, rect_y, renderWidth, renderHeight);
-    return true;
 }
 
 void GstPlayer::startPlayback()
 {
     cleanupPipeline();
 
-    GError* error = NULL;
-    QString url = command->createPipeline(width(), height());
-    std::string pipelineStr = url.toUtf8().constData();
-    pipeline = gst_parse_launch(pipelineStr.c_str(), &error);
-    if (!pipeline || error) {
-        qCritical() << "Failed to create pipeline: " << (error ? error->message : "Unknown error");
-        if (error) g_error_free(error);
-        if (pipeline) gst_object_unref(pipeline);
-        pipeline = nullptr;
-        sink = nullptr;
+    GError* err = nullptr;
+    QString pipelineStr = command->createPipeline(width(), height());
+    pipeline = gst_parse_launch(pipelineStr.toUtf8().constData(), &err);
+    if (!pipeline || err) {
+        qCritical() << "Pipeline failed:" << (err ? err->message : "unknown");
+        if (err) g_error_free(err);
         return;
     }
 
-    sink = (GstVideoOverlay*)gst_bin_get_by_name(GST_BIN(pipeline), "sink");
-    if (!sink || !GST_IS_VIDEO_OVERLAY(sink)) {
-        qCritical() << "Failed to get valid sink from pipeline";
+    appsink = GST_APP_SINK(gst_bin_get_by_name(GST_BIN(pipeline), "sink"));
+    if (!appsink) {
+        qCritical() << "No appsink in pipeline";
         cleanupPipeline();
         return;
     }
 
-    GstBus* bus = gst_pipeline_get_bus(GST_PIPELINE(pipeline));
-    if (bus) {
-        gst_bus_enable_sync_message_emission(bus);
-        gst_bus_set_sync_handler(bus, gstBusCallback, this, NULL);
-        gst_object_unref(bus);
-    } else {
-        qWarning() << "Failed to get pipeline bus";
-    }
+    GstAppSinkCallbacks cb = { nullptr };
+    cb.new_sample = newBuffer;
+    gst_app_sink_set_callbacks(appsink, &cb, this, nullptr);
+    gst_app_sink_set_drop(appsink, TRUE);
+    gst_app_sink_set_max_buffers(appsink, 1);
 
-    if (!configurePlatformSpecificOverlay()) {
-        qWarning() << "Failed to configure platform-specific overlay";
-        cleanupPipeline();
-        return;
-    }
-
-    GstStateChangeReturn ret = gst_element_set_state(pipeline, GST_STATE_PLAYING);
-    if (ret == GST_STATE_CHANGE_FAILURE) {
-        qCritical() << "Failed to set pipeline to PLAYING state";
-        cleanupPipeline();
-    } else {
-        videoInfoTimer->start(1000);
-    }
+    gst_element_set_state(pipeline, GST_STATE_PLAYING);
 }
 
 void GstPlayer::stopPlayback()
 {
-    videoInfoTimer->stop();
-    lastWidth = -1;
-    lastHeight = -1;
-    lastFps = -1.0;
     cleanupPipeline();
+    videoFrame = QImage();
+    update();
 }
 
 void GstPlayer::cleanupPipeline()
 {
-    if (pipeline && GST_IS_ELEMENT(pipeline)) {
-        GstStateChangeReturn ret = gst_element_set_state(pipeline, GST_STATE_NULL);
-        if (ret == GST_STATE_CHANGE_FAILURE) {
-            qWarning() << "Failed to set pipeline to NULL state";
-        }
-        gst_object_unref(pipeline);
-        pipeline = nullptr;
-    } else if (pipeline) {
-        qWarning() << "Pipeline is not a valid GstElement, cleaning up";
+    if (pipeline) {
+        gst_element_set_state(pipeline, GST_STATE_NULL);
         gst_object_unref(pipeline);
         pipeline = nullptr;
     }
-
-    if (sink && GST_IS_VIDEO_OVERLAY(sink)) {
-        gst_object_unref(sink);
-        sink = nullptr;
-    } else if (sink) {
-        qWarning() << "Sink is not a valid GstVideoOverlay, cleaning up";
-        gst_object_unref(sink);
-        sink = nullptr;
+    if (appsink) {
+        gst_object_unref(appsink);
+        appsink = nullptr;
     }
 }
 
-void GstPlayer::resizeEvent(QResizeEvent* event)
+void GstPlayer::updateImage(const QImage& img)
 {
-    QWidget::resizeEvent(event);
-    if (sink && GST_IS_VIDEO_OVERLAY(sink)) {
-        QString machine = command->machine;
-        QList<QScreen*> screens = QGuiApplication::screens();
-        QScreen* targetScreen = (machine == "sl1620" && screens.size() > 1) ? screens[1] : screens[0];
-        int renderWidth = width();
-        int renderHeight = height();
+    videoFrame = img;
+    update();
+}
 
-        int rect_x = 0;
-        int rect_y = 0;
-#if defined(HAVE_WAYLAND)
-        rect_x = x();
-        rect_y = y();
-#endif
-
-        gst_video_overlay_set_render_rectangle(GST_VIDEO_OVERLAY(sink), rect_x, rect_y, renderWidth, renderHeight);
+void GstPlayer::paintEvent(QPaintEvent*)
+{
+    QPainter p(this);
+    if (!videoFrame.isNull()) {
+        QImage s = videoFrame.scaled(size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        p.drawImage((width() - s.width()) / 2, (height() - s.height()) / 2, s);
+    } else {
+        p.fillRect(rect(), Qt::black);
     }
 }
 
-void GstPlayer::updateVideoInfo()
+GstFlowReturn GstPlayer::newBuffer(GstAppSink* sink, gpointer userData)
 {
-    if (!pipeline || !sink) {
-        return;
-    }
+    GstPlayer* self = static_cast<GstPlayer*>(userData);
+    GstSample* sample = gst_app_sink_pull_sample(sink);
+    if (!sample) return GST_FLOW_ERROR;
 
-    GstPad* sinkPad = gst_element_get_static_pad(GST_ELEMENT(sink), "sink");
-    if (!sinkPad) {
-        return;
-    }
+    GstBuffer* buf = gst_sample_get_buffer(sample);
+    GstCaps* caps = gst_sample_get_caps(sample);
 
-    GstCaps* caps = gst_pad_get_current_caps(sinkPad);
-    if (caps) {
-        GstStructure* structure = gst_caps_get_structure(caps, 0);
-        if (structure) {
-            gint width, height;
-            gint fps_n, fps_d;
+    if (buf && caps) {
+        GstMapInfo map;
+        if (gst_buffer_map(buf, &map, GST_MAP_READ)) {
+            GstStructure* s = gst_caps_get_structure(caps, 0);
+            gint w = 0, h = 0;
+            gst_structure_get_int(s, "width", &w);
+            gst_structure_get_int(s, "height", &h);
 
-            bool isResolutionChanged = false;
-            QString prevResolution = (lastWidth >= 0 && lastHeight >= 0) ? QString("%1x%2").arg(lastWidth).arg(lastHeight) : "N/A";
-            if (gst_structure_get_int(structure, "width", &width) &&
-                gst_structure_get_int(structure, "height", &height)) {
-                if (width != lastWidth || height != lastHeight) {
-                    QString currResolution = QString("%1x%2").arg(width).arg(height);
-                    lastWidth = width;
-                    lastHeight = height;
-                    isResolutionChanged = true;
-                    emit resolutionChanged(prevResolution, currResolution);
+            QImage img(map.data, w, h, QImage::Format_RGB888);
+            if (!img.isNull()) {
+                emit self->pushFrame(img.copy());
+
+                if (w != self->lastWidth || h != self->lastHeight) {
+                    QString prev = self->lastWidth > 0 ? QString("%1x%2").arg(self->lastWidth).arg(self->lastHeight) : "N/A";
+                    QString curr = QString("%1x%2").arg(w).arg(h);
+                    self->lastWidth = w;
+                    self->lastHeight = h;
+                    emit self->resolutionChanged(prev, curr);
+                    emit self->videoInfoChanged(curr, self->lastFps);
                 }
-            }
 
-            bool fpsChanged = false;
-            if (gst_structure_get_fraction(structure, "framerate", &fps_n, &fps_d)) {
-                if (fps_d != 0) {
-                    float fps = (float)fps_n / fps_d;
-                    if (fps != lastFps) {
-                        lastFps = fps;
-                        fpsChanged = true;
+                const GValue* fv = gst_structure_get_value(s, "framerate");
+                if (fv && GST_VALUE_HOLDS_FRACTION(fv)) {
+                    int n = gst_value_get_fraction_numerator(fv);
+                    int d = gst_value_get_fraction_denominator(fv);
+                    float fps = d ? (float)n / d : 0.0f;
+                    if (qAbs(fps - self->lastFps) > 0.1f) {
+                        self->lastFps = fps;
+                        emit self->videoInfoChanged(QString("%1x%2").arg(w).arg(h), fps);
                     }
                 }
             }
-
-            if (isResolutionChanged || fpsChanged) {
-                QString resolution = QString("%1x%2").arg(lastWidth).arg(lastHeight);
-                emit videoInfoChanged(resolution, lastFps);
-            }
+            gst_buffer_unmap(buf, &map);
         }
-        gst_caps_unref(caps);
     }
-
-    gst_object_unref(sinkPad);
-}
-
-GstBusSyncReply GstPlayer::gstBusCallback(GstBus* bus, GstMessage* message, gpointer user_data)
-{
-    GstPlayer* self = static_cast<GstPlayer*>(user_data);
-    QString machine = self->command->machine;
-    QList<QScreen*> screens = QGuiApplication::screens();
-    QScreen* targetScreen = (machine == "sl1620" && screens.size() > 1) ? screens[1] : screens[0];
-
-#if defined(HAVE_WAYLAND)
-    if (gst_is_wl_display_handle_need_context_message(message)) {
-        QPlatformNativeInterface* native = QGuiApplication::platformNativeInterface();
-        struct wl_display* display_handle = (struct wl_display*)native->nativeResourceForWindow("display", self->windowHandle());
-        if (display_handle) {
-            GstContext* context = gst_wl_display_handle_context_new(display_handle);
-            gst_element_set_context(GST_ELEMENT(GST_MESSAGE_SRC(message)), context);
-            gst_context_unref(context);
-        } else {
-            qWarning() << "Failed to get Wayland display handle for screen:" << targetScreen->name();
-            display_handle = (struct wl_display*)native->nativeResourceForScreen("display", screens[0]);
-            if (display_handle) {
-                GstContext* context = gst_wl_display_handle_context_new(display_handle);
-                gst_element_set_context(GST_ELEMENT(GST_MESSAGE_SRC(message)), context);
-                gst_context_unref(context);
-            } else {
-                qCritical() << "Failed to get Wayland display handle even for primary screen";
-            }
-        }
-        goto drop;
-    }
-#endif
-
-    if (gst_is_video_overlay_prepare_window_handle_message(message)) {
-        if (!self->configurePlatformSpecificOverlay()) {
-            qWarning() << "Failed to configure video sink for screen:" << targetScreen->name();
-        }
-        goto drop;
-    }
-
-    switch (GST_MESSAGE_TYPE(message)) {
-        case GST_MESSAGE_EOS:
-            break;
-        case GST_MESSAGE_ERROR: {
-            GError* err;
-            gchar* debug;
-            gst_message_parse_error(message, &err, &debug);
-            qCritical() << "GStreamer error:" << err->message << ", Debug:" << debug;
-            g_error_free(err);
-            g_free(debug);
-            break;
-        }
-        default:
-            break;
-    }
-
-    return GST_BUS_PASS;
-
-drop:
-    gst_message_unref(message);
-    return GST_BUS_DROP;
-}
-
-void GstPlayer::init(struct wl_surface* surface)
-{
-    this->surface = surface;
+    gst_sample_unref(sample);
+    return GST_FLOW_OK;
 }

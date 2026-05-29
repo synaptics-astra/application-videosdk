@@ -18,10 +18,16 @@
 #include <QtQuick/QSGTextureProvider>
 #include <QtGui/QOpenGLFunctions>
 
+#include <QOpenGLContext>
+#include <GLES2/gl2ext.h>
+
+#define DISABLE_OLD_QSG 1
+
 extern void updateCounter();
 extern int fVisible[];
 extern PlatformType platform_type;
 
+#if !DISABLE_OLD_QSG
 //extern "C" {
 //    extern void glEGLImageTargetTexture2DOES (GLenum target, GLeglImageOES image);
 //}
@@ -657,10 +663,8 @@ QSGVideoNode::QSGVideoNode(VideoItem* videoItem)
 	LOG_FUNC(">> Fn(QSGVideoNode::%s)\n", __func__);
 	m_videoItem = videoItem;
 	m_maskTextureProvider = NULL;
-	m_material = new QSGVideoMaterial(videoItem->getWindowID());
 	m_textureVec = NULL;
 
-	setMaterial( m_material );
 	setFlag( QSGNode::OwnsMaterial );
 	LOG_FUNC("<< Fn(QSGVideoNode::%s)\n", __func__);
 }
@@ -834,7 +838,6 @@ void QSGVideoNode::setMaskTextureProvider(QSGTextureProvider* tp) {
 		QObject::connect(m_maskTextureProvider, SIGNAL(destroyed(QObject*)), this, SLOT(maskTextureProviderDestroyed(QObject*)));
 	}
 
-	m_material->setMaskTextureProvider(m_maskTextureProvider);
 
 	markDirty( DirtyMaterial );
 	LOG_FUNC("<< Fn(QSGVideoNode::%s)\n", __func__);
@@ -843,13 +846,12 @@ void QSGVideoNode::setMaskTextureProvider(QSGTextureProvider* tp) {
 void QSGVideoNode::maskTextureProviderDestroyed(QObject *object) {
 	Q_UNUSED(object);
 	m_maskTextureProvider = 0;
-	m_material->setMaskTextureProvider(m_maskTextureProvider);
 	markDirty( DirtyMaterial );
 }
 
+#endif
 // ------------------------------------------------------------------------------------
 //QML item
-// ------------------------------------------------------------------------------------
 VideoItem::VideoItem( QQuickItem *parent )
 //    : QQuickItem(parent)
     : QQuickVideoImage( parent )
@@ -857,7 +859,6 @@ VideoItem::VideoItem( QQuickItem *parent )
     , m_maskBorder( 0.f )
     , m_textureRect( QRectF(0, 0, 1, 1) )
     , m_maskImage( NULL )
-    , m_material( NULL )
     , m_videoStream(NULL)
 {
 	LOG_FUNC(">> Fn(VideoItem::%s)\n", __func__);
@@ -894,10 +895,6 @@ void VideoItem::setWindowID( const int windowID )
 		QQuickVideoImage::m_windowID = (ARGBWindowID)windowID;
 
 		updateVideoStream();
-
-		if (m_material)
-			m_material->setWindowID(windowID);
-
 		emit videoTypeChanged();
 	}
 	LOG_FUNC("<< Fn(VideoItem::%s)\n", __func__);
@@ -937,32 +934,24 @@ void VideoItem::setMaskBorder( float border ) {
 
 QSGNode* VideoItem::updatePaintNode( QSGNode *node, UpdatePaintNodeData *)
 {
+	Q_UNUSED(node);
 	LOG_FUNC(">> Fn(VideoItem::%s)\n", __func__);
-	QSGVideoNode *videoNode = static_cast<QSGVideoNode *>( node );
 
-	if ( ! videoNode ) {
-		videoNode = new QSGVideoNode(this);
+	VideoRenderNode *rn = static_cast<VideoRenderNode *>(node);
 
-		static_cast<QSGVideoMaterial *>( videoNode->material() )->initialize();
-	}
+	if (!rn)
+		rn = new VideoRenderNode();
 
-	m_material = static_cast<QSGVideoMaterial *>( videoNode->material() );
-	m_material->update();
+	rn->rect = boundingRect();
 
-	videoNode->markDirty( QSGNode::DirtyMaterial );
+	//get texture from existing pipeline
+	QVideoImageStorage* storage = QVideoImageStorage::getInstance();
+	int texId = storage->renderNextFrame(m_windowID);
 
-	videoNode->setRectGeometry( boundingRect(), m_textureRect, m_maskBorder );
+	rn->textureId = texId;
 
-	videoNode->markDirty( QSGNode::DirtyGeometry );
+	return rn;
 
-	if (m_maskImage && m_maskImage->isTextureProvider()) {
-		videoNode->setMaskTextureProvider( m_maskImage->textureProvider() );
-	} else {
-		videoNode->setMaskTextureProvider( 0 );
-	}
-	LOG_FUNC("<< Fn(VideoItem::%s)\n", __func__);
-
-	return videoNode;
 }
 
 void VideoItem::itemChange(ItemChange change, const ItemChangeData & value)
@@ -1002,4 +991,104 @@ void VideoItem::videoImageUpdated()
 			QVideoImageStorage::getInstance()->registerQVideoImage(this, (ARGBWindowID) m_windowID,&QQuickVideoImage::processMessage);
 	}
 	LOG_FUNC("<< Fn(VideoItem::%s)\n", __func__);
+}
+VideoRenderNode::VideoRenderNode()
+{
+    gl = QOpenGLContext::currentContext()->functions();
+}
+// ---------- GLOBALS ----------
+static GLuint program = 0;
+static GLuint vbo = 0;
+
+static const char *vsrc =
+    "attribute vec4 position;\n"
+    "attribute vec2 texcoord;\n"
+    "varying vec2 v_texcoord;\n"
+    "void main() {\n"
+    "  gl_Position = position;\n"
+    "  v_texcoord = texcoord;\n"
+    "}\n";
+
+static const char *fsrc =
+    "#extension GL_OES_EGL_image_external : require\n"
+    "precision mediump float;\n"
+    "uniform samplerExternalOES tex;\n"
+    "varying vec2 v_texcoord;\n"
+    "void main() {\n"
+    "  gl_FragColor = texture2D(tex, v_texcoord);\n"
+    "}\n";
+
+// ---------- SHADER COMPILER ----------
+static GLuint compileShader(GLenum type, const char *src)
+{
+    GLuint s = glCreateShader(type);
+    glShaderSource(s, 1, &src, nullptr);
+    glCompileShader(s);
+    return s;
+}
+
+// ---------- INIT ----------
+static void initGL(QOpenGLFunctions *gl)
+{
+    if (program)
+        return;
+
+    GLuint vs = compileShader(GL_VERTEX_SHADER, vsrc);
+    GLuint fs = compileShader(GL_FRAGMENT_SHADER, fsrc);
+
+    program = glCreateProgram();
+    glAttachShader(program, vs);
+    glAttachShader(program, fs);
+    glLinkProgram(program);
+
+    float vertices[] = {
+        -1, -1, 0, 1, 0, 0,
+         1, -1, 0, 1, 1, 0,
+        -1,  1, 0, 1, 0, 1,
+         1,  1, 0, 1, 1, 1
+    };
+
+    gl->glGenBuffers(1, &vbo);
+    gl->glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    gl->glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+}
+
+// ---------- RENDER ----------
+void VideoRenderNode::render(const QSGRenderNode::RenderState *)
+{
+    if (!gl)
+        return;
+
+    initGL(gl);
+
+    gl->glDisable(GL_DEPTH_TEST);
+
+    gl->glViewport(0, 0, (GLsizei)rect.width(), (GLsizei)rect.height());
+
+    gl->glClearColor(0, 0, 0, 1);
+    gl->glClear(GL_COLOR_BUFFER_BIT);
+
+    if (textureId == 0)
+        return;
+
+    gl->glUseProgram(program);
+
+    gl->glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
+    GLint posLoc = glGetAttribLocation(program, "position");
+    GLint texLoc = glGetAttribLocation(program, "texcoord");
+
+    gl->glEnableVertexAttribArray(posLoc);
+    gl->glVertexAttribPointer(posLoc, 4, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+
+    gl->glEnableVertexAttribArray(texLoc);
+    gl->glVertexAttribPointer(texLoc, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(4 * sizeof(float)));
+
+    gl->glActiveTexture(GL_TEXTURE0);
+    gl->glBindTexture(GL_TEXTURE_EXTERNAL_OES, textureId);
+
+    GLint samplerLoc = glGetUniformLocation(program, "tex");
+    gl->glUniform1i(samplerLoc, 0);
+
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }

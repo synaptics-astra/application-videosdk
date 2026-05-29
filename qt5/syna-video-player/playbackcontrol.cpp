@@ -1,0 +1,21 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2024 Synaptics Incorporated
+
+#include "playbackcontrol.h"
+
+PlaybackControl::PlaybackControl(string machine, string mode) : machine(machine), mode(mode)
+{
+    windowManager = new WindowManager(nullptr, this->machine, "Synaptics Video Player");
+}
+
+PlaybackControl::~PlaybackControl()
+{
+    delete windowManager;
+}
+
+void PlaybackControl::doPlayback(int index, QString url1, QString url2,
+        QString url3, QString url4)
+{
+    windowManager->show();
+    windowManager->play(index, url1, url2, url3, url4);
+}

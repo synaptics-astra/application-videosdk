@@ -4,6 +4,7 @@ QT += gui-private widgets
 CONFIG += c++17
 CONFIG += link_pkgconfig
 PKGCONFIG += gstreamer-1.0 gstreamer-video-1.0 libudev syna-player-framework
+LIBS += -lgstapp-1.0
 
 # Platform-specific configuration
 wayland {

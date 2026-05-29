@@ -46,5 +46,12 @@ class PlayerUI: public QWidget {
 
     protected:
         void resizeEvent(QResizeEvent* event);
+
+    private slots:
+        void onSettingsChanged(const QString &inputType,
+                           const QString &inputSource,
+                           const QString &upscalingType,
+                           const QString &modelType);
+
 };
 #endif // PLAYER_UI_H

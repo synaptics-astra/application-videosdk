@@ -1,0 +1,31 @@
+<RCC>
+    <qresource prefix="/">
+        <file>qmls/main.qml</file>
+        <file>qmls/res.qml</file>
+        <file>qmls/elements/SynaTextEditBox.qml</file>
+        <file>qmls/elements/SynaButton.qml</file>
+        <file>qmls/elements/SynaDropDownMenu.qml</file>
+        <file>qmls/elements/SynaOrderList.qml</file>
+        <file>qmls/elements/PageTitle.qml</file>
+        <file>qmls/elements/SectionLabel.qml</file>
+        <file>qmls/elements/ToggleButton.qml</file>
+        <file>qmls/elements/RowBar.qml</file>
+        <file>qmls/elements/LoadingIndicator.qml</file>
+        <file>qmls/custom_views/Header.qml</file>
+        <file>qmls/custom_views/ListItem.qml</file>
+        <file>qmls/custom_views/TextView.qml</file>
+        <file>qmls/panels/Home.qml</file>
+        <file>qmls/panels/SampleModule.qml</file>
+        <file>qmls/panels/PanelSelection.qml</file>
+        <file>qmls/panels/Wifi.qml</file>
+        <file>qmls/panels/Bluetooth.qml</file>
+        <file>qmls/panels/UsbFormatPriorities.qml</file>
+        <file>qmls/panels/RtspConfig.qml</file>
+        <file>res/images/astra_icon.png</file>
+        <file>res/images/header_banner.png</file>
+        <file>res/images/vertical_line.png</file>
+        <file>res/fonts/cabal.ttf</file>
+        <file>res/fonts/nasa.ttf</file>
+        <file>res/fonts/vollkorn_regular.ttf</file>
+    </qresource>
+</RCC>

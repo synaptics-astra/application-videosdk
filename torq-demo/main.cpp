@@ -20,6 +20,12 @@ int main(int argc, char *argv[])
     app.setOrganizationName("synaptics");
     app.setOrganizationDomain("synaptics.com");
 
+    system("v4l2-ctl -d /dev/v4l-subdev2 --set-ctrl auto_exposure=1");
+    system("v4l2-ctl -d /dev/v4l-subdev2 --set-ctrl gain_automatic=0");
+    system("v4l2-ctl -d /dev/v4l-subdev2 --set-ctrl white_balance_automatic=1");
+    system("v4l2-ctl -d /dev/v4l-subdev2 --set-ctrl analogue_gain=80");
+    system("v4l2-ctl -d /dev/v4l-subdev2 --set-ctrl exposure=850");
+
     string machine;
     QProcess process;
     process.start("uname", QStringList() << "-n");

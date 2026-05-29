@@ -9,6 +9,7 @@
 #include <QFile>
 #include <QTextStream>
 #include <syna-settings-framework.h>
+#include <QVariantMap>
 
 typedef struct {
     char rtspUrls[4][256];

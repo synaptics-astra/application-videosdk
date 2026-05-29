@@ -1,0 +1,5 @@
+Name: Syna Settings Framework
+Description:  Synaptics settings framework.
+Version: @@PV@@
+Requires:
+Libs: -lsyna-settings-framework -lrt

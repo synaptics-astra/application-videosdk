@@ -3654,27 +3654,33 @@ static void weston_view_set_initial_position(struct weston_view *view,
   pixman_rectangle32_t area;
   struct weston_coord_global pos;
 
-  /* As a heuristic place the new window on the same output as the
-   * pointer. Falling back to the output containing 0, 0.
-   *
-   * TODO: Do something clever for touch too?
-   */
   pos.c = weston_coord(0, 0);
-  wl_list_for_each(seat, &compositor->seat_list, link) {
-    struct weston_pointer *pointer = weston_seat_get_pointer(seat);
+  /* Use focused output (touch > pointer > keyboard > file override fallback).
+   * This ensures touch on a panel opens windows there, while mouse clicks
+   * on another output open windows on that output instead.
+   */
+  target_output = weston_shell_utils_get_focused_output(compositor);
+  if (!target_output) {
+    /* As a heuristic place the new window on the same output as the
+     * pointer. Falling back to the output containing 0, 0.
+     */
+    wl_list_for_each(seat, &compositor->seat_list, link) {
+      struct weston_pointer *pointer = weston_seat_get_pointer(seat);
 
-    if (pointer) {
-      pos = pointer->pos;
-      break;
+      if (pointer) {
+        pos = pointer->pos;
+        break;
+      }
+    }
+
+    wl_list_for_each(output, &compositor->output_list, link) {
+      if (weston_output_contains_coord(output, pos)) {
+        target_output = output;
+        break;
+      }
     }
   }
 
-  wl_list_for_each(output, &compositor->output_list, link) {
-    if (weston_output_contains_coord(output, pos)) {
-      target_output = output;
-      break;
-    }
-  }
 
   if (!target_output) {
     pos.c = weston_coord(10 + random() % 400, 10 + random() % 400);
@@ -4162,6 +4168,7 @@ static void handle_output_resized(struct wl_listener *listener, void *data) {
 
   shell_resize_surface_to_output(shell, sh_output->background_surface, output);
   shell_resize_surface_to_output(shell, sh_output->panel_surface, output);
+  shell_resize_surface_to_output(shell, sh_output->customimage_surface, output);
 }
 
 static void create_shell_output(struct desktop_shell *shell,

@@ -1,5 +1,7 @@
 <RCC>
     <qresource prefix="/">
+        <file>images/folder_icon.png</file>
+        <file>images/play_round_icon.png</file>
         <file>images/stats_on.png</file>
         <file>images/stats_off.png</file>
         <file>images/exit.png</file>

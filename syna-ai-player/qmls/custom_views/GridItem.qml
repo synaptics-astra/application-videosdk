@@ -1,7 +1,6 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.5
 import QtQuick.Layouts 1.3
-import QtQuick.Dialogs 1.3
 import QtQuick.Window 2.1
 
 import Resource 1.0
@@ -327,59 +326,54 @@ Pane {
         }
     }
 
-    FileDialog {
-        id: fileDialog
-        title: "Select a Video File"
-        nameFilters: ["Video files (*.mp4 *.h265 *.h264)"]
-        modality: Qt.WindowModal
-
-        onAccepted: {
-            var selectedFile = fileDialog.fileUrl.toString().replace("file://", "")
-            var videoInfo = videoProber.probeFile(selectedFile)
-
-            if (videoInfo.width > 1920 || videoInfo.height > 1080) {
-                resolutionPopup.open()
-                return
-            }
-
-            var framerateValue = 0
-            if (videoInfo.framerate && videoInfo.framerate.includes("/")) {
-                framerateValue = parseInt(videoInfo.framerate.split("/")[0])
-            } else {
-                console.log("Framerate invalid or missing, defaulting to 0")
-            }
-            if (framerateValue > 25) {
-                frameratePopup.open()
-                return
-            }
-
-            var decoder = ""
-            var demuxer = ""
-
-            if (videoInfo.container.toLowerCase() === "mp4") {
-                demuxer = "qtdemux name=demux demux.video_0 ! queue"
-            } else if (!videoInfo.container) {
-                demuxer = "queue";
-            } else {
-                console.log("Unsupported container: " + videoInfo.container)
-                return
-            }
-
-            if (videoInfo.codec === "h264") {
-                decoder = "h264parse ! v4l2h264dec"
-            } else if (videoInfo.codec === "h265") {
-                decoder = "h265parse ! v4l2h265dec"
-            } else {
-                console.log("Unsupported codec: " + videoInfo.codec)
-                return
-            }
-
-            gridItem.command1 = "filesrc location=" + selectedFile + " ! " +
-                                demuxer + " ! " + decoder + " ! " + gridItem.modelPipeline
-
-            playbackControl.doPlayback(1, gridItem.command1, "", "", "")
+    function handleSelectedVideoFile(selectedFile) {
+        if (!selectedFile || selectedFile.length === 0) {
+            return
         }
 
+        var videoInfo = videoProber.probeFile(selectedFile)
+
+        if (videoInfo.width > 1920 || videoInfo.height > 1080) {
+            resolutionPopup.open()
+            return
+        }
+
+        var framerateValue = 0
+        if (videoInfo.framerate && videoInfo.framerate.includes("/")) {
+            framerateValue = parseInt(videoInfo.framerate.split("/")[0])
+        } else {
+            console.log("Framerate invalid or missing, defaulting to 0")
+        }
+        if (framerateValue > 25) {
+            frameratePopup.open()
+            return
+        }
+
+        var decoder = ""
+        var demuxer = ""
+
+        if (videoInfo.container.toLowerCase() === "mp4") {
+            demuxer = "qtdemux name=demux demux.video_0 ! queue"
+        } else if (!videoInfo.container) {
+            demuxer = "queue"
+        } else {
+            console.log("Unsupported container: " + videoInfo.container)
+            return
+        }
+
+        if (videoInfo.codec === "h264") {
+            decoder = "h264parse ! v4l2h264dec"
+        } else if (videoInfo.codec === "h265") {
+            decoder = "h265parse ! v4l2h265dec"
+        } else {
+            console.log("Unsupported codec: " + videoInfo.codec)
+            return
+        }
+
+        gridItem.command1 = "filesrc location=" + selectedFile + " ! " +
+                            demuxer + " ! " + decoder + " ! " + gridItem.modelPipeline
+
+        playbackControl.doPlayback(1, gridItem.command1, "", "", "")
     }
 
     background: Rectangle {
@@ -413,7 +407,15 @@ Pane {
                         case 1:
                             if (gridItem.mode === "file") {
                                 if (is2K) {
-                                    fileDialog.open()
+                                    if (fileDialogHelper) {
+                                        var selectedFile = fileDialogHelper.selectSingleFile(
+                                                            "Select a Video File",
+                                                            ["*.mp4", "*.h264", "*.h265", "*.MP4", "*.H264", "*.H265"],
+                                                            "/home/root")
+                                        handleSelectedVideoFile(selectedFile)
+                                    } else {
+                                        console.log("Shared file dialog helper is not available")
+                                    }
                                 } else {
                                     resolutionSwitchBackPopup.open()
                                 }

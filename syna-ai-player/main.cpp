@@ -10,6 +10,7 @@
 #include "playbackcontrol.h"
 #include "videoprober.h"
 #include "processhelper.h"
+#include "filedialoghelper.h"
 
 using namespace std;
 
@@ -21,6 +22,7 @@ int main(int argc, char *argv[])
     QApplication app(argc, argv);
     app.setOrganizationName("synaptics");
     app.setOrganizationDomain("synaptics.com");
+    qputenv("QT_DISABLE_SHADER_DISK_CACHE", "1");
 
     string machine;
     QProcess process;
@@ -39,6 +41,7 @@ int main(int argc, char *argv[])
     SettingsManager settingsManager;
     VideoProber videoProber;
     ProcessHelper processHelper;
+    FileDialogHelper fileDialogHelper;
 
     QString qmlStr;
     if (playbackControl.machine == SL1620_ASTRA_MACHINE) {
@@ -68,6 +71,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("settingsManager", &settingsManager);
     engine.rootContext()->setContextProperty("videoProber", &videoProber);
     engine.rootContext()->setContextProperty("processHelper", &processHelper);
+    engine.rootContext()->setContextProperty("fileDialogHelper", &fileDialogHelper);
 
     qmlRegisterSingletonType(QStringLiteral("qrc:/qmls/res.qml"), "Resource", 1, 0, "Resource");
 

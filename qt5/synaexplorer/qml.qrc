@@ -1,0 +1,32 @@
+<RCC>
+    <qresource prefix="/">
+        <file>qmls/main.qml</file>
+        <file>qmls/pageconfig.qml</file>
+        <file>qmls/res.qml</file>
+        <file>qmls/custom_views/GridItem.qml</file>
+        <file>qmls/custom_views/Header.qml</file>
+        <file>qmls/custom_views/ListItem.qml</file>
+        <file>qmls/custom_views/TextView.qml</file>
+        <file>qmls/panels/AIDemos.qml</file>
+        <file>qmls/panels/AIDemos2619.qml</file>
+        <file>qmls/panels/AIDemos2615.qml</file>
+        <file>qmls/panels/CameraApp.qml</file>
+        <file>qmls/panels/GettingStarted.qml</file>
+        <file>qmls/panels/GfxDemos.qml</file>
+        <file>qmls/panels/VideoDemos1680.qml</file>
+        <file>qmls/panels/VideoDemos1620.qml</file>
+        <file>qmls/panels/VideoDemos1640.qml</file>
+        <file>qmls/panels/VideoDemos2619.qml</file>
+        <file>qmls/panels/VideoDemos2615.qml</file>
+        <file>qmls/panels/CapabilityDemos.qml</file>
+        <file>qmls/panels/RealTimeStreaming.qml</file>
+        <file>res/images/astra_icon.png</file>
+        <file>res/images/astra_playback.png</file>
+        <file>res/images/header_banner.png</file>
+        <file>res/images/vertical_line.png</file>
+        <file>res/images/camera_icon.png</file>
+        <file>res/fonts/cabal.ttf</file>
+        <file>res/fonts/nasa.ttf</file>
+        <file>res/fonts/vollkorn_regular.ttf</file>
+    </qresource>
+</RCC>

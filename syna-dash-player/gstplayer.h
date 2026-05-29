@@ -5,53 +5,46 @@
 #define GSTPLAYER_H
 
 #include "command.h"
-#include <QApplication>
 #include <QWidget>
-#include <QTimer>
-#include <QDebug>
-#include <string>
-#include <QLabel>
-#include <QVBoxLayout>
-
-#include <glib.h>
+#include <QImage>
 #include <gst/gst.h>
-#include <gst/video/videooverlay.h>
-#include <qpa/qplatformnativeinterface.h>
-#ifdef HAVE_WAYLAND
-#include <gst/wayland/wayland.h>
-#endif
+#include <gst/app/gstappsink.h>
 
-class Command;
-class GstPlayer : public QWidget {
+class GstPlayer : public QWidget
+{
     Q_OBJECT
+
 public:
     explicit GstPlayer(QWidget* parent = nullptr);
     ~GstPlayer();
-    void init(struct wl_surface* surface);
+
     void startPlayback();
     void stopPlayback();
-    Command *command;
+
+    Command* command = nullptr;
 
 signals:
-    void videoInfoChanged(const QString &resolution, float fps);
-    void resolutionChanged(const QString &prevResolution, const QString &currResolution);
+    void pushFrame(const QImage& image);
+    void videoInfoChanged(const QString& resolution, float fps);
+    void resolutionChanged(const QString& prev, const QString& curr);
 
 protected:
-    void resizeEvent(QResizeEvent* event);
+    void paintEvent(QPaintEvent*) override;
+
+private slots:
+    void updateImage(const QImage& image);
 
 private:
-    static GstBusSyncReply gstBusCallback(GstBus* bus, GstMessage* message, gpointer user_data);
+    static GstFlowReturn newBuffer(GstAppSink* sink, gpointer userData);
     void cleanupPipeline();
-    void updateVideoInfo();
-    bool configurePlatformSpecificOverlay();
 
-    GstElement* pipeline;
-    GstVideoOverlay* sink;
-    struct wl_surface* surface;
-    QTimer* videoInfoTimer;
-    int lastWidth;
-    int lastHeight;
-    float lastFps;
+    GstElement* pipeline = nullptr;
+    GstAppSink* appsink = nullptr;
+    QImage videoFrame;
+
+    int lastWidth = -1;
+    int lastHeight = -1;
+    float lastFps = -1.0f;
 };
 
-#endif // GSTPLAYER_H
+#endif

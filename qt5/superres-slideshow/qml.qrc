@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/">
+        <file>main.qml</file>
+        <file>res/images/astra_icon.png</file>
+        <file>res/images/play.png</file>
+        <file>res/images/sr.png</file>
+    </qresource>
+</RCC>
