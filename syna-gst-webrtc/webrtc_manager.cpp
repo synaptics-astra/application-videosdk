@@ -7,6 +7,9 @@
 #include <QRegularExpression>
 #include <QFile>
 #include <QTcpSocket>
+#include <QRegularExpression>
+#include <QProcess>
+#include <QString>
 
 #include "webrtc_manager.h"
 
@@ -56,6 +59,9 @@ QString WebrtcManager::getMachine() {
         process.start("uname", QStringList() << "-n");
         if (process.waitForFinished() && process.exitCode() == 0) {
             cachedMachine = process.readAllStandardOutput().trimmed();
+            if (cachedMachine == "sl2619-coralboard") {
+                cachedMachine = "sl2619";
+            }
             if (cachedMachine.isEmpty()) {
                 cachedMachine = "Unknown Machine";
             }
@@ -103,21 +109,40 @@ void WebrtcManager::stopServers()
     }
 }
 
-QString WebrtcManager::getEthernetIP()
+static QString getRoutedIPv4()
 {
     QProcess process;
-    process.start("sh", QStringList() << "-c" << "ip addr show eth0");
-    process.waitForFinished();
 
-    QString output = process.readAllStandardOutput();
-    QRegularExpression regex(R"(inet\s+(\d+\.\d+\.\d+\.\d+))");
-    QRegularExpressionMatch match = regex.match(output);
+    process.start("ip",
+                  QStringList() << "route"
+                                << "get"
+                                << "8.8.8.8");
 
-    if (match.hasMatch()) {
+    if (!process.waitForFinished(1000))
+        return {};
+
+    const QString output =
+        QString::fromUtf8(process.readAllStandardOutput());
+
+    const QRegularExpression re(
+        R"(src\s+((?:\d{1,3}\.){3}\d{1,3}))");
+
+    const QRegularExpressionMatch match =
+        re.match(output);
+
+    if (match.hasMatch())
         return match.captured(1);
-    }
 
-    return "Unknown";
+    return {};
+}
+
+QString WebrtcManager::getPreferredIP()
+{
+    const QString ip = getRoutedIPv4();
+
+    return ip.isEmpty()
+           ? QStringLiteral("Unknown")
+           : ip;
 }
 
 void WebrtcManager::stopFileSrc()

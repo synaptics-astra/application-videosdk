@@ -3,6 +3,10 @@
 
 #include "about.h"
 
+#include <QRegularExpression>
+#include <QProcess>
+#include <QString>
+
 AboutManager::AboutManager(QObject *parent) : QObject(parent) {}
 
 QString AboutManager::fetchAstraVersion() {
@@ -42,18 +46,44 @@ QString AboutManager::getMachine() {
         return "Unknown Machine";
 
     QString machine = process.readAllStandardOutput().trimmed();
+    if (machine == "sl2619-coralboard") {
+        return "sl2619";
+    }
     return machine.isEmpty() ? "Unknown Machine" : machine;
+}
+
+static QString getRoutedIPv4()
+{
+    QProcess process;
+
+    process.start("ip",
+                  QStringList() << "route"
+                                << "get"
+                                << "8.8.8.8");
+
+    if (!process.waitForFinished(1000))
+        return {};
+
+    const QString output =
+        QString::fromUtf8(process.readAllStandardOutput());
+
+    const QRegularExpression re(
+        R"(src\s+((?:\d{1,3}\.){3}\d{1,3}))");
+
+    const QRegularExpressionMatch match =
+        re.match(output);
+
+    if (match.hasMatch())
+        return match.captured(1);
+
+    return {};
 }
 
 QString AboutManager::fetchIpAddress()
 {
-    QProcess process;
-    process.start("sh", QStringList() << "-c"
-        << "ifconfig 2>/dev/null | grep -E 'inet[^6]' | grep -v 127.0.0.1 | awk '{print $2}' | cut -d: -f2 | head -n1");
+    const QString ip = getRoutedIPv4();
 
-    if (!process.waitForFinished(3000) || process.exitCode() != 0)
-        return "Unknown IP";
-
-    QString ip = process.readAllStandardOutput().trimmed();
-    return ip.isEmpty() ? "Unknown IP" : ip;
+    return ip.isEmpty()
+           ? QStringLiteral("Unknown IP")
+           : ip;
 }

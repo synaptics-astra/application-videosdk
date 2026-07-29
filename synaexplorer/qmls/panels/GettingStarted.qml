@@ -128,7 +128,7 @@ Rectangle {
                     }
 
                     var hwdevice;
-                    var decoder;
+                    var decoder = "avdec_h264";
                     var machine = playbackControl.getMachine();
                     if (machine == "sl1620") {
                         decoder = "avdec_h264";
@@ -146,8 +146,17 @@ Rectangle {
                         decoder = "v4l2h264dec";
                     }
                     if (is2K) {
+                        var priorityDevice = AudioHelper.getPriorityDevice()
                         hwdevice = AudioHelper.getPriorityDeviceId()
-                        playbackControl.doPlayback(1, "filesrc location=/home/root/demos/videos/mp4/astra_intro.mp4 ! qtdemux name=demux demux.audio_0 ! queue ! aacparse ! fdkaacdec ! audioconvert ! alsasink device=" + hwdevice + " demux.video_0 ! queue ! h264parse ! " + decoder + " ! placeholdersink", "", "", "")
+                        var hasAudioDevice = priorityDevice && priorityDevice.indexOf("|Platform Default") === -1 && hwdevice
+                        var pipeline
+                        if (hasAudioDevice) {
+                            pipeline = "filesrc location=/home/root/demos/videos/mp4/astra_intro.mp4 ! qtdemux name=demux demux.audio_0 ! queue ! aacparse ! fdkaacdec ! audioconvert ! alsasink device=" + hwdevice + " demux.video_0 ! queue ! h264parse ! " + decoder + " ! placeholdersink"
+                        } else {
+                            console.log("Warning: No audio device found, using video-only fallback pipeline")
+                            pipeline = "filesrc location=/home/root/demos/videos/mp4/astra_intro.mp4 ! qtdemux name=demux demux.video_0 ! queue ! h264parse ! " + decoder + " ! placeholdersink"
+                        }
+                        playbackControl.doPlayback(1, pipeline, "", "", "")
                     } else {
                         resolutionSwitchBackPopup.open()
                     }

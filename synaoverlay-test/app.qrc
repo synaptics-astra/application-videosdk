@@ -1,0 +1,20 @@
+<RCC>
+    <qresource>
+        <file>images/columns/1.png</file>
+        <file>images/columns/2.png</file>
+        <file>images/columns/3.png</file>
+        <file>images/columns/4.png</file>
+        <file>images/columns/5.png</file>
+        <file>images/bars/1.png</file>
+        <file>images/bars/2.png</file>
+        <file>images/bars/3.png</file>
+        <file>images/bars/4.png</file>
+        <file>images/bars/5.png</file>
+        <file>images/loading/1.png</file>
+        <file>images/loading/2.png</file>
+        <file>images/loading/3.png</file>
+        <file>images/loading/4.png</file>
+        <file>images/loading/5.png</file>
+        <file>videos/tiny.mp4</file>
+    </qresource>
+</RCC>

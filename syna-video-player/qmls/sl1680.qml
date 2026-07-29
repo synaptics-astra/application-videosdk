@@ -186,6 +186,7 @@ ApplicationWindow {
                 Repeater {
                     model: 4
                     delegate: Label {
+                        enabled: !singleView.checked || index === 0
                         text: "VIDEO " + (index + 1)
                         font.pixelSize: 30
                         Layout.fillWidth: true
@@ -209,6 +210,7 @@ ApplicationWindow {
                     model: 4
                     delegate: ComboBox {
                         id: comboBox
+                        enabled: !singleView.checked || index === 0
                         textRole: "text"
                         valueRole: "value"
                         model: player.cmdsModel

@@ -10,7 +10,9 @@ ApplicationWindow {
     id: player
     visible: true
     visibility: "FullScreen"
-    title: qsTr("SL2619 :: Syna Capability Demo")
+    title: machineHostName === "sl2619-coralboard"
+           ? qsTr("SL2619-coralboard :: Syna Capability Demo")
+           : qsTr("SL2619 :: Syna Capability Demo")
     color: "#ffffff"
     width: screen.width
     height: screen.height

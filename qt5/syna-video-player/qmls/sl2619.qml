@@ -11,7 +11,9 @@ ApplicationWindow {
     height: Screen.height
     visible: true
     visibility: "FullScreen"
-    title: qsTr("Syna Video Player - SL2619")
+    title: machineHostName === "sl2619-coralboard"
+           ? qsTr("Syna Video Player - SL2619-coralboard")
+           : qsTr("Syna Video Player - SL2619")
     color: "#ffffff"
 
     property var quadAllowedFileBases: [

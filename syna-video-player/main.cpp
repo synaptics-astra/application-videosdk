@@ -86,9 +86,14 @@ int main(int argc, char *argv[])
     QStringList args = app.arguments();
 
     QProcess process;
+    QString machineHostName;
     process.start("uname", QStringList() << "-n");
     process.waitForFinished();
-    string machine = process.readAllStandardOutput().trimmed().toStdString();
+    machineHostName = process.readAllStandardOutput().trimmed();
+    string machine = machineHostName.toStdString();
+    if (machine == "sl2619-coralboard") {
+        machine = "sl2619";
+    }
 
     string mode = "";
     PlaybackControl playbackControl(machine, mode);
@@ -123,6 +128,7 @@ int main(int argc, char *argv[])
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty("playbackControl", &playbackControl);
     engine.rootContext()->setContextProperty("settingsManager", &settingsManager);
+    engine.rootContext()->setContextProperty("machineHostName", machineHostName);
 
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
         &app, [url](QObject *obj, const QUrl &objUrl) {

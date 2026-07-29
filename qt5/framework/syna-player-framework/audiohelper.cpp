@@ -25,6 +25,9 @@ QString AudioHelper::detectMachine() const
     p.start("uname", QStringList() << "-n");
     if (!p.waitForStarted() || !p.waitForFinished(3000)) return "Unknown";
     QString out = p.readAllStandardOutput().trimmed();
+    if (out == "sl2619-coralboard") {
+        return "sl2619";
+    }
     return out.isEmpty() ? "Unknown" : out;
 }
 

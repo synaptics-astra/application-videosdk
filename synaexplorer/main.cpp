@@ -34,6 +34,9 @@ int main(int argc, char *argv[])
         if (!parts.isEmpty()) {
             QString machName = parts.first();
             machine = machName.toStdString();
+            if (machine == "sl2619-coralboard") {
+                machine = "sl2619";
+            }
         }
     }
 

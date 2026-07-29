@@ -20,7 +20,7 @@ public:
     Q_INVOKABLE void streamFileSrc(const QString &filePath);
     Q_INVOKABLE void streamAIDemos(const QString &filePath);
     Q_INVOKABLE void streamCameraSrc(const QString &camPath);
-    Q_INVOKABLE QString getEthernetIP();
+    Q_INVOKABLE QString getPreferredIP();
     Q_INVOKABLE void stopFileSrc();
     Q_INVOKABLE void stopAIDemos();
     Q_INVOKABLE void stopCameraSrc();

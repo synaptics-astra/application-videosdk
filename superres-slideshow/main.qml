@@ -215,6 +215,7 @@ ApplicationWindow {
                     width: root.height * 0.04 * 1.6 + 10
                     height: root.height * 0.04 * 1.6
                     anchors.centerIn: parent
+                    anchors.horizontalCenterOffset: 20
                     z: 1
                     visible: leftImage.source.toString() === "" && rightImage.source.toString() === "" && !isCameraActive
                     opacity: visible ? 1.0 : 0.0

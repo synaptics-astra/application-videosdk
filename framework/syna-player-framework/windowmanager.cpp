@@ -17,6 +17,7 @@
 #include <QSet>
 #include <QDebug>
 #include "settingsmanager.h"
+#include <QWindow>
 
 int WindowManager::findScaleFactor(int width, int height)
 {
@@ -159,14 +160,25 @@ void WindowManager::updateRTSPSRC(QVector<QString>::iterator iter)
     QString rtspSrcReplaceWord = "RTSPURL";
     QVariantMap rtspData = settingsManager->getData(SETTINGS_ID_RTSP_URLS);
     QStringList rtspUrls = rtspData["rtspUrls"].toStringList();
-    if (rtspUrls.isEmpty()) {
+    QStringList validRtspUrls;
+    for (const auto& rtspUrl : rtspUrls) {
+        if (!rtspUrl.trimmed().isEmpty()) {
+            validRtspUrls.append(rtspUrl);
+        }
+    }
+
+    if (validRtspUrls.isEmpty()) {
         return;
+    }
+
+    if (rtspIndex < 0 || rtspIndex >= validRtspUrls.size()) {
+        rtspIndex = 0;
     }
 
     int rtspSrcIndex = (*iter).indexOf(rtspSrcReplaceWord, 0, Qt::CaseInsensitive);
     while (rtspSrcIndex != -1) {
-        (*iter).replace(rtspSrcIndex, rtspSrcReplaceWord.length(), rtspUrls[rtspIndex]);
-        rtspIndex = (rtspIndex + 1) % rtspUrls.size();
+        (*iter).replace(rtspSrcIndex, rtspSrcReplaceWord.length(), validRtspUrls[rtspIndex]);
+        rtspIndex = (rtspIndex + 1) % validRtspUrls.size();
         rtspSrcIndex = (*iter).indexOf(rtspSrcReplaceWord, rtspSrcIndex + 1, Qt::CaseInsensitive);
     }
 }
@@ -402,6 +414,9 @@ void WindowManager::playPipelines()
 WindowManager::WindowManager(QWidget *parent, string mach, QString appName) : QWidget(parent),
 machine(mach), rtspIndex(0), appName(appName)
 {
+    if (machine == "sl2619-coralboard") {
+        machine = "sl2619";
+    }
     settingsManager = new SettingsManager();
     if (!settingsManager) {
         qFatal("Failed to allocate SettingsManager!");
@@ -552,6 +567,12 @@ void WindowManager::play(QString url1, QString url2)
     iter++;
     players.append(player);
 
+    this->show();
+    QCoreApplication::processEvents();
+    if (this->windowHandle()) {
+        this->windowHandle()->setScreen(QGuiApplication::primaryScreen());
+    }
+
     if (!url2.isEmpty()) {
         updateCAMSRC(iter);
         updateHRXSRC(iter);
@@ -644,8 +665,12 @@ void WindowManager::play(int index, QString url1, QString url2,
     }
 
     this->show();
-    this->update();
     QCoreApplication::processEvents();
+    if (this->windowHandle()) {
+        this->windowHandle()->setScreen(QGuiApplication::primaryScreen());
+    }
+
+    this->update();
 
     for (auto player = players.begin(); player != players.end(); ++player) {
         (*player)->start();

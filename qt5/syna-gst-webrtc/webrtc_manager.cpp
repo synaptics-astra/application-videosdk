@@ -56,6 +56,9 @@ QString WebrtcManager::getMachine() {
         process.start("uname -n");
         if (process.waitForFinished() && process.exitCode() == 0) {
             cachedMachine = process.readAllStandardOutput().trimmed();
+            if (cachedMachine == "sl2619-coralboard") {
+                cachedMachine = "sl2619";
+            }
             if (cachedMachine.isEmpty()) {
                 cachedMachine = "Unknown Machine";
             }

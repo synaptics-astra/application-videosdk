@@ -153,7 +153,7 @@ ApplicationWindow {
 
             Image {
                 source: "qrc:/images/astra_white.png"
-                sourceSize: Qt.size(100, 100)
+                sourceSize: Qt.size(parent.height, parent.height)
             }
 
             Label {

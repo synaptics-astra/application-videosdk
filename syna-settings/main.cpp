@@ -28,6 +28,9 @@ int main(int argc, char *argv[]) {
     if (process.exitCode() == 0) {
         machine = process.readAllStandardOutput().trimmed();
     }
+    if (machine == "sl2619-coralboard") {
+        machine = "sl2619";
+    }
 
     QQmlApplicationEngine engine;
     SettingsControl settingsControl;

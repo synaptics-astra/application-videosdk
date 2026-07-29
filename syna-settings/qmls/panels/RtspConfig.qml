@@ -42,7 +42,7 @@ Rectangle {
 
                 var savedData = settingsControl.getData(SETTINGS_ID_RTSP_URLS);
                 var urls = defaultUrls;
-                if (savedData && savedData["rtspUrls"] && Array.isArray(savedData["rtspUrls"])) {
+                if (savedData && savedData["rtspUrls"]) {
                     urls = savedData["rtspUrls"].slice(0, 4);
                     while (urls.length < 4) {
                         urls.push("");

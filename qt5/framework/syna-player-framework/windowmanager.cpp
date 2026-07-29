@@ -399,6 +399,9 @@ void WindowManager::playPipelines()
 WindowManager::WindowManager(QWidget *parent, string mach, QString appName) : QWidget(parent), mutex(QMutex::Recursive),
 machine(mach), rtspIndex(0), appName(appName)
 {
+    if (machine == "sl2619-coralboard") {
+        machine = "sl2619";
+    }
     settingsManager = new SettingsManager();
     if (!settingsManager) {
         qFatal("Failed to allocate SettingsManager!");

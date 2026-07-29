@@ -55,7 +55,7 @@ void PlaybackControl::launch(QString path)
 
     process->setArguments(arguments);
 
-    QProcessEnvironment env;
+    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
     for (const QString& envVar : environmentVariables) {
         QStringList envPair = envVar.split("=");
         if (envPair.size() == 2) {

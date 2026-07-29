@@ -15,7 +15,7 @@ Command::~Command() = default;
 QString Command::getMachine()
 {
     QProcess p;
-    p.start("uname -n");
+    p.start("uname", QStringList() << "-n");
     p.waitForFinished();
     return p.readAllStandardOutput().trimmed();
 }

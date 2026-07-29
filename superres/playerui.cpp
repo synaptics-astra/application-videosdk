@@ -172,6 +172,4 @@ void PlayerUI::onSettingsChanged(const QString &inputType,
     player->command->setModelType(modelType);
     player->command->createPipeline();
 
-    player->stopPlayback();
-    player->startPlayback();
 }

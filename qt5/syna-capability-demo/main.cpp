@@ -22,10 +22,15 @@ int main(int argc, char *argv[])
     app.setOrganizationDomain("synaptics.com");
 
     string machine;
+    QString machineHostName;
     QProcess process;
     process.start("uname", QStringList() << "-n");
     process.waitForFinished();
-    machine = process.readAllStandardOutput().trimmed().toStdString();
+    machineHostName = process.readAllStandardOutput().trimmed();
+    machine = machineHostName.toStdString();
+    if (machine == "sl2619-coralboard") {
+        machine = "sl2619";
+    }
 
     PlaybackControl playbackControl(machine);
     FileControl fileControl;
@@ -52,6 +57,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("playbackControl", &playbackControl);
     engine.rootContext()->setContextProperty("fileControl", &fileControl);
     engine.rootContext()->setContextProperty("fileDialogHelper", &fileDialogHelper);
+    engine.rootContext()->setContextProperty("machineHostName", machineHostName);
 
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
         &app, [url](QObject *obj, const QUrl &objUrl) {

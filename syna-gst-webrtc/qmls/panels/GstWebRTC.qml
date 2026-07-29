@@ -618,17 +618,17 @@ Rectangle {
                         if (root.isFileSrcSelected && root.selectedFilePath !== "") {
                             var fileName = root.selectedFilePath.substring(root.selectedFilePath.lastIndexOf('/') + 1)
                             webrtcManager.streamFileSrc(root.selectedFilePath)
-                            root.deviceIP = webrtcManager.getEthernetIP()
+                            root.deviceIP = webrtcManager.getPreferredIP()
                             root.isStreaming = true
                             statusText.text = "Streaming file: " + fileName
                         } else if (root.isCameraSrcSelected && root.cameraPath !== "") {
                             webrtcManager.streamCameraSrc(root.cameraPath)
-                            root.deviceIP = webrtcManager.getEthernetIP()
+                            root.deviceIP = webrtcManager.getPreferredIP()
                             root.isStreaming = true
                             statusText.text = "Streaming from camera: " + root.cameraPath
                         } else if (root.isAIDemosSelected && aiDemoCombo.currentText !== "") {
                             webrtcManager.streamAIDemos(aiDemoCombo.currentText)
-                            root.deviceIP = webrtcManager.getEthernetIP()
+                            root.deviceIP = webrtcManager.getPreferredIP()
                             root.isStreaming = true
                             statusText.text = "Streaming AI Demo: " + aiDemoCombo.currentText
                         }

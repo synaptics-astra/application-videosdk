@@ -42,6 +42,9 @@ QString AboutManager::getMachine() {
         return "Unknown Machine";
 
     QString machine = process.readAllStandardOutput().trimmed();
+    if (machine == "sl2619-coralboard") {
+        return "sl2619";
+    }
     return machine.isEmpty() ? "Unknown Machine" : machine;
 }
 

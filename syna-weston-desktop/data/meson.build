@@ -8,6 +8,7 @@ install_data(
     'settings.png',
     'setup.png',
     'terminal.png',
+    'coralboard.png',
   ],
   install_dir: join_paths('/usr/share', 'syna-weston-desktop')
 )

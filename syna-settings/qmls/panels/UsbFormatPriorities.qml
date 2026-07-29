@@ -105,7 +105,7 @@ Rectangle {
         }
 
         var savedData = settingsControl.getData(SETTINGS_ID_USB_FORMAT_PRIORITIES);
-        if (savedData && savedData["formatPriorities"] && Array.isArray(savedData["formatPriorities"])) {
+	if (savedData && savedData["formatPriorities"]) {
             formats = savedData["formatPriorities"].slice(0, 4);
             while (formats.length < 4) {
                 formats.push("");

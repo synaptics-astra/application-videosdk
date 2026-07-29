@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2025 Synaptics Incorporated
 
+
+#include <QDateTime>
 #include "statswidget.h"
 
 StatsWidget::StatsWidget(QWidget *parent, QString appName, std::string mach)
-    : QWidget(parent), machine(mach), hasCPU(true), hasGPU(true), hasNPU(machine != SL1620_ASTRA_MACHINE && machine != SL2619_ASTRA_MACHINE && machine != SL2615_ASTRA_MACHINE)
+    : QWidget(parent), machine(mach), hasCPU(true), hasGPU(true), hasNPU(machine != SL1620_ASTRA_MACHINE)
 {
     this->setStyleSheet("background-color: rgb(0, 0, 0); color: white;");
 
@@ -239,20 +241,37 @@ QString StatsWidget::getGpuLoad()
 
 QString StatsWidget::getNpuLoad()
 {
-    QString command = "cat /sys/class/misc/synap/statistics/inference_time";
-    QProcess process;
-    process.start("/bin/sh", {"-c", command});
-    process.waitForFinished();
+    bool isTorqDriver = (machine == SL2619_ASTRA_MACHINE || machine == SL2615_ASTRA_MACHINE);
+    if (isTorqDriver) {
+        QString inferencePath = "/sys/class/misc/torq/statistics/torq_inference_time";
+        QProcess process;
+        process.start("/bin/sh", {"-c", QString("cat %1").arg(inferencePath)});
+        process.waitForFinished();
+        int inference_time_us = process.readAllStandardOutput().trimmed().toInt();
+        int window_us = 1000000;
+        if (inference_time_us < 0) inference_time_us = 0;
+        int npu_load = (window_us > 0) ? (inference_time_us * 100 / window_us) : 0;
+        QString result = QString::number(npu_load);
+        QProcess reset;
+        reset.start("/bin/sh", {"-c", QString("echo 0 > %1").arg(inferencePath)});
+        reset.waitForFinished();
+        return result;
+    } else {
+        QString command = "cat /sys/class/misc/synap/statistics/inference_time";
+        QProcess process;
+        process.start("/bin/sh", {"-c", command});
+        process.waitForFinished();
 
-    int load = process.readAllStandardOutput().trimmed().toInt();
-    int usage = (load * 100) / 3000000;
-    QString result = QString::number(usage);
+        int load = process.readAllStandardOutput().trimmed().toInt();
+        int usage = (load * 100) / 3000000;
+        QString result = QString::number(usage);
 
-    QProcess reset;
-    reset.start("/bin/sh", {"-c", "echo > /sys/class/misc/synap/statistics/inference_time"});
-    reset.waitForFinished();
+        QProcess reset;
+        reset.start("/bin/sh", {"-c", "echo > /sys/class/misc/synap/statistics/inference_time"});
+        reset.waitForFinished();
 
-    return result;
+        return result;
+    }
 }
 
 QString StatsWidget::getMemoryUsage()

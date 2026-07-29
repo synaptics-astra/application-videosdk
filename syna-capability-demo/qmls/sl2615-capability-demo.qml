@@ -127,7 +127,7 @@ ApplicationWindow {
                     multifilesrc loop=true location=" + fileURL1 + " ! h264parse ! avdec_h264 ! queue ! comp.sink_0
                     CAMSRC ! comp.sink_1"
 
-        property var synaCapabilityDemoConfigPath : "/home/root/demos/configs/syna_capability_demo_sl2615_config.txt"
+        property var synaCapabilityDemoConfigPath : "/home/root/demos/configs/syna_capability_demo_sl2619_config.txt"
 
         Component.onCompleted: {
             applicationArea.capabilityDemoFiles = fileControl.readFromFile(synaCapabilityDemoConfigPath);

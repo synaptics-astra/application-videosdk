@@ -88,7 +88,7 @@ ApplicationWindow {
             ListView {
                 ScrollBar.vertical: ScrollBar {
                     id: scrollBar
-                    width: Resource.width / 80
+                    width: Resource.width / 160
                     policy: ScrollBar.AlwaysOn
 
                     //Force overlay positioning
