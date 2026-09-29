@@ -20,8 +20,10 @@ x11 {
 
 SOURCES += main.cpp \
            playbackcontrol.cpp \
+           devfreqmanager.cpp \
 
 HEADERS += playbackcontrol.h \
+           devfreqmanager.h \
 
 
 RESOURCES += app.qrc

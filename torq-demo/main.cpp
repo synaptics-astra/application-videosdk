@@ -5,10 +5,22 @@
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QProcess>
+#include <signal.h>
 
 #include "playbackcontrol.h"
+#include "devfreqmanager.h"
 
 using namespace std;
+
+// Global signal handler for cleanup
+void signalHandler(int signal)
+{
+    if (signal == SIGINT || signal == SIGTERM) {
+        qDebug() << "Caught signal" << signal << ", throttling NPU...";
+        DevFreqManager::throttleNPU();
+        exit(0);
+    }
+}
 
 int main(int argc, char *argv[])
 {
@@ -19,6 +31,19 @@ int main(int argc, char *argv[])
     QApplication app(argc, argv);
     app.setOrganizationName("synaptics");
     app.setOrganizationDomain("synaptics.com");
+
+    // Install signal handlers for cleanup on Ctrl+C and SIGTERM
+    signal(SIGINT, signalHandler);
+    signal(SIGTERM, signalHandler);
+
+    // Initialize NPU frequency scaling
+    DevFreqManager::initializeGovernor();
+    DevFreqManager::boostNPU();
+
+    // Connect cleanup on application exit
+    QObject::connect(&app, &QApplication::aboutToQuit, []() {
+        DevFreqManager::throttleNPU();
+    });
 
     system("v4l2-ctl -d /dev/v4l-subdev2 --set-ctrl auto_exposure=1");
     system("v4l2-ctl -d /dev/v4l-subdev2 --set-ctrl gain_automatic=0");

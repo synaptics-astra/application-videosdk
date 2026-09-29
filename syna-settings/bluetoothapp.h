@@ -24,6 +24,7 @@ signals:
 
 private:
     void setBluetoothState(bool state);
+    bool scanInProgress() const;
     QProcess *process;
     QSettings settings;
 };

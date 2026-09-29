@@ -24,6 +24,7 @@ signals:
 
 private:
     void setWifiState(bool state, bool emitSignal = true);
+    bool scanInProgress() const;
     QProcess *process;
     QSettings settings;
 };
